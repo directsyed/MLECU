@@ -68,7 +68,9 @@
 
 **Still open (next thread — run collaboratively as a teaching thread, see root CLAUDE.md learning mode):**
 - **Fan curve / quieting.** 100% fans on an unrecognized PCIe card is expected T630 behavior; tame with `ipmitool raw` manual control: `0x30 0x30 0x01 0x00` → manual; `0x30 0x30 0x02 0xff 0x1e` ≈ 30%; revert `...0x01 0x01`. **CAUTION: manual mode disables auto-ramp — raise fan % before any GPU stress load or watch temps.** May need `sudo modprobe ipmi_devintf ipmi_si` first. Current fan %/mode not yet captured.
-- **In-chassis mem-junction-UNDER-LOAD temp NOT yet measured** (card has only been observed idle at 37 °C). Run **gpu-burn + memtest_vulkan IN the T630** to get the real in-chassis memory-junction temp — **this is what settles the OEM-3090 repad decision (still DEFERRED).** Monitor: `nvidia-smi --query-gpu=temperature.gpu,temperature.memory,clocks.sm,power.draw,utilization.gpu --format=csv -l 2`.
+- **In-chassis thermal soak DONE (2026-06-22).** 5-min memtest_vulkan, ~335 W / 99% util, 22 °C inlet, 2 shroud fans: **VRAM (GDDR6X) peaked 100 °C**, GPU hotspot 94 °C, core 79 °C. Plateaued ~2.5 min in; no thermal throttle (clock sag was power-limit), no errors. **vs 106 °C in the Omen → in-chassis airflow ~6 °C better.** Read via the `gputemps` BAR0 register reader (nvidia-smi reports memory N/A); logged to `infrastructure/monitoring/memtest-soak.csv`.
+  - **Repad decision: DEFERRED (not urgent).** 100 °C memory is under the 110 °C GDDR6X ceiling and within spec. Fans were already at ~94% (near the 2-fan airflow ceiling), so the preferred next lever is **adding chassis fans (being sourced) + re-soak**; repad is the fallback if that doesn't get VRAM under ~95 °C, or for a hotter room / 24-7 load.
+  - **Fan controller validated** in the same soak (core-driven curve ramped 30% → ~94%, held core below throttle).
 - **Confirm the installed PSUs are the 1100W pair** (not the old 495W units) — a GPU has been powered through the system; verify physically/iDRAC when convenient.
 - **Power-limit consideration:** older plan was `nvidia-smi -pl 300` for the Ti in-chassis (Dell 300W/slot spec). Revisit per-card once cards are stable.
 

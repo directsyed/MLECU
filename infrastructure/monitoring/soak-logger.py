@@ -14,10 +14,11 @@ Run as root (gputemps + ipmitool need it):
     sudo ./soak-logger.py [outfile.csv] [interval_sec]
 If gputemps isn't on PATH:  sudo GPUTEMPS=/path/to/gputemps ./soak-logger.py ...
 
-Auto-abort: if junction >= ABORT_JUNCTION (default 108C) or core >= ABORT_CORE (default 90C), it
-forces the chassis fans to 100%, kills the load (KILL_PATTERNS, default "memtest_vulkan,gpu_burn"),
-and exits. All three are env-overridable. NOTE: the junction abort only works once gputemps can read
-junction (needs iomem=relaxed); the logger warns at startup if it can't.
+Auto-abort: if vram >= ABORT_VRAM (default 108C; the GDDR6X memory temp, nearest its 110C ceiling),
+junction >= ABORT_JUNCTION (108C; GPU hotspot), or core >= ABORT_CORE (90C; edge), it forces the
+chassis fans to 100%, kills the load (KILL_PATTERNS, default "memtest_vulkan,gpu_burn"), and exits.
+All env-overridable. NOTE: the vram/junction aborts only work once gputemps can read them (needs
+iomem=relaxed); the logger warns at startup if it can't.
 
 Throttle signal: watch sm_MHz — a sustained clock drop while junction is high = thermal throttle.
 """
@@ -28,8 +29,9 @@ OUTFILE  = sys.argv[1] if len(sys.argv) > 1 else "soak-log.csv"
 INTERVAL = float(sys.argv[2]) if len(sys.argv) > 2 else 5.0
 GPUTEMPS = os.environ.get("GPUTEMPS", "gputemps")
 # --- auto-abort thresholds (env-overridable) ---
-ABORT_JUNCTION = float(os.environ.get("ABORT_JUNCTION", "108"))  # C; 2C under the GDDR6X 110C ceiling
-ABORT_CORE     = float(os.environ.get("ABORT_CORE", "90"))       # C; under the ~93C core shutdown
+ABORT_VRAM     = float(os.environ.get("ABORT_VRAM", "108"))      # C; GDDR6X memory — 2C under its 110C ceiling (the one nearest the limit)
+ABORT_JUNCTION = float(os.environ.get("ABORT_JUNCTION", "108"))  # C; GPU hotspot
+ABORT_CORE     = float(os.environ.get("ABORT_CORE", "90"))       # C; edge, under the ~93C core shutdown
 KILL_PATTERNS  = [p for p in os.environ.get("KILL_PATTERNS", "memtest_vulkan,gpu_burn").split(",") if p]
 COLS = ["timestamp","core_C","junction_C","vram_C","power_W","sm_MHz",
         "util_pct","fan1_rpm","fan2_rpm","cpu_C","inlet_C"]
@@ -120,7 +122,7 @@ def main():
             print(f"  [WARN] junction NOT readable -> JUNCTION abort INACTIVE (only core abort at "
                   f"{ABORT_CORE}C live). Fix iomem=relaxed + build gputemps before a VRAM soak.", file=sys.stderr)
         else:
-            print(f"  [armed] junction readable (idle {j0}C); auto-abort at junction>={ABORT_JUNCTION}C / core>={ABORT_CORE}C")
+            print(f"  [armed] junction readable (idle {j0}C); auto-abort at vram>={ABORT_VRAM}C / junction>={ABORT_JUNCTION}C / core>={ABORT_CORE}C")
         while True:
             ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             core, junc, vram, raw = gputemps_read()
@@ -132,7 +134,8 @@ def main():
             print("  ".join(str(x) for x in row))
             if junc == "":
                 print(f"  [warn] no junction temp parsed; gputemps raw: {raw[:160]!r}", file=sys.stderr)
-            jv, cv = _f(junc), _f(core or t_core)
+            jv, vv, cv = _f(junc), _f(vram), _f(core or t_core)
+            if vv is not None and vv >= ABORT_VRAM:     abort(f"vram {vv}C >= {ABORT_VRAM}C")
             if jv is not None and jv >= ABORT_JUNCTION: abort(f"junction {jv}C >= {ABORT_JUNCTION}C")
             if cv is not None and cv >= ABORT_CORE:     abort(f"core {cv}C >= {ABORT_CORE}C")
             time.sleep(INTERVAL)
