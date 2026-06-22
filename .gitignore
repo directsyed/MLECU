@@ -1,0 +1,46 @@
+# --- Secrets / credentials (never commit) ---
+*.env
+.env
+secrets*
+*.key
+*.pem
+*_private.key
+credentials*
+*.token
+
+# --- Model weights / artifacts (large/binary) ---
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.onnx
+
+# --- ECU ROM binaries (sacred — backed up separately, not in git) ---
+*.rom
+*.hex
+*.srec
+
+# --- Raw / large data (curated artifacts can be force-added) ---
+data/raw/
+**/raw/
+*.sqlite
+*.parquet
+*.csv.gz
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- OS / editor ---
+.DS_Store
+*.swp
+*~
