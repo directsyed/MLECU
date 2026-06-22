@@ -1,0 +1,20 @@
+[Unit]
+Description=MLECU closed-loop GPU/CPU chassis-fan control (T630, iDRAC manual mode)
+Documentation=file:///home/syed/Shared/Computing%20Projects/MLECU/infrastructure/server/README.md
+Wants=network.target
+
+[Service]
+Type=simple
+# Ensure the in-band IPMI interface is present (ignore errors if already loaded):
+ExecStartPre=-/usr/sbin/modprobe ipmi_devintf
+ExecStartPre=-/usr/sbin/modprobe ipmi_si
+# Install target — copy the repo script here (see README install steps):
+ExecStart=/usr/local/sbin/gpu-fan-control.sh
+# Dead-man's switch: on stop OR crash, hand the fans back to iDRAC auto.
+# Auto maxes the fans for the unrecognized GPU -> guaranteed cooling if the controller dies.
+ExecStopPost=/usr/bin/ipmitool raw 0x30 0x30 0x01 0x01
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
