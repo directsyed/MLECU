@@ -24,4 +24,14 @@ GPU/host health + thermal capture.
 - `ipmitool sdr type fan` → chassis fan RPM (confirms the curve ramps)
 - **Will contain:** a unified CSV logger over these three + the captured soak logs; record the steady-state max junction temp into `../../PROGRESS.md`.
 
+## Tool install (this box — under `~/gpu-tools/`, outside the repo)
+
+- **memtest_vulkan** (primary soak tool): prebuilt binary at `~/gpu-tools/memtest_vulkan` (v0.5.0 DesktopLinux_X86_64). No build / no sudo; Vulkan loader present via the driver. Run: `~/gpu-tools/memtest_vulkan` (loops until Ctrl-C).
+- **gputemps** (junction reader): `~/gpu-tools/gputemps/` (ThomasBaruzier/gddr6-core-junction-vram-temps). Needs `pci/pci.h` (`sudo apt install -y libpci-dev`) + `nvml.h`. **To skip the multi-GB CUDA toolkit, `nvml.h` is staged locally** (from NVIDIA/go-nvml) and we build with `-I.`:
+  ```
+  cd ~/gpu-tools/gputemps && gcc gputemps.c -o gputemps -O3 -lnvidia-ml -lpci -I.
+  ```
+  Run (needs root + the `iomem=relaxed` boot param): `sudo ~/gpu-tools/gputemps/gputemps --once --json`. Point the logger at it with `GPUTEMPS=~/gpu-tools/gputemps/gputemps`.
+- **gpu_burn** (secondary): `~/gpu-tools/gpu-burn/` cloned but **not built** — needs `nvcc` (CUDA toolkit, multi-GB). Parked; not required for the repad measurement.
+
 This is a **learning-priority** area (fan-curve calibration, thermal characterization) — teach, don't auto-complete.
