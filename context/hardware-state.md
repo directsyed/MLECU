@@ -11,6 +11,7 @@
 - **CPU (current): ONE Intel Xeon E5-2630 v3** (8C/16T, 2.4GHz, AVX2 — modern ML frameworks run fine). **CPU2 socket empty; second heatsink missing.**
 - **RAM:** 32GB ECC DDR4 (1866MHz, the CPU's max). **12 of 24 DIMM slots active** with one CPU (the rest wake with CPU2). Pipeline is RAM-starved — more RAM is wanted.
 - **Chassis:** **16× 2.5" hot-swap backplane** (NOT 8×3.5" — older docs are wrong). 2× PSU bays. iDRAC8.
+- **Cooling / fans (corrected 2026-06-22):** currently **only 2 main fans on the shroud** (single-CPU config — additional/CPU2-zone fans are not populated; Syed is sourcing more). **NOT** the 6-fan layout assumed earlier. Implication: **limited airflow headroom** — under GPU load this is marginal for a 350W card, so manual-mode fan floors must be conservative (higher), the closed-loop curve matters more, and consider power-capping the GPU during stress soaks. Confirm what the iDRAC enumerates with `ipmitool sdr type fan` (and check for missing-fan / redundancy-lost events — a reduced fan count can itself drive the auto-mode 100% ramp, independent of the unrecognized GPU). Ties to the §6 "verify CPU2-zone cooling fan(s)" note.
 - **Storage controller:** **PERC H730 in slot 8** — supports HBA/passthrough. Plan: flip to **HBA mode for ZFS** (Configuration Management → Clear foreign config first → switch mode → reboot). Defer buying an LSI IT-mode card unless the H730 misbehaves.
 - **NICs:** 2× Intel I350 GbE onboard + quad-port Broadcom BCM5719. Plenty.
 - **Network:** `10.0.0.x` subnet, gateway `10.0.0.1`.
