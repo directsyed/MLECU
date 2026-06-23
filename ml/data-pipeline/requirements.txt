@@ -1,0 +1,11 @@
+requests>=2.32
+beautifulsoup4>=4.12
+lxml>=5.0
+pyyaml>=6.0
+pydantic>=2.6
+tenacity>=8.2
+python-dotenv>=1.0
+pypdf>=4.0
+pytest>=8.0
+# patchright>=1.55   # add only if a forum needs JS / anti-bot rendering
+# embeddings/vector-store deps deferred to Stage C

@@ -65,3 +65,15 @@ with reasoning logged here).
 - **Column semantics (from gputemps source):** `junction` = GPU hotspot (`HOTSPOT_REGISTER`), `vram` = GDDR6X memory (`VRAM_REGISTER`). The **VRAM** column is the repad-relevant memory temp.
 - **soak-logger auto-abort corrected:** it originally watched `junction` (hotspot) + `core` but not `vram` — the temp nearest its ceiling and the whole point of the soak. Now aborts on **vram** ≥108 too (the GDDR6X 110 °C ceiling, less 2 °C margin). The run that surfaced this was safe (100 < 108).
 - **gpu-burn dropped (was the "secondary" soak tool) — unnecessary.** memtest_vulkan already pinned the 350 W power cap (so gpu-burn can't add total heat), gave the worst-case VRAM (gpu-burn heats memory less), and the card's compute/core stability was already validated in the Omen (OCCT 3D-Adaptive + FurMark). The real forward-looking validation is an actual inference/training run with the fan daemon + abort live, not another synthetic. gpu-burn stays cloned-unbuilt in `~/gpu-tools/`; build it for free if/when the CUDA toolkit lands for the ML work and a pure-compute datapoint is ever wanted.
+
+---
+
+## 2026-06-23 — Data pipeline design (refines project-purpose §6-7)
+
+- **Corpus built to serve BOTH consumption modes; RAG-vs-fine-tune deferred to the held-out eval** (`ml/eval/`). Working hypothesis: *retrieve* precision-critical exact values (ECU tables/specs/scalars — the same numbers `car/safety/` needs), *fine-tune* reasoning + conceptual theory. Rationale: LLMs recall exact numbers from weights unreliably (interpolation/interference) and a confident near-miss value is engine-grenading — the **data-layer mirror of "LLM never writes ECU values."** (Decided with Syed after he correctly noted the "RAG = fresh data" argument doesn't apply to a static 2005-Subaru domain; the real driver is precision/verifiability, not freshness.)
+- **Fine-tune set sizing revised: 500–2,000 reasoning exemplars (pilot ~500–1,000), NOT the bootstrap's 10k–50k.** "Less is more" (LIMA/QLoRA); 500 clean > 5,000 noisy; quality is also a *safety* property here. The retrievable fact store can be large.
+- **Quality over quantity, decisively.**
+- **Pipeline mirrors the Hardware Parser infra conventions** — config-driven source registry, `fetch()`+`REGISTRY`, sqlite WAL dedup on `(source,source_id)`, tenacity HTTP client, systemd oneshot/timer — **copied, not coupled** (no runtime dependency; the external scraper is untouched). `matcher.py` (deal logic) → our `gates.py` + the LLM judge.
+- **Model selection (Stage B/C, does not change the corpus):** for ~48 GB (2×3090), **~32B at Q5/Q6** (context/KV headroom + practical QLoRA) over a cramped **70B-Q4**; **pilot at 7–14B**. Dataset size + retrieval method are model-agnostic.
+- **Forums:** hit at normal pace, adaptive backoff only if blocked (per Syed); `requests`+`bs4` first, `patchright` fallback for Cloudflare/JS.
+- **First slice shipped:** `romraider_defs` → 333 Subaru ECU definitions in `corpus.sqlite`.

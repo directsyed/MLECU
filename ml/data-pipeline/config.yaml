@@ -1,0 +1,31 @@
+# MLECU corpus pipeline — source registry + pipeline config.
+# All tunables live here; domain logic stays out of code (Hardware Parser convention).
+
+pipeline:
+  data_dir: data
+  # user_agent_pool: [ "..." ]   # defaults to a generic browser UA
+
+state:
+  db_path: data/corpus.sqlite
+  gone_after_misses: 3
+
+gates:
+  min_chars: 40
+  require_alpha: true
+
+sources:
+  romraider_defs:
+    enabled: true
+    repo_url: https://github.com/RomRaider/SubaruDefs.git
+    local_path: data/raw/SubaruDefs
+    auto_update: false            # already cloned; set true to `git pull` each run
+    ecuflash_subdirs:
+      - "ECUFlash/subaru standard"
+      - "ECUFlash/subaru metric"
+    # only_models: ["Forester", "Impreza WRX STI"]   # optional model filter
+
+  # --- breadth phase (built next; disabled until their modules exist) ---
+  rusefi_docs:     { enabled: false }
+  forum_legacygt:  { enabled: false, rate_limit_per_min: 20 }
+  forum_nasioc:    { enabled: false, rate_limit_per_min: 20 }
+  forum_romraider: { enabled: false, rate_limit_per_min: 20 }

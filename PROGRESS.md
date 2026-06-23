@@ -6,6 +6,24 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-06-23 — Data pipeline: vertical slice live (RomRaider defs)
+
+**Built** (`ml/data-pipeline/`, mirroring Hardware Parser conventions — copied, not coupled):
+- Config-driven corpus pipeline: `core/` (pydantic config, `Document` + SQLite schema, WAL state
+  with `(source,source_id)` dedup + `poll_run` health, shared HTTP client, text-quality gates),
+  `sources/` (`Source` protocol + `REGISTRY`), orchestrator with per-source isolation, and a CLI
+  (`--once / --sources / --dry-run / --status`).
+- First ingester `romraider_defs`: clones RomRaider SubaruDefs (GPL-2.0), parses ECUFlash per-ROM
+  XML → structured `Document`s (ROM identity + tunable-table list + provenance).
+
+**Result**
+- **333 Subaru ECU definitions** ingested → `corpus.sqlite` (666 files → 333 after standard/metric
+  dedup), all gated `kept`, `judgment_status='pending'`. Re-run yields `new=0` (dedup verified). 6/6 tests green.
+
+**Next:** breadth sources (rusEFI docs, free FSM, forums) → then Stage B (the LLM judge — Syed's learning thread).
+
+---
+
 ## 2026-06-22 — Closed-loop fan control + GPU thermal soak
 
 **Built**
@@ -64,6 +82,7 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-06-22 | RTX 3090 GPU hotspot peak | 94 °C | same soak |
 | 2026-06-22 | RTX 3090 core (edge) peak | 79 °C | same soak; below 83 °C throttle |
 | 2026-06-22 | Fan curve under load | 30% → ~94% (4560 RPM) | core-driven ramp held core at 79 °C, no thermal throttle |
+| 2026-06-23 | Corpus: ECU definitions | 333 docs | romraider_defs (RomRaider SubaruDefs, ECUFlash), gated kept, pending judge |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*

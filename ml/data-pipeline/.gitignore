@@ -1,0 +1,11 @@
+# local env + data artifacts (corpus is regenerable from sources)
+.venv/
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+secrets.env
