@@ -36,6 +36,15 @@ sources:
     auto_update: false
     min_chars: 200
 
-  # --- forums (built next; legacygt needs the patchright/JS path) ---
-  forum_legacygt:  { enabled: false, rate_limit_per_min: 20 }
+  forum_legacygt:                 # EJ20X-swap reasoning threads (IPS; uses patchright/JS path)
+    enabled: true
+    rate_limit_per_min: 20
+    max_pages: 12
+    seed_threads:
+      - https://www.legacygt.com/topic/131452-ej20x-base-map-after-swap/
+      - https://www.legacygt.com/topic/104127-base-map-needed/
+      - https://www.legacygt.com/topic/142813-ej20x-swap/
+      - https://www.legacygt.com/topic/105666-ej20x-swap/
+      - https://www.legacygt.com/topic/131744-legacy-gt-ej20xy-swap/
+
   forum_nasioc:    { enabled: false, rate_limit_per_min: 20 }

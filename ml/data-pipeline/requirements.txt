@@ -7,5 +7,5 @@ tenacity>=8.2
 python-dotenv>=1.0
 pypdf>=4.0
 pytest>=8.0
-# patchright>=1.55   # add only if a forum needs JS / anti-bot rendering
+patchright>=1.55     # JS/anti-bot rendering for forum sources (legacygt). Needs: patchright install chromium
 # embeddings/vector-store deps deferred to Stage C

@@ -16,12 +16,15 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 - First ingester `romraider_defs`: clones RomRaider SubaruDefs (GPL-2.0), parses ECUFlash per-ROM
   XML → structured `Document`s (ROM identity + tunable-table list + provenance).
 
-**Result — 879 documents in `corpus.sqlite`, all gated `kept`, pending judge:**
+**Result — 884 documents in `corpus.sqlite`, all gated `kept`, pending judge:**
 - `romraider_defs` — **333 Subaru ECU definitions** (666 files → 333 after standard/metric dedup).
 - `romraider_logger` — **219 SSM2 telemetry params** (the loggable-channel schema → feeds `car/logging`).
-- `rusefi_docs` — **327 engine-management theory docs** (general). Dedup verified (re-run `new=0`); tests green.
+- `rusefi_docs` — **327 engine-management theory docs** (general).
+- `forum_legacygt` — **5 EJ20X-swap reasoning threads** (158 posts, incl. a 121-post/6-page thread) via a
+  **patchright/headless-browser fallback** — legacygt's WAF blocks plain HTTP (202 JS-challenge), so plain
+  `requests` failed and the browser path renders past it. Dedup verified; 11 tests green.
 
-**Next:** forum ingester (legacygt EJ20X — needs the JS/`patchright` path); then free-FSM + owner-supplied; then Stage B (the LLM judge — Syed's learning thread).
+**Next:** more forum seeds + NASIOC; free-FSM + owner-supplied (books/FSM/ROM/logs); then Stage B (the LLM judge — Syed's learning thread).
 
 ---
 
@@ -86,6 +89,7 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-06-23 | Corpus: ECU definitions | 333 docs | romraider_defs (RomRaider SubaruDefs, ECUFlash), gated kept, pending judge |
 | 2026-06-24 | Corpus: SSM2 telemetry params | 219 docs | romraider_logger (loggable-channel schema) |
 | 2026-06-24 | Corpus: theory docs | 327 docs | rusefi_docs (general engine-management) |
+| 2026-06-24 | Corpus: forum threads | 5 (158 posts) | forum_legacygt (EJ20X swap, via patchright) |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
