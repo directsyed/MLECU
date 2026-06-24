@@ -16,11 +16,12 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 - First ingester `romraider_defs`: clones RomRaider SubaruDefs (GPL-2.0), parses ECUFlash per-ROM
   XML → structured `Document`s (ROM identity + tunable-table list + provenance).
 
-**Result**
-- **333 Subaru ECU definitions** ingested → `corpus.sqlite` (666 files → 333 after standard/metric
-  dedup), all gated `kept`, `judgment_status='pending'`. Re-run yields `new=0` (dedup verified). 6/6 tests green.
+**Result — 879 documents in `corpus.sqlite`, all gated `kept`, pending judge:**
+- `romraider_defs` — **333 Subaru ECU definitions** (666 files → 333 after standard/metric dedup).
+- `romraider_logger` — **219 SSM2 telemetry params** (the loggable-channel schema → feeds `car/logging`).
+- `rusefi_docs` — **327 engine-management theory docs** (general). Dedup verified (re-run `new=0`); tests green.
 
-**Next:** breadth sources (rusEFI docs, free FSM, forums) → then Stage B (the LLM judge — Syed's learning thread).
+**Next:** forum ingester (legacygt EJ20X — needs the JS/`patchright` path); then free-FSM + owner-supplied; then Stage B (the LLM judge — Syed's learning thread).
 
 ---
 
@@ -83,6 +84,8 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-06-22 | RTX 3090 core (edge) peak | 79 °C | same soak; below 83 °C throttle |
 | 2026-06-22 | Fan curve under load | 30% → ~94% (4560 RPM) | core-driven ramp held core at 79 °C, no thermal throttle |
 | 2026-06-23 | Corpus: ECU definitions | 333 docs | romraider_defs (RomRaider SubaruDefs, ECUFlash), gated kept, pending judge |
+| 2026-06-24 | Corpus: SSM2 telemetry params | 219 docs | romraider_logger (loggable-channel schema) |
+| 2026-06-24 | Corpus: theory docs | 327 docs | rusefi_docs (general engine-management) |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*

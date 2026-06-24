@@ -24,8 +24,18 @@ sources:
       - "ECUFlash/subaru metric"
     # only_models: ["Forester", "Impreza WRX STI"]   # optional model filter
 
-  # --- breadth phase (built next; disabled until their modules exist) ---
-  rusefi_docs:     { enabled: false }
+  romraider_logger:               # SSM2 telemetry schema (feeds car/logging)
+    enabled: true
+    local_path: data/raw/SubaruDefs
+    logger_file: "RomRaider/logger/standard/logger.xml"
+
+  rusefi_docs:                    # open engine-management theory (general)
+    enabled: true
+    repo_url: https://github.com/rusefi/rusefi_documentation.git
+    local_path: data/raw/rusefi_documentation
+    auto_update: false
+    min_chars: 200
+
+  # --- forums (built next; legacygt needs the patchright/JS path) ---
   forum_legacygt:  { enabled: false, rate_limit_per_min: 20 }
   forum_nasioc:    { enabled: false, rate_limit_per_min: 20 }
-  forum_romraider: { enabled: false, rate_limit_per_min: 20 }
