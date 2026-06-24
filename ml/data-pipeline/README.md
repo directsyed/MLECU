@@ -4,8 +4,18 @@ Config-driven ingestion of automotive tuning knowledge → a clean, **structured
 provenance-tagged** raw store (`data/corpus.sqlite`) for the Stage-B LLM judge. Mirrors the
 Hardware Parser conventions (copied, **not** coupled — separate project).
 
-**Status (2026-06-23):** vertical slice **live** — `romraider_defs` ingests **333 Subaru ECU
-definitions** from RomRaider SubaruDefs (666 files → 333 after standard/metric dedup).
+**Status (2026-06-24):** 5 sources live → ~884+ docs. `romraider_defs` (333 ECU defs),
+`romraider_logger` (219 SSM2 telemetry params), `rusefi_docs` (327 theory), `forum_legacygt`
+(EJ20X threads via patchright + bounded **discovery**), `local_pdf` (owner-supplied PDFs).
+A **daily systemd timer** runs the pass automatically (see `systemd/README.md`).
+
+## Owner-supplied PDFs (FSMs, books)
+Drop files under `data/raw/pdfs/` then run `--sources local_pdf`:
+- `data/raw/pdfs/fsm/` → Subaru FSMs (kind=`fsm_spec`, domain=`subaru`)
+- `data/raw/pdfs/books/` → tuning/theory books (kind=`theory`, domain=`general`)
+
+One Document per page; scanned/image-only PDFs yield no text (the run logs "NO TEXT LAYER" — needs
+OCR). This folder is gitignored — copyrighted PDFs are never committed.
 
 ## Layout
 - `config.yaml` — **source registry** + pipeline config (gates, state, per-source keys via pydantic `extra=allow`).

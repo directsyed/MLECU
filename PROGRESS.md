@@ -16,15 +16,16 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 - First ingester `romraider_defs`: clones RomRaider SubaruDefs (GPL-2.0), parses ECUFlash per-ROM
   XML → structured `Document`s (ROM identity + tunable-table list + provenance).
 
-**Result — 884 documents in `corpus.sqlite`, all gated `kept`, pending judge:**
-- `romraider_defs` — **333 Subaru ECU definitions** (666 files → 333 after standard/metric dedup).
-- `romraider_logger` — **219 SSM2 telemetry params** (the loggable-channel schema → feeds `car/logging`).
-- `rusefi_docs` — **327 engine-management theory docs** (general).
-- `forum_legacygt` — **5 EJ20X-swap reasoning threads** (158 posts, incl. a 121-post/6-page thread) via a
-  **patchright/headless-browser fallback** — legacygt's WAF blocks plain HTTP (202 JS-challenge), so plain
-  `requests` failed and the browser path renders past it. Dedup verified; 11 tests green.
+**Result — 890 documents in `corpus.sqlite`, all gated `kept`, pending judge:**
+- `romraider_defs` (333 ECU defs) · `romraider_logger` (219 SSM2 telemetry params) · `rusefi_docs` (327 theory).
+- `forum_legacygt` — **11 EJ20X/tuning threads** via a **patchright headless-browser** fallback (legacygt's WAF
+  202-challenges plain HTTP). Now with **bounded discovery**: crawls the Tuning subforum, keyword-filters titles,
+  skips threads already stored, caps new/run. One pass auto-found 6 goldmine threads — *"COMPLETE beginner's
+  guide to e-tuning"* (300 posts), *"Knock, do you have any?"* (299), *"Official Turbo Upgrade & Dyno Tuned"* (270), etc.
+- `local_pdf` — owner-supplied PDF ingester (drop into `data/raw/pdfs/{fsm,books}/`; per-page; gitignored).
+- **Daily systemd timer** (`systemd/`) runs the pass automatically → passive accumulation while the 2nd GPU is set up. 11 tests green.
 
-**Next:** more forum seeds + NASIOC; free-FSM + owner-supplied (books/FSM/ROM/logs); then Stage B (the LLM judge — Syed's learning thread).
+**Next:** install the timer; drop the FSM/book PDFs; (later) NASIOC source; then Stage B (the LLM judge — Syed's learning thread).
 
 ---
 
@@ -89,7 +90,7 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-06-23 | Corpus: ECU definitions | 333 docs | romraider_defs (RomRaider SubaruDefs, ECUFlash), gated kept, pending judge |
 | 2026-06-24 | Corpus: SSM2 telemetry params | 219 docs | romraider_logger (loggable-channel schema) |
 | 2026-06-24 | Corpus: theory docs | 327 docs | rusefi_docs (general engine-management) |
-| 2026-06-24 | Corpus: forum threads | 5 (158 posts) | forum_legacygt (EJ20X swap, via patchright) |
+| 2026-06-24 | Corpus: forum threads | 11 (~1440 posts) | forum_legacygt — 5 seeds + 6 auto-discovered (Tuning subforum) |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*

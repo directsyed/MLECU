@@ -1,0 +1,11 @@
+[Unit]
+Description=MLECU corpus pipeline — one ingestion pass (all enabled sources)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Wrapper lives in ~/.local/bin (no spaces); it cds into the project and runs the CLI.
+ExecStart=%h/.local/bin/mlecu-corpus-run.sh
+TimeoutStartSec=1800
+# Fresh process per pass (oneshot) → clean Chromium teardown, like the Hardware Parser.

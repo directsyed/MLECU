@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sqlite3
 import time
 from typing import Iterator
 
@@ -26,7 +27,12 @@ from .base import safe_text
 log = logging.getLogger(__name__)
 
 name = "forum_legacygt"
+_BASE = "https://www.legacygt.com"
 _WAIT = '.ipsType_richText, [data-role="commentContent"]'
+_DEFAULT_KEYWORDS = [
+    "ej20x", "ej20", "ej20y", "swap", "base map", "basemap", "tune", "tuning",
+    "map", "boost", "afr", "knock", "injector", "fueling", "timing", "dyno", "romraider",
+]
 
 
 def _thread_id(url: str) -> str:
@@ -87,17 +93,61 @@ def _fetch_thread(bf: BrowserFetcher, url: str, max_pages: int, delay: float) ->
     )
 
 
+def _known_ids(cfg: Config) -> set[str]:
+    """Existing forum_legacygt thread ids (read-only) so discovery skips re-fetching them."""
+    try:
+        dbp = cfg.resolve(cfg.state.db_path)
+        if not dbp.exists():
+            return set()
+        con = sqlite3.connect(f"file:{dbp}?mode=ro", uri=True)
+        try:
+            return {r[0] for r in con.execute("SELECT source_id FROM document WHERE source=?", (name,))}
+        finally:
+            con.close()
+    except Exception:
+        return set()
+
+
+def _discover(bf: BrowserFetcher, forum_url: str, keywords: list[str],
+              max_pages: int, limit: int, skip: set[str]) -> list[str]:
+    """Crawl a subforum listing; return URLs of NEW keyword-matching topics (capped at `limit`)."""
+    out: list[str] = []
+    base = forum_url.rstrip("/")
+    for pg in range(1, max_pages + 1):
+        listing = base + (f"/page/{pg}/" if pg > 1 else "/")
+        try:
+            soup = BeautifulSoup(bf.get_html(listing, wait_selector='a[href*="/topic/"]'), "lxml")
+        except Exception as e:
+            log.warning("discover listing failed %s: %s", listing, e)
+            break
+        for a in soup.select(".ipsDataItem_title a"):
+            href = a.get("href") or ""
+            title = (a.get_text(strip=True) or "").lower()
+            m = re.search(r"/topic/(\d+)-", href)
+            if not m or m.group(1) in skip:
+                continue
+            if keywords and not any(k in title for k in keywords):
+                continue
+            skip.add(m.group(1))
+            out.append(href if href.startswith("http") else _BASE + href)
+            if len(out) >= limit:
+                return out
+    return out
+
+
 def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Document]:
     extra = source_cfg.model_extra or {}
     seeds: list[str] = extra.get("seed_threads", [])
+    discover_forums: list[str] = extra.get("discover_forums", [])
     max_pages = int(extra.get("max_pages", 10))
     delay = max(0.5, 60.0 / max(1, source_cfg.rate_limit_per_min))
-    if not seeds:
-        log.warning("forum_legacygt: no seed_threads configured")
+    if not seeds and not discover_forums:
+        log.warning("forum_legacygt: nothing configured (seed_threads / discover_forums)")
         return
     ua = (cfg.pipeline.user_agent_pool or [None])[0]
     bf = BrowserFetcher(ua)
     try:
+        # 1) curated seeds — always re-fetched (catches new posts on watched threads)
         for url in seeds:
             try:
                 doc = _fetch_thread(bf, url, max_pages, delay)
@@ -105,8 +155,29 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
                 log.warning("thread failed %s: %s", url, e)
                 continue
             if doc:
-                log.info("legacygt: %s (%d posts)", doc.title[:60], doc.meta["post_count"])
+                log.info("legacygt[seed]: %s (%d posts)", doc.title[:55], doc.meta["post_count"])
                 yield doc
             time.sleep(delay)
+        # 2) discovery — bounded crawl for NEW keyword-matching threads (passive accumulation)
+        if discover_forums:
+            kws = [k.lower() for k in extra.get("discover_keywords", _DEFAULT_KEYWORDS)]
+            d_pages = int(extra.get("discover_max_pages", 1))
+            d_new = int(extra.get("discover_max_new", 5))
+            skip = _known_ids(cfg) | {_thread_id(u) for u in seeds}
+            new_urls: list[str] = []
+            for furl in discover_forums:
+                if len(new_urls) >= d_new:
+                    break
+                new_urls += _discover(bf, furl, kws, d_pages, d_new - len(new_urls), skip)
+            for url in new_urls:
+                time.sleep(delay)
+                try:
+                    doc = _fetch_thread(bf, url, max_pages, delay)
+                except Exception as e:
+                    log.warning("discovered thread failed %s: %s", url, e)
+                    continue
+                if doc:
+                    log.info("legacygt[discovered]: %s (%d posts)", doc.title[:50], doc.meta["post_count"])
+                    yield doc
     finally:
         bf.close()
