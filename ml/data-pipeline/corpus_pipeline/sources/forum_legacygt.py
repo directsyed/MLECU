@@ -29,9 +29,20 @@ log = logging.getLogger(__name__)
 name = "forum_legacygt"
 _BASE = "https://www.legacygt.com"
 _WAIT = '.ipsType_richText, [data-role="commentContent"]'
+# Coarse in-domain TITLE filter for discovery. The subforum scope already constrains to Subaru
+# EJ tuning; this just drops obvious off-topic. The Stage-B judge does the deep relevance/quality call.
 _DEFAULT_KEYWORDS = [
-    "ej20x", "ej20", "ej20y", "swap", "base map", "basemap", "tune", "tuning",
-    "map", "boost", "afr", "knock", "injector", "fueling", "timing", "dyno", "romraider",
+    # platform / engine — the EJ25 <-> EJ20X realm
+    "ej20x", "ej20y", "ej20", "ej255", "ej257", "ej25", "spec b",
+    # tuning intent
+    "swap", "tune", "tuning", "base map", "basemap", "ots map", "fuel map", "romraider",
+    "accessport", "cobb", "ecutek", "dyno", "knock", "fueling", "fuel trim", "closed loop",
+    "open loop", "boost target", "boost control", "wastegate", "injector", "timing", "afr",
+    "stage 1", "stage 2",
+]
+_DEFAULT_REJECT = [
+    "for sale", "fs:", "f/s", "wtb", "group buy", "gb:", "raffle", "for trade", "ft:",
+    "meet", "gtg", "sold",
 ]
 
 
@@ -108,9 +119,14 @@ def _known_ids(cfg: Config) -> set[str]:
         return set()
 
 
-def _discover(bf: BrowserFetcher, forum_url: str, keywords: list[str],
+def _discover(bf: BrowserFetcher, forum_url: str, keywords: list[str], reject: list[str],
               max_pages: int, limit: int, skip: set[str]) -> list[str]:
-    """Crawl a subforum listing; return URLs of NEW keyword-matching topics (capped at `limit`)."""
+    """Crawl a subforum listing; return URLs of NEW in-domain topics (capped at `limit`).
+
+    Walks up to `max_pages` listing pages for COVERAGE/backfill — `skip` already holds every
+    stored thread id, so once the recent threads are captured, later runs reach deeper/older
+    unseen ones. A title is taken iff it matches a keyword AND no reject term.
+    """
     out: list[str] = []
     base = forum_url.rstrip("/")
     for pg in range(1, max_pages + 1):
@@ -127,6 +143,8 @@ def _discover(bf: BrowserFetcher, forum_url: str, keywords: list[str],
             if not m or m.group(1) in skip:
                 continue
             if keywords and not any(k in title for k in keywords):
+                continue
+            if reject and any(r in title for r in reject):
                 continue
             skip.add(m.group(1))
             out.append(href if href.startswith("http") else _BASE + href)
@@ -161,14 +179,15 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
         # 2) discovery — bounded crawl for NEW keyword-matching threads (passive accumulation)
         if discover_forums:
             kws = [k.lower() for k in extra.get("discover_keywords", _DEFAULT_KEYWORDS)]
-            d_pages = int(extra.get("discover_max_pages", 1))
-            d_new = int(extra.get("discover_max_new", 5))
+            rej = [r.lower() for r in extra.get("discover_reject_keywords", _DEFAULT_REJECT)]
+            d_pages = int(extra.get("discover_max_pages", 8))
+            d_new = int(extra.get("discover_max_new", 8))
             skip = _known_ids(cfg) | {_thread_id(u) for u in seeds}
             new_urls: list[str] = []
             for furl in discover_forums:
                 if len(new_urls) >= d_new:
                     break
-                new_urls += _discover(bf, furl, kws, d_pages, d_new - len(new_urls), skip)
+                new_urls += _discover(bf, furl, kws, rej, d_pages, d_new - len(new_urls), skip)
             for url in new_urls:
                 time.sleep(delay)
                 try:

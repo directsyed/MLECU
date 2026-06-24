@@ -50,8 +50,59 @@ sources:
     discover_forums:
       - https://www.legacygt.com/forum/65-tuning/                              # tuning-specific (high yield)
       - https://www.legacygt.com/forum/8-fourth-generation-legacy-2005-2009/   # general 4th-gen (swap threads)
-    discover_max_pages: 2         # first 2 listing pages — gentle on the WAF
-    discover_max_new: 6           # cap NEW threads fetched per run
+    discover_max_pages: 8         # walk DEEPER for coverage/backfill of EXISTING threads (skip-known dedups)
+    discover_max_new: 8           # cap NEW threads fetched per run (bounded)
+    # Discovery takes a thread iff its TITLE matches >=1 keyword AND no reject term. The subforum
+    # scope already limits to Subaru EJ tuning; the LLM judge does the deep EJ25-vs-EJ20X relevance.
+    discover_keywords:
+      - ej20x
+      - ej20y
+      - ej20
+      - ej255
+      - ej257
+      - ej25
+      - spec b
+      - swap
+      - tune
+      - tuning
+      - base map
+      - basemap
+      - ots map
+      - fuel map
+      - romraider
+      - accessport
+      - cobb
+      - ecutek
+      - dyno
+      - knock
+      - fueling
+      - fuel trim
+      - closed loop
+      - open loop
+      - boost target
+      - boost control
+      - wastegate
+      - injector
+      - timing
+      - afr
+      - stage 1
+      - stage 2
+      # platform chassis codes + diagnostic/logging terms (recall for clearly in-domain threads)
+      - lgt
+      - legacy gt
+      - obxt
+      - datalog
+      - logging
+      - vacuum leak
+      - boost leak
+      - correction
+      - learning
+      - dam
+      - fkl
+      - iam
+      - maf
+      - idle
+    discover_reject_keywords: ["for sale", "fs:", "f/s", "wtb", "group buy", "gb:", "raffle", "for trade", "ft:", "meet", "gtg", "sold"]
     # discover_keywords: [...]    # defaults to ej20x/swap/tune/boost/knock/... (see the source)
 
   local_pdf:                      # owner-supplied PDFs — drop files under data/raw/pdfs/{fsm,books}/
