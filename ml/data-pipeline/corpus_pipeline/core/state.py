@@ -35,6 +35,7 @@ class State:
         for col, decl in [
             ("judge_score", "INTEGER"),
             ("gone_at", "TEXT"),
+            ("tier", "TEXT NOT NULL DEFAULT 'community'"),
         ]:
             if col not in existing:
                 self.conn.execute(f"ALTER TABLE document ADD COLUMN {col} {decl}")
@@ -62,12 +63,12 @@ class State:
         if row is None:
             cur = self.conn.execute(
                 """INSERT INTO document (
-                    source, source_id, kind, domain, title, text, url, meta_json,
+                    source, source_id, kind, domain, tier, title, text, url, meta_json,
                     content_hash, token_est, gate_status, gate_flags,
                     judgment_status, judge_score, first_seen, last_seen, miss_streak
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)""",
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)""",
                 (
-                    doc.source, doc.source_id, doc.kind, doc.domain, doc.title, doc.text,
+                    doc.source, doc.source_id, doc.kind, doc.domain, doc.tier, doc.title, doc.text,
                     doc.url, dumps(doc.meta), doc.content_hash, doc.token_est,
                     doc.gate_status, dumps(doc.gate_flags), doc.judgment_status,
                     doc.judge_score, now, now,
@@ -82,13 +83,13 @@ class State:
         changed = prev is None or prev["content_hash"] != doc.content_hash
         self.conn.execute(
             """UPDATE document SET
-                kind=?, domain=?, title=?, text=?, url=?, meta_json=?,
+                kind=?, domain=?, tier=?, title=?, text=?, url=?, meta_json=?,
                 content_hash=?, token_est=?, gate_status=?, gate_flags=?,
                 last_seen=?, miss_streak=0, gone_at=NULL"""
             + (", judgment_status='pending', judge_score=NULL" if changed else "")
             + " WHERE id=?",
             (
-                doc.kind, doc.domain, doc.title, doc.text, doc.url, dumps(doc.meta),
+                doc.kind, doc.domain, doc.tier, doc.title, doc.text, doc.url, dumps(doc.meta),
                 doc.content_hash, doc.token_est, doc.gate_status, dumps(doc.gate_flags),
                 now, row["id"],
             ),
@@ -140,12 +141,12 @@ class State:
     # --- read helpers (verification / downstream) ------------------------
     def counts_by_source(self) -> list[sqlite3.Row]:
         return self.conn.execute(
-            """SELECT source, kind,
+            """SELECT source, tier, kind,
                       COUNT(*) AS docs,
                       SUM(gate_status='kept') AS kept,
                       SUM(judgment_status='pending') AS pending_judge
                FROM document WHERE gone_at IS NULL
-               GROUP BY source, kind ORDER BY source, kind"""
+               GROUP BY source, tier, kind ORDER BY tier DESC, source"""
         ).fetchall()
 
     def pending_for_judge(self, limit: int = 100) -> list[sqlite3.Row]:

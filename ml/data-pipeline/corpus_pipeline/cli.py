@@ -30,9 +30,9 @@ def cmd_status(config_path: str | None) -> int:
     if not rows:
         print("(corpus empty)")
     else:
-        print(f"{'source':<18} {'kind':<16} {'docs':>6} {'kept':>6} {'pending_judge':>14}")
+        print(f"{'source':<18} {'tier':<10} {'kind':<16} {'docs':>6} {'kept':>6} {'pending':>8}")
         for r in rows:
-            print(f"{r['source']:<18} {r['kind']:<16} {r['docs']:>6} {r['kept'] or 0:>6} {r['pending_judge'] or 0:>14}")
+            print(f"{r['source']:<18} {r['tier']:<10} {r['kind']:<16} {r['docs']:>6} {r['kept'] or 0:>6} {r['pending_judge'] or 0:>8}")
     state.close()
     return 0
 

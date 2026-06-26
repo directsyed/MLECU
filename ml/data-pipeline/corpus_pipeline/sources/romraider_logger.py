@@ -59,7 +59,7 @@ def _param_doc(p) -> Document | None:
     if exprs:
         lines.append("  conversion(s): " + "; ".join(exprs))
     return Document(source=name, source_id=pid, title=nm, text="\n".join(lines),
-                    kind="logger_param", domain="subaru",
+                    kind="logger_param", domain="subaru", tier="reference",
                     url="https://github.com/RomRaider/SubaruDefs/blob/master/RomRaider/logger/standard/logger.xml",
                     meta=meta)
 
@@ -84,7 +84,7 @@ def _ecuparam_doc(e) -> Document | None:
     if exprs:
         lines.append("  conversion(s): " + "; ".join(exprs))
     return Document(source=name, source_id=eid, title=nm, text="\n".join(lines),
-                    kind="logger_param", domain="subaru",
+                    kind="logger_param", domain="subaru", tier="reference",
                     url="https://github.com/RomRaider/SubaruDefs/blob/master/RomRaider/logger/standard/logger.xml",
                     meta=meta)
 

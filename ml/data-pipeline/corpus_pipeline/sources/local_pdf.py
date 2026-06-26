@@ -65,7 +65,7 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
                 yield Document(
                     source=name, source_id=f"{rel}#p{i}",
                     title=f"{pdf.stem} — p{i}/{n_pages}", text=txt,
-                    kind=kind, domain=domain, url=f"file://{pdf}",
+                    kind=kind, domain=domain, tier="reference", url=f"file://{pdf}",
                     meta={"file": rel, "page": i, "n_pages": n_pages, "collection": coll},
                 )
             log.info("local_pdf: %s — %d/%d pages with text (%s)", pdf.name, kept_pages, n_pages,

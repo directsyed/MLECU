@@ -10,7 +10,14 @@ from typing import Callable, Iterator
 from ..core.config import Config, SourceCfg
 from ..core.http import HttpClient
 from ..core.models import Document
-from . import forum_legacygt, local_pdf, romraider_defs, romraider_logger, rusefi_docs
+from . import (
+    ecu_docs,
+    forum_legacygt,
+    local_pdf,
+    romraider_defs,
+    romraider_logger,
+    rusefi_docs,
+)
 
 FetchFn = Callable[[Config, SourceCfg, HttpClient], Iterator[Document]]
 
@@ -20,5 +27,6 @@ REGISTRY: dict[str, FetchFn] = {
     "rusefi_docs": rusefi_docs.fetch,
     "forum_legacygt": forum_legacygt.fetch,
     "local_pdf": local_pdf.fetch,
+    "ecu_docs": ecu_docs.fetch,
     # forum_nasioc, kaggle_datalogs — next.
 }

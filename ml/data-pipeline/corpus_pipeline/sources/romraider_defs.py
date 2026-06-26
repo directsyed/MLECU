@@ -112,6 +112,7 @@ def _parse_rom(xml_path: Path, base: Path, parser: etree.XMLParser) -> Document 
         text=text,
         kind="ecu_definition",
         domain="subaru",
+        tier="reference",
         url=f"https://github.com/RomRaider/SubaruDefs/blob/master/{rel}",
         meta=meta,
     )

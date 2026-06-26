@@ -62,6 +62,7 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
             text=text,
             kind="theory",
             domain="general",
+            tier="reference",
             url=f"https://github.com/rusefi/rusefi_documentation/blob/master/{rel}",
             meta={"path": rel, "filename": md_path.name},
         )

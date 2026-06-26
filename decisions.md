@@ -77,3 +77,13 @@ with reasoning logged here).
 - **Model selection (Stage B/C, does not change the corpus):** for ~48 GB (2×3090), **~32B at Q5/Q6** (context/KV headroom + practical QLoRA) over a cramped **70B-Q4**; **pilot at 7–14B**. Dataset size + retrieval method are model-agnostic.
 - **Forums:** hit at normal pace, adaptive backoff only if blocked (per Syed); `requests`+`bs4` first, `patchright` fallback for Cloudflare/JS.
 - **First slice shipped:** `romraider_defs` → 333 Subaru ECU definitions in `corpus.sqlite`.
+
+---
+
+## 2026-06-26 — EFI-reference corpus + judge architecture (no circularity) + PID note
+
+- **Document `tier` field added:** `reference` (trusted/authoritative) vs `community` (noisy, needs judging). Tagged: RomRaider defs+logger, rusEFI docs, FSM/book PDFs, `ecu_docs` → **reference**; forums → **community**. Corpus now ~883 reference + 27 community.
+- **`ecu_docs` source (HTML, reference tier):** the **MegaSquirt MegaManual** fundamentals (fuel equation `PW = REQ_FUEL × VE × MAP × E + …`, VE, tuning, injectors). PRIVATE-corpus use only (copyrighted, not redistributed). **rusEFI already covered** by `rusefi_docs` (its GitHub wiki = the same 387-file repo); **Speeduino redundant**; **AEM/Haltech skipped** (gated behind software + shallow public algorithm depth). Scope = "Open + MegaSquirt" (Syed).
+- **Judge architecture — non-circular by construction (resolves Syed's concern):** the judge is a strong **general** model (Qwen2.5-32B), **NOT trained on the corpus it filters**. One-directional flow: raw → judge → curated → fine-tune the *main* model. The judge **grounds** noisy `community` claims against the `reference` tier (retrieved, not baked in) — "is this consistent with the rusEFI / MegaManual / FSM spec?" If a domain judge is ever fine-tuned, train it **only** on the reference tier, never the community tier it filters ("train-on-trusted, filter-untrusted"). + 5% human spot-check.
+- **Judging deferred to the 48 GB (2×3090) setup** (a ~32B Q5/Q6 judge); the corpus accumulates until then.
+- **PID note (refines the pending algorithm-layer build):** idle Stage-2 = feedforward table correction (the ECU's own closed-loop fuel PI tracks AFR in real time); the iterative `log→correct→reflash→re-log` loop = a **bounded-integral controller** (±3% clamp = anti-windup/rate-limit, designed as a damped PI to avoid overshoot); **boost control (Stage 3) is a real PID we tune**, informed by the rusEFI/ECUMaster boost-PID docs now in the corpus.

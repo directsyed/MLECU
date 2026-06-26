@@ -23,8 +23,9 @@ class Document:
     source_id: str                    # unique within source (dedup key)
     title: str
     text: str                         # normalized body (what gets gated / embedded / judged)
-    kind: str = "doc"                 # ecu_definition | logger_param | forum_thread | fsm_spec | theory | datalog
+    kind: str = "doc"                 # ecu_definition | logger_param | forum_thread | fsm_spec | theory | efi_reference
     domain: str = "general"           # "subaru" | "general"
+    tier: str = "community"           # "reference" (trusted/authoritative — judge grounds on it) | "community" (noisy, needs judging)
     url: str | None = None            # provenance link/path
     meta: dict = field(default_factory=dict)   # structured fields (make/model/year/ecuid/tables/...)
     # derived / pipeline-managed
@@ -50,6 +51,7 @@ CREATE TABLE IF NOT EXISTS document (
     source_id        TEXT NOT NULL,
     kind             TEXT NOT NULL DEFAULT 'doc',
     domain           TEXT NOT NULL DEFAULT 'general',
+    tier             TEXT NOT NULL DEFAULT 'community',
     title            TEXT,
     text             TEXT NOT NULL,
     url              TEXT,

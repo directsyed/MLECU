@@ -6,6 +6,18 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-06-26 — EFI-reference corpus (tier) + judge architecture
+
+**Built**
+- **Document `tier`** field (`reference` vs `community`) wired through model/schema/state/status — the split that keeps the judge non-circular.
+- **`ecu_docs`** HTML source (reference tier): MegaSquirt **MegaManual** fundamentals (fuel equation, VE, tuning, injectors; private-corpus use). rusEFI already covered (its wiki = the `rusefi_documentation` repo we ingest); Speeduino redundant; AEM/Haltech skipped (gated + shallow).
+
+**Corpus:** ~910 docs — **883 reference** (RomRaider defs+logger, rusEFI, MegaManual) + **27 community** (forums). Tests green.
+
+**Decided (`decisions.md`):** the judge is a strong *general* model that **grounds** noisy community docs against the reference tier — never trained on the data it filters; deferred to the 48 GB (2×3090) setup. PID: idle Stage-2 = feedforward + a bounded-integral convergence loop; **boost (Stage 3) = a real PID**, informed by the corpus.
+
+---
+
 ## 2026-06-23 — Data pipeline: vertical slice live (RomRaider defs)
 
 **Built** (`ml/data-pipeline/`, mirroring Hardware Parser conventions — copied, not coupled):

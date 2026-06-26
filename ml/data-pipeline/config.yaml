@@ -117,4 +117,16 @@ sources:
       fsm:   { kind: fsm_spec, domain: subaru }
       books: { kind: theory,   domain: general }
 
+  ecu_docs:                       # EFI-reference manuals (reference tier) — PRIVATE corpus use only
+    enabled: true
+    rate_limit_per_min: 30
+    doc_sets:
+      - name: megamanual          # MegaSquirt MegaManual fundamentals (public HTML, copyrighted)
+        base_url: https://www.megamanual.com/v22manual/
+        kind: efi_reference
+        domain: general
+        min_chars: 600
+        pages: [ mfuel.htm, vetable.htm, mtune.htm, minj.htm ]
+      # rusEFI already covered by rusefi_docs; Speeduino redundant; vendor PDFs via local_pdf.
+
   forum_nasioc:    { enabled: false, rate_limit_per_min: 20 }
