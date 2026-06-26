@@ -156,6 +156,14 @@ class State:
             (limit,),
         ).fetchall()
 
+    def total_docs(self) -> int:
+        return self.conn.execute("SELECT COUNT(*) FROM document WHERE gone_at IS NULL").fetchone()[0]
+
+    def recent_titles(self, limit: int = 8) -> list[str]:
+        """Titles of the most-recently-inserted docs (new docs get the highest ids)."""
+        rows = self.conn.execute("SELECT title FROM document ORDER BY id DESC LIMIT ?", (limit,))
+        return [r["title"] for r in rows]
+
     def get_meta(self, key: str) -> str | None:
         row = self.conn.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
         return row["value"] if row else None

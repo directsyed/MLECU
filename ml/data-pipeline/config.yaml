@@ -13,6 +13,11 @@ gates:
   min_chars: 40
   require_alpha: true
 
+notify:                           # Discord run summary — set DISCORD_WEBHOOK_URL in secrets.env
+  enabled: true
+  discord_webhook_env: DISCORD_WEBHOOK_URL
+  only_when_new: false            # false = ping every run (liveness heartbeat); true = only when new
+
 sources:
   romraider_defs:
     enabled: true

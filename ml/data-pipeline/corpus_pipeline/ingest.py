@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import logging
 
-from .core import gates
-from .core.config import Config, load_config
+from .core import gates, notify
+from .core.config import Config, env, load_config
 from .core.http import HttpClient
 from .core.state import State
 from .sources import REGISTRY
@@ -64,8 +64,26 @@ def one_pass(only: list[str] | None = None, dry_run: bool = False,
                  name, res["fetched"], res["kept"], res["new"], res["ok"])
         results.append(res)
     if not dry_run:
+        _maybe_notify(cfg, state, results)
         state.close()
     return results
+
+
+def _maybe_notify(cfg: Config, state: State, results: list[dict]) -> None:
+    """Post a Discord run summary if configured (DISCORD_WEBHOOK_URL in secrets.env)."""
+    if not cfg.notify.enabled:
+        return
+    webhook = env(cfg.notify.discord_webhook_env)
+    if not webhook:
+        return
+    total_new = sum(r["new"] for r in results)
+    if total_new == 0 and cfg.notify.only_when_new:
+        return
+    try:
+        recent = state.recent_titles(min(total_new, 8)) if total_new else []
+        notify.post_summary(webhook, results, state.total_docs(), recent)
+    except Exception as e:
+        log.warning("notify step failed: %s", e)
 
 
 class _DryState:

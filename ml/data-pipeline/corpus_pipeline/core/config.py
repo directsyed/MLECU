@@ -45,10 +45,17 @@ class SourceCfg(BaseModel):
     model_config = {"extra": "allow"}
 
 
+class NotifyCfg(BaseModel):
+    enabled: bool = True
+    discord_webhook_env: str = "DISCORD_WEBHOOK_URL"  # set in secrets.env
+    only_when_new: bool = False                        # True = ping only when new docs added
+
+
 class Config(BaseModel):
     pipeline: PipelineCfg = Field(default_factory=PipelineCfg)
     state: StateCfg = Field(default_factory=StateCfg)
     gates: GatesCfg = Field(default_factory=GatesCfg)
+    notify: NotifyCfg = Field(default_factory=NotifyCfg)
     sources: dict[str, SourceCfg] = Field(default_factory=dict)
 
     def resolve(self, p: str | Path) -> Path:
