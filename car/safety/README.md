@@ -2,7 +2,7 @@
 
 **This is the hard safety boundary of the entire project.** The LLM never writes ECU values; everything that changes an ECU value passes through codified, **testable** clamps defined here.
 
-**Status:** not started — but codify these from day one of the algorithm work.
+**Status:** ✅ **BUILT (offline)** — implemented as pure, fuzz-tested clamps in `../ecutune/safety/` (`clamps.py` + `pipeline.py`). `apply_proposal()` is the only function that writes a Table; a source-scan meta-test enforces it. hypothesis property tests prove the ±3% bound (sign-preserving), idempotency, knock⇒empty, and the AFR floor at boost.
 
 **Will contain — clamps as testable code, not prose:**
 - max **±3% VE per iteration**

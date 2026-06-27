@@ -6,6 +6,22 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-06-27 — car/ecutune: deterministic algorithm + safety layer (offline, built)
+
+**Built** — `car/ecutune/`, a new self-contained package (own `.venv`; numpy + hypothesis; mirrors `corpus_pipeline` conventions, copied not coupled). The car domain's first real code:
+- **`safety/` — the write-path guard (the project's HARD safety constraint, now testable code, not prose).** Seven ordered clamps as pure functions — knock auto-abort, fuel-before-timing, steady-before-transient, boost gate, timing-row ceiling, **±3% VE rate-limit**, **AFR floor**. `apply_proposal()` is the *only* function that writes a Table, enforced by a source-scan meta-test. "The LLM never writes ECU values" is now true **by construction** — every proposer (the algorithm today, the LLM tomorrow) goes through the same clamped door.
+- **`logparse/`** — tolerant RomRaider/SSM2 CSV parser (header→canonical-role using the 219 ingested SSM2 params) + (airflow×rpm) binning with a steady-state gate and the trim-error signal (`af_correction + af_learning`).
+- **`algorithms/`** — bounded-integral / damped-PI controller (the ±3% clamp *is* the anti-windup) + the idle global-scalar corrector (injector latency→flow-scaling→low-MAF, emits one Proposal, never self-applies).
+- **`simulation/`** — a mean-value engine model (MVEM) seeded with the known EJ20X-vs-EJ255 mismatch + the convergence harness running the full loop offline.
+
+**Result — the offline proof (no car, no GPU):** from a seeded **+14.8% lean idle trim**, the loop converges to **<5% in 4 iterations with ZERO clamp violations**, deterministically (same seed → identical tables), across all tested seeds. **31 tests green** (unit + hypothesis property tests over the safety bounds + the keystone convergence test). One command: `cd car && PYTHONPATH=. .venv/bin/python -m ecutune.cli --run-convergence`.
+
+**Why it matters:** the safety-critical core is validated end-to-end before any hardware exists. Real RomRaider logs drop into the same `bin→propose→clamp` path when the wideband arrives (`synth_log` already emits the real `LogTable` shape).
+
+**Next:** Track B — the LLM-judge design (Syed's learning thread).
+
+---
+
 ## 2026-06-26 — EFI-reference corpus (tier) + judge architecture
 
 **Built**
@@ -103,6 +119,10 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-06-24 | Corpus: SSM2 telemetry params | 219 docs | romraider_logger (loggable-channel schema) |
 | 2026-06-24 | Corpus: theory docs | 327 docs | rusefi_docs (general engine-management) |
 | 2026-06-24 | Corpus: forum threads | 11 (~1440 posts) | forum_legacygt — 5 seeds + 6 auto-discovered (Tuning subforum) |
+| 2026-06-27 | Idle convergence: start trim | +14.76% | seeded EJ20X-vs-EJ255 mismatch, MVEM, seed 0 |
+| 2026-06-27 | Idle convergence: final trim | +3.86% (≤5% tol) | 4 iterations, deterministic, offline |
+| 2026-06-27 | Idle convergence: clamp violations | 0 | controller self-limits below ±3%; clamp is the backstop |
+| 2026-06-27 | car/ecutune test suite | 31 passed (1.8 s) | unit + hypothesis property (safety bounds) + keystone convergence |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*

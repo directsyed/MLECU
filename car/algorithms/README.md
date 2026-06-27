@@ -2,7 +2,7 @@
 
 The **deterministic tuning layer** (build-priority — Claude builds, then explains).
 
-**Status:** not started; designed and tested against Syed's own Stage-2/3 logs once they exist.
+**Status:** ✅ **BUILT (offline, idle Stage-2)** — `../ecutune/algorithms/` (bounded-integral controller + idle global-scalar corrector). Validated by the `../ecutune/simulation/` convergence harness (seeded idle trim +14.8% → <5% in 4 iters, zero clamp violations). Tested against Syed's own Stage-2/3 logs once they exist; Stage-3 boost PID still to come.
 
 **Will contain:** bin-log-to-cell logic, bounded-correction proposers (injector latency/scaling first, then low-range MAF), and the correction logic validated by the `../simulation/` log-replay harness.
 

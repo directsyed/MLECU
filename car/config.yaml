@@ -1,0 +1,29 @@
+# car/ecutune — safety limits + engine constants. Syed reviews these NUMBERS (they are
+# safety-critical ceilings). Code reads them via ecutune.core.config.load_config().
+
+safety:
+  max_ve_step: 0.03            # +/-3% max fuel/VE change per iteration (the provable bound)
+  afr_floor: 11.5              # AFR leaner than this at boost => abort the leaning edits (lambda ~0.78)
+  boost_load_threshold: 1.5    # load (g/rev) above which a fueling cell counts as "boost"
+  boost_trim_tol: 0.05         # trims must be within +/-5% before boost edits ungate
+  fuel_trim_converged_tol: 0.05  # |trim| under this counts as converged (fuel-before-timing gate)
+  steady_tol: 0.05
+  default_timing_ceiling: 25.0   # deg BTDC; used when no per-rpm override matches
+  # Per-row timing ceilings — PLACEHOLDER values, tighten under load. REVIEW before any
+  # timing work (EJ20X on 93 oct wants less than the EJ255 base assumes). Not exercised by
+  # the idle (fuel-only) convergence loop.
+  timing_ceilings:
+    - {rpm: 0,    max_advance: 25.0}
+    - {rpm: 3000, max_advance: 18.0}
+    - {rpm: 4500, max_advance: 14.0}
+
+engine:
+  stoich: 14.7
+  displacement_l: 2.0          # EJ20X truth (base ROM assumes 2.5L EJ255)
+
+algo:
+  kp: 0.5                      # correct ~half the trim error per step
+  ki: 0.05                     # small integral: kills residual error without winding up
+  damping: 0.7                 # <1 => small deliberate steps, low overshoot
+  step_clamp: 0.03             # == safety.max_ve_step (the clamp IS the anti-windup)
+  max_iters: 30
