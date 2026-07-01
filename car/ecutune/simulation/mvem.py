@@ -32,7 +32,7 @@ class EngineParams:
     afr_target: float = 14.7
     fuel_density: float = 0.74       # g/cc
     idle_air_g: float = 0.10         # true air mass per event at idle (nominal)
-    flow_true: float = 820.0         # true injector flow, cc/min
+    flow_true: float = 500.0         # OEM 2005 FXT side-feed injectors (~500 cc/min) — matched to the ROM
     latency_true: float = 1.0        # true injector dead time, ms
     maf_scaling_true: float = 1.0    # the MAF scaling that would make A_est == A_true
 

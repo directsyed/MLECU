@@ -100,3 +100,30 @@ Built the offline tuning-algorithm + safety-clamp layer (`car/ecutune/`). Design
 - **Idle scalars are degenerate at one operating point.** Injector latency / flow-scaling / low-MAF all shift idle fuel, so the algorithm corrects the NET fuel error via the bounded controller and splits it by fixed priority weights (latency 0.2 / flow 0.7 / MAF 0.1 — "latency-first" lives in config, not physics). The loop converges *trim* to ±5%; the scalars settle at one of many trim-zeroing combinations (final flow ≈800 vs true 820 — fine, trim is the objective). Flagged for Syed: separating the scalars individually needs a log spanning a voltage/load range, not just idle.
 - **Controller = bounded-integral / damped PI; the ±3% clamp IS the anti-windup** (conditional integration freezes the integral while saturated). Gains kp0.5 / ki0.05 / damping0.7 (~0.8% overshoot). The controller self-limits below ±3%, so the clamp never fires in normal operation (zero violations) — it is the backstop for a misbehaving proposer (incl. the future LLM).
 - **MVEM fidelity: mean-value, steady-state, idle-fuel only.** No combustion/knock physics/transients; knock is a scripted test state for the abort clamp. Seeded mismatch (believed flow 850 vs true 820, latency 0.95 vs 1.0, MAF 0.98 vs 1.0 → +14.8% trim) is illustrative — flagged for Syed to set from the real swap. `synth_log` emits the exact `LogTable` shape `logparse` parses, so real logs replay through the same path when the wideband arrives.
+
+---
+
+## 2026-06-28 — Forester build spec locked; idle mismatch reframed (injectors MATCHED)
+
+Syed provided the real build (recorded in `car/build-sheet.md` + `car/CLAUDE.md`): the swap keeps the
+**entire OEM 2005 FXT intake manifold + injectors + wiring harness** on the OEM FXT ECU. This
+**reframes the bad-idle theory** and the sim:
+
+- **Injectors are OEM FXT side-feed ~500 cc/min — MATCHED to the stock ROM.** So injector scaling &
+  latency are already correct; the earlier "injector scaling/latency" idle theory is **wrong for this
+  build**. With matched injectors + MAF metering, the MVEM's delivered fuel equals the ECU's target and
+  the idle fuel trim reduces algebraically to **1/maf_ratio − 1** — a *pure MAF-calibration error*
+  (from the modified intake tract). Re-seeded `simulation/mismatch.py`: injectors matched (500 cc /
+  1.0 ms), MAF believed 0.88 vs true 1.0 (~12% low) → +13.6% start trim. Harness now uses
+  `BUILD_SPLIT = ScalarSplit(0,0,1)` so the correction goes entirely into MAF scaling; injector scalars
+  stay put. Converges to <5% in 4 iters, 0 clamp violations, 31 tests green.
+- **The real idle problem is engine-side, not fuel scaling:** 2.0 L-on-2.5 L VE/load model; exhaust-AVCS
+  delete + TGV delete (overlap + low-rpm stability); timing too advanced for the 9.5:1 CR on 93 oct
+  (EJ255 ROM is 8.4:1). These are **not fuel-trim errors** and are out of scope for the mean-value FUEL
+  model — they need real logs + a richer model. Documented so the sim isn't over-trusted.
+- **Corpus/forum grounding:** searches for this build should use EJ20X-into-FXT, OEM-FXT-manifold/injectors,
+  TGV-delete, fully-catless, intake-AVCS-only — feeds the judge/retrieval later.
+- **Best ROM source = read his own ECU** with the Openport (read-only, safe, no wideband needed) → exact
+  factory calibration + the ROM ID. Community 2005 FXT stock ROMs also exist on the RomRaider forums
+  (4EAT vs MT differ). A stock ROM upgrades the sim SEED to real numbers; it does not replace logs for
+  *validation* (the ROM is what the ECU assumes, not how the EJ20X actually breathes).
