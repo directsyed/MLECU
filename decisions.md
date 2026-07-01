@@ -127,3 +127,17 @@ Syed provided the real build (recorded in `car/build-sheet.md` + `car/CLAUDE.md`
   factory calibration + the ROM ID. Community 2005 FXT stock ROMs also exist on the RomRaider forums
   (4EAT vs MT differ). A stock ROM upgrades the sim SEED to real numbers; it does not replace logs for
   *validation* (the ROM is what the ECU assumes, not how the EJ20X actually breathes).
+
+### 2026-06-28 (revised same day, with Syed) — keep ALL fuel levers live; the data sets priorities
+
+Correction to the note above. Syed's directive: do NOT exclude fueling or pre-prioritize any lever —
+"everything most likely needs modifying, and reading the car is how we see what to prioritize." He is
+right, and it's reinforced by the degeneracy I'd just identified: at one idle point a MAF error and an
+injector error are indistinguishable in the trim, so locking the injectors (`BUILD_SPLIT = 0/0/1`) was
+asserting a conclusion the data hasn't earned. **Reverted:** `ScalarSplit` default is now NEUTRAL
+(0.34/0.33/0.33 — no prioritization, still configurable once logs inform it); `mismatch.py` seeds error
+across ALL fuel levers (latency 0.96, flow 510, MAF 0.93 vs truth 1.0 / 500 / 1.0); the harness uses the
+neutral split. All three scalars now move; converges +14.2% → 4.6% in 4 iters, 0 violations, 31 tests
+green. Real per-lever attribution — and the cross-axis priorities (fuel vs timing vs AVCS vs idle-air) —
+come from logs across operating conditions, which is the whole point of reading the car. Transmission
+confirmed **4EAT** (fixes the ROM variant).

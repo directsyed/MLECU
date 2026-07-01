@@ -17,12 +17,16 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class ScalarSplit:
     """How the per-iteration fuel correction is shared across the three global scalars. Weights
-    sum to ~1 so the NET feedforward fuel change is the controller's bounded output. Flow scaling
-    carries most of it (the cleanest whole-map lever); latency/MAF are honest refinements. The
-    latency-first framing from the docs lives in these weights; they are config, not physics."""
-    w_latency: float = 0.2
-    w_flow: float = 0.7
-    w_maf: float = 0.1
+    sum to ~1 so the NET feedforward fuel change is the controller's bounded output.
+
+    Default is NEUTRAL (equal) — we deliberately do NOT pre-prioritize one lever over another. At a
+    single idle point the three are DEGENERATE (a MAF error and an injector error look identical in
+    the trim), so any fixed split is a guess. Real attribution needs logs across operating conditions
+    (voltage + load range); the data sets the priorities, not us. This stays configurable so an
+    INFORMED split can be set once those logs exist."""
+    w_latency: float = 0.34
+    w_flow: float = 0.33
+    w_maf: float = 0.33
 
 
 def trim_to_fuel_fraction(trim_pct: float) -> float:

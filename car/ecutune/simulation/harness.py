@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..algorithms import AlgoState, propose_idle_correction
-from ..algorithms.fueling import ScalarSplit
 from ..core.config import Config, load_config
 from ..core.models import ClampContext, TableSet
 from ..logparse.binning import GridSpec, bin_log, weighted_mean_trim
@@ -24,9 +23,6 @@ from .mvem import OperatingPoint
 from .synth_log import synth_idle_log
 
 CONVERGENCE_TOL_PCT = 5.0   # +/-5% trim = "idle dialed in"
-# Injectors are OEM-matched, so the correction goes entirely into MAF scaling (the real lever for
-# this build). Injector latency/flow stay put — chasing them would move already-correct scalars.
-BUILD_SPLIT = ScalarSplit(w_latency=0.0, w_flow=0.0, w_maf=1.0)
 
 
 def idle_grid_spec(op: OperatingPoint) -> GridSpec:
@@ -63,7 +59,7 @@ def run_convergence(seed: int = 0, max_iters: int | None = None,
         trims.append(trim_pct)
         if abs(trim_pct) <= CONVERGENCE_TOL_PCT:
             break
-        prop, state = propose_idle_correction(grid, tables, state, cfg.algo, split=BUILD_SPLIT)
+        prop, state = propose_idle_correction(grid, tables, state, cfg.algo)
         ctx = ClampContext(tables, cfg.safety)   # idle: no knock, fuel-only
         tables, result = apply_proposal(tables, prop, ctx)
         violations += len(result.violations)

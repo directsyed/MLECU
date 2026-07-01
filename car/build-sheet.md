@@ -5,7 +5,7 @@ The more precisely this build is pinned, the better the tune. Vehicle facts mirr
 the sim seeds from these in `ecutune/simulation/mismatch.py`.
 
 ## Chassis / ECU
-- **2005 Subaru Forester XT (SG9), USDM.** Transmission: **TBD — 4EAT vs 5MT (confirm; it selects the ROM variant).**
+- **2005 Subaru Forester XT (SG9), USDM.** Transmission: **4EAT** (selects the ROM variant → pull the 4EAT stock ROM / read his ECU).
 - **ECU: USDM 2005 FXT, 32-bit DBW.** Stock ROM presumed. **ROM ID: not yet captured** (read it with the Openport — read-only, safe).
 
 ## Engine — JDM EJ20X (2.0 L)
@@ -33,10 +33,13 @@ the sim seeds from these in `ecutune/simulation/mismatch.py`.
 - Exhaust AVCS (deleted) — commanded vs no response.
 
 ## Tuning implications (why the idle is bad — see CLAUDE.md working theory)
-- **Injector scalars are CORRECT (matched) — do not chase them.** The sim locks them.
-- Real issues: 2.0 L-on-2.5 L airflow/VE/load model; idle-airflow target; exhaust-AVCS/TGV overlap &
-  stability; timing too advanced for 9.5:1 on 93 oct; MAF-cal residual (the one the idle algorithm
-  corrects); possible vacuum leak (rule out first).
+- **Do NOT pre-prioritize.** Everything is a candidate on a fresh swap; the data (ROM + logs) decides
+  what and how much. The sim keeps ALL fuel levers live (neutral split), not just one.
+- **Injectors are NOMINALLY matched** (OEM FXT on the FXT ROM) — a useful prior, so injector scaling is
+  *probably* close, but the lever stays active (latency varies with voltage/fuel pressure, and idle-only
+  data can't separate injector vs MAF error anyway).
+- Candidates: MAF-cal (intake mods), injector scaling/latency, 2.0-on-2.5 VE/load, idle-airflow target,
+  exhaust-AVCS/TGV overlap & stability, timing too advanced for 9.5:1 on 93 oct, vacuum leak (rule out first).
 
 ## Open items to confirm
-- Transmission (4EAT/5MT) → ROM variant. · MAF housing (OEM FXT?). · Actual ROM ID (read it).
+- ~~Transmission~~ **4EAT (confirmed).** · MAF housing (OEM FXT?) — confirm. · Actual ROM ID — read it (Openport, read-only, safe).
