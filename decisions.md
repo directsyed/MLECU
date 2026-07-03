@@ -141,3 +141,43 @@ neutral split. All three scalars now move; converges +14.2% → 4.6% in 4 iters,
 green. Real per-lever attribution — and the cross-axis priorities (fuel vs timing vs AVCS vs idle-air) —
 come from logs across operating conditions, which is the whole point of reading the car. Transmission
 confirmed **4EAT** (fixes the ROM variant).
+
+---
+
+## 2026-07-03 — Universal-first corpus expansion + model-selection policy
+
+**Context:** Syed's directive — the framework foundation is UNIVERSAL (every ECU exposes MAF/trims/
+ECT/RPM/timing/VE — the SAE J1979 vocabulary); specificity layers on top. And: add every source not
+yet ingested. Full review delivered in-chat (improvement map: semantic table layer, judge upgrades,
+sim-generated eval — logged as follow-ups).
+
+**Source expansion (built + live, 4 new sources + 1 gated):**
+- **One generic phpBB engine** (`forum_phpbb.py`, bound per-site via `fetch_for()`) now serves THREE
+  boards: `forum_speeduino` (universal open-EFI reasoning), `forum_msextra` (MegaSquirt theory),
+  `forum_romraider` (Subaru tuning/logging/defs + stock-ROM threads; seeded with the 2005 FXT 4EAT
+  stock-ROM thread). *Divergence from plan:* speeduino.com turned out to be phpBB, not Discourse
+  (probed before building) — which collapsed two planned engines into one.
+- **`tunerstudio_ini`**: speeduino.ini → 55 cross-platform table/curve definitions (reference tier) —
+  the universal table vocabulary that will anchor the future semantic table layer.
+- **`ecu_docs` + obd_pids**: Wikipedia OBD-II PIDs page (SAE J1979) — the universal channel anchor.
+- **Wideband manuals**: AEM 30-0300 (+30-0310 inline, +FAE variant) PDFs → `local_pdf` (36 pages).
+- **`forum_nasioc`: built but DISABLED** — NASIOC's Cloudflare managed challenge does not clear
+  headless even with a new challenge-retry loop in BrowserFetcher (improvement kept; benefits
+  legacygt). Revisit via one-time non-headless run or browser-cookie import.
+- **ROM/log binary attachments need forum accounts** → Syed downloads manually into
+  `data/raw/roms/` (gitignored); sources capture thread text/metadata only.
+- Corpus after expansion: **1,026 docs (976 reference / 50 community)**; daily timer now accumulates
+  from three new boards passively. 22 pipeline tests green.
+
+**Model-selection policy (the durable lesson):** model choices are RE-VERIFIED against the current
+landscape AT EXECUTION TIME, never asserted from training memory. (Syed caught the planned
+Qwen2.5-32B judge being two generations stale — Qwen3.6 released 2026-04, after the agent's cutoff.)
+- **Judge (as of 2026-07): Qwen3.6-35B-A3B at Q8_0** — MoE (3B active) lets Q8 run TODAY on the
+  single 3090 + 32 GB RAM via llama.cpp expert offload; batch/overnight posture makes speed
+  irrelevant. Dense alternative: Qwen3.6-27B (Q6 borderline on 24 GB; Q8 on 48 GB).
+- **Quantization floor (Syed): Q6 minimum, Q8 preferred** for inference. (QLoRA's frozen NF4 base is
+  a training-method standard, not subject to this floor.)
+- **Fine-tune base (pilot): Qwen3.6-27B**, re-verify at pilot time.
+- RAM pricing correction: the earlier $15–25/32GB DDR4 RDIMM figure was stale — prices rose with AI
+  demand. RAM buy deferred to opportunistic (Syed watches for lots); NOT blocking: the judge fits
+  the current 24 GB + 32 GB.

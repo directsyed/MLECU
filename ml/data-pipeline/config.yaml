@@ -127,6 +127,135 @@ sources:
         domain: general
         min_chars: 600
         pages: [ mfuel.htm, vetable.htm, mtune.htm, minj.htm ]
-      # rusEFI already covered by rusefi_docs; Speeduino redundant; vendor PDFs via local_pdf.
+      - name: obd_pids            # SAE J1979 OBD-II PIDs — the UNIVERSAL channel vocabulary anchor
+        base_url: https://en.wikipedia.org/wiki/
+        kind: efi_reference
+        domain: general
+        min_chars: 600
+        pages: [ OBD-II_PIDs ]
+      # rusEFI already covered by rusefi_docs; vendor PDFs via local_pdf.
 
-  forum_nasioc:    { enabled: false, rate_limit_per_min: 20 }
+  # ---- universal-first source expansion (2026-07-03) --------------------------------
+  # One generic phpBB engine serves three boards. Universal keyword set for the general
+  # boards; Subaru set for romraider. Bounded discovery, conservative rates.
+
+  forum_speeduino:                # speeduino.com — universal open-EFI reasoning (phpBB)
+    enabled: true
+    rate_limit_per_min: 15
+    base_url: https://speeduino.com/forum
+    domain: general
+    discover_forums: [3, 18]      # General Discussion/Support/Projects; Getting started
+    discover_max_pages: 3
+    discover_max_new: 6
+    max_thread_pages: 8
+    discover_keywords: &universal_tuning_kws
+      - tune
+      - tuning
+      - ve table
+      - volumetric
+      - afr
+      - air fuel
+      - wideband
+      - lambda
+      - o2
+      - ego
+      - timing
+      - ignition
+      - advance
+      - knock
+      - idle
+      - iac
+      - warmup
+      - wue
+      - accel
+      - enrich
+      - injector
+      - dead time
+      - latency
+      - req_fuel
+      - reqfuel
+      - maf
+      - map sensor
+      - speed density
+      - boost
+      - wastegate
+      - closed loop
+      - open loop
+      - trim
+      - cranking
+      - fuel pressure
+      - dyno
+      - datalog
+      - fuel map
+
+  forum_msextra:                  # msextra.com — MegaSquirt tuning theory (phpBB)
+    enabled: true
+    rate_limit_per_min: 15
+    base_url: https://www.msextra.com/forums
+    domain: general
+    discover_forums: [134, 131, 101, 122]   # Tuning; MS3 General; MS2/Extra; TunerStudio
+    discover_max_pages: 3
+    discover_max_new: 6
+    max_thread_pages: 8
+    discover_keywords: *universal_tuning_kws
+
+  forum_romraider:                # romraider.com — Subaru tuning/logging/defs + stock-ROM threads (phpBB)
+    enabled: true
+    rate_limit_per_min: 15
+    base_url: https://www.romraider.com/forum
+    domain: subaru
+    seed_threads:
+      - https://www.romraider.com/forum/viewtopic.php?f=15&t=15258   # 2005 Forester XT 4EAT stock ROM map
+    discover_forums: [15, 51, 8, 32]  # Subaru Tuning; EMS Analysis&Tuning; ECU/Logger Defs; Tuning Utilities
+    discover_max_pages: 3
+    discover_max_new: 8
+    max_thread_pages: 10
+    discover_keywords:
+      - rom
+      - tune
+      - tuning
+      - knock
+      - afr
+      - boost
+      - idle
+      - maf
+      - injector
+      - timing
+      - learning
+      - logger
+      - definition
+      - dyno
+      - wideband
+      - forester
+      - wrx
+      - sti
+      - legacy
+      - fxt
+      - stock
+      - datalog
+      - avcs
+      - tgv
+    # ROM *attachments* need a logged-in account — Syed downloads binaries manually into
+    # data/raw/roms/ (gitignored); this source captures the thread text/metadata.
+
+  forum_nasioc:                   # forums.nasioc.com — vBulletin behind HARD Cloudflare
+    # Source is built + tested, but NASIOC's managed challenge doesn't clear headless (verified
+    # 2026-07-03, even with the challenge-retry loop). Revisit: one-time non-headless run to seed
+    # CF cookies into a persistent context, or import cookies from Syed's browser.
+    enabled: false
+    rate_limit_per_min: 12
+    base_url: https://forums.nasioc.com/forums
+    seed_threads:
+      - https://forums.nasioc.com/forums/showthread.php?t=2882357    # 05 Forester XT build help
+    discover_forums: []           # fill after a BrowserFetcher probe of forumdisplay ids
+    discover_max_pages: 2
+    discover_max_new: 6
+    max_thread_pages: 8
+    discover_keywords: *universal_tuning_kws
+
+  tunerstudio_ini:                # speeduino.ini — CROSS-PLATFORM table vocabulary (reference tier)
+    enabled: true
+    repo_url: https://github.com/speeduino/speeduino.git
+    local_path: data/raw/speeduino
+    ini_path: reference/speeduino.ini
+    auto_update: true

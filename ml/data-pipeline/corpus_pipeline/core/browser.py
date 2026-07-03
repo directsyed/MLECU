@@ -31,7 +31,8 @@ class BrowserFetcher:
         )
 
     def get_html(self, url: str, *, wait_selector: str | None = None,
-                 timeout: int = 45000, settle_ms: int = 4000) -> str:
+                 timeout: int = 45000, settle_ms: int = 4000,
+                 challenge_retries: int = 4) -> str:
         pg = self._ctx.new_page()
         try:
             pg.goto(url, wait_until="networkidle", timeout=timeout)
@@ -41,7 +42,21 @@ class BrowserFetcher:
                 except Exception:
                     log.debug("wait_selector %s not seen on %s", wait_selector, url)
             pg.wait_for_timeout(settle_ms)
-            return pg.content()
+            html = pg.content()
+            # Cloudflare managed challenge: page says "Just a moment..." and swaps itself out
+            # once cleared (5-15s). Re-read a few times instead of returning the stub.
+            for _ in range(challenge_retries):
+                if "Just a moment" not in html and "challenge-platform" not in html:
+                    break
+                log.debug("challenge page on %s — waiting for clearance", url)
+                pg.wait_for_timeout(6000)
+                if wait_selector:
+                    try:
+                        pg.wait_for_selector(wait_selector, timeout=8000)
+                    except Exception:
+                        pass
+                html = pg.content()
+            return html
         finally:
             pg.close()
 

@@ -6,6 +6,33 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-07-03 — Universal-first corpus expansion (4 new sources live)
+
+**Context:** Syed's directive — the framework foundation is universal (every ECU speaks the same
+channel vocabulary: MAF, trims, ECT, RPM, timing, VE = SAE J1979 + tuning extensions); Subaru
+specificity layers on top. Full project review delivered (judge upgrades, semantic table layer,
+sim-generated eval marked as follow-ups); "add every source not yet ingested" executed.
+
+**Built** (`ml/data-pipeline/`):
+- **Generic phpBB engine** (`forum_phpbb.py`, per-site binding) → three boards live: **speeduino**
+  (universal open-EFI), **msextra** (MegaSquirt theory — first pass caught a 75-post "Free VE Table
+  Corrections — drop your MSQ and a datalog" thread), **romraider.com** (Subaru tuning/logging/defs;
+  seeded with the **2005 Forester XT 4EAT stock ROM map** thread — Syed's exact platform).
+- **`tunerstudio_ini`** — speeduino.ini → **55 cross-platform table/curve definitions** (reference):
+  the universal table vocabulary for the future semantic layer.
+- **OBD-II PIDs** (J1979) reference page; **AEM wideband manuals** (30-0300/30-0310/FAE) → 36 pages.
+- **NASIOC**: built + tested, **gated** — hard Cloudflare doesn't clear headless (challenge-retry
+  loop added to BrowserFetcher anyway; benefits legacygt). Revisit: non-headless cookie seed.
+
+**Corpus: 1,026 docs (976 reference / 50 community), 22 tests green.** Daily timer now accumulates
+from three new boards passively.
+
+**Decided** (decisions.md): model choices re-verified at execution time (Qwen2.5-32B judge plan was
+2 generations stale — Syed's catch); judge as of 2026-07 = **Qwen3.6-35B-A3B @ Q8** via MoE expert
+offload on the single 3090 + 32 GB RAM; **Q6 min / Q8 preferred** inference floor.
+
+---
+
 ## 2026-06-27 — car/ecutune: deterministic algorithm + safety layer (offline, built)
 
 **Built** — `car/ecutune/`, a new self-contained package (own `.venv`; numpy + hypothesis; mirrors `corpus_pipeline` conventions, copied not coupled). The car domain's first real code:
@@ -123,6 +150,9 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-06-27 | Idle convergence: final trim | +3.86% (≤5% tol) | 4 iterations, deterministic, offline |
 | 2026-06-27 | Idle convergence: clamp violations | 0 | controller self-limits below ±3%; clamp is the backstop |
 | 2026-06-27 | car/ecutune test suite | 31 passed (1.8 s) | unit + hypothesis property (safety bounds) + keystone convergence |
+| 2026-07-03 | Corpus: total | 1,026 docs (976 ref / 50 comm) | after universal-first expansion: +3 phpBB boards, +55 TunerStudio defs, +OBD-II PIDs, +AEM manuals |
+| 2026-07-03 | Corpus: cross-platform ECU defs | 55 docs | tunerstudio_ini (speeduino.ini tables/curves, reference tier) |
+| 2026-07-03 | Pipeline test suite | 22 passed (0.5 s) | incl. new phpBB/vBulletin/INI fixture tests |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
