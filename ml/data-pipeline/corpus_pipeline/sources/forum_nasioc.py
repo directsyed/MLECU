@@ -7,6 +7,7 @@ listings with a[id^="thread_title_"], showthread.php?t=N threads with div[id^="p
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
 import sqlite3
@@ -22,6 +23,24 @@ from ..core.models import Document
 from .base import safe_text
 
 log = logging.getLogger(__name__)
+
+
+def _load_cf_cookies(cfg: Config, rel: str) -> list[dict] | None:
+    """Load cf_clearance (+ session) cookies exported from Syed's home browser. Format: a JSON list
+    of Playwright cookie dicts, or a {name: value} map (converted to .nasioc.com cookies). Absent =>
+    source stays gated (headless can't solve NASIOC's managed challenge unaided)."""
+    try:
+        p = cfg.resolve(rel)
+        if not p.exists():
+            return None
+        raw = json.loads(p.read_text())
+        if isinstance(raw, dict):
+            return [{"name": k, "value": v, "domain": ".nasioc.com", "path": "/"}
+                    for k, v in raw.items()]
+        return raw or None
+    except Exception as e:
+        log.warning("nasioc: cookie file unreadable: %s", e)
+        return None
 
 name = "forum_nasioc"
 _BASE = "https://forums.nasioc.com/forums"
@@ -133,7 +152,14 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
         return
 
     ua = (cfg.pipeline.user_agent_pool or [None])[0]
-    bf = BrowserFetcher(ua)
+    cookie_file = extra.get("cf_cookie_file", "data/raw/.cf-cookies/nasioc.json")
+    cookies = _load_cf_cookies(cfg, cookie_file)
+    if cookies is None and extra.get("require_cf_cookies", True):
+        log.warning("nasioc: no cf_clearance cookie at %s — skipping (managed challenge). "
+                    "Export it from a browser on the T630's network + matching UA.", cookie_file)
+        return
+    profile = str(cfg.resolve("data/raw/.cf-nasioc-profile"))
+    bf = BrowserFetcher(ua, profile_dir=profile, cookies=cookies)
     try:
         skip = _known_ids(cfg)
         for seed in seeds:

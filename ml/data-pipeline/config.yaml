@@ -239,15 +239,21 @@ sources:
     # data/raw/roms/ (gitignored); this source captures the thread text/metadata.
 
   forum_nasioc:                   # forums.nasioc.com — vBulletin behind HARD Cloudflare
-    # Source is built + tested, but NASIOC's managed challenge doesn't clear headless (verified
-    # 2026-07-03, even with the challenge-retry loop). Revisit: one-time non-headless run to seed
-    # CF cookies into a persistent context, or import cookies from Syed's browser.
-    enabled: false
+    # CONFIRMED (2026-07-03): the managed challenge does NOT clear headless even with persistent
+    # stealth context + interaction + reload (identical block response every retry). The one working
+    # path: drop a cf_clearance cookie into data/raw/.cf-cookies/nasioc.json exported from a browser
+    # on the T630's home network (cf_clearance is IP+UA bound; same public IP = valid) with a matching
+    # UA. `enabled: true` but `require_cf_cookies` makes it skip cleanly until that file exists — so the
+    # daily timer auto-activates NASIOC the moment the cookie is present. discover_forums empty until a
+    # cookie lets us probe the real forumdisplay ids (Engine Mgmt & Tuning, Factory 2.5L Turbo).
+    enabled: true
     rate_limit_per_min: 12
     base_url: https://forums.nasioc.com/forums
+    cf_cookie_file: data/raw/.cf-cookies/nasioc.json
+    require_cf_cookies: true
     seed_threads:
       - https://forums.nasioc.com/forums/showthread.php?t=2882357    # 05 Forester XT build help
-    discover_forums: []           # fill after a BrowserFetcher probe of forumdisplay ids
+    discover_forums: []
     discover_max_pages: 2
     discover_max_new: 6
     max_thread_pages: 8
