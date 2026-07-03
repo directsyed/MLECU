@@ -4,16 +4,16 @@ from __future__ import annotations
 import numpy as np
 
 from ecutune.core.models import Table, TableSet
-from ecutune.core.tables import INJECTOR_FLOW_SCALING, INJECTOR_LATENCY, MAF_SENSOR_SCALING
+from ecutune.core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_TRANSFER
 from ecutune.simulation.harness import CONVERGENCE_TOL_PCT, run_convergence
 from ecutune.simulation.mvem import EngineParams, steady_trim
 
 
 def _tables(latency, flow, maf) -> TableSet:
     return TableSet({
-        INJECTOR_LATENCY: Table(INJECTOR_LATENCY, "scalar", np.array(float(latency))),
-        INJECTOR_FLOW_SCALING: Table(INJECTOR_FLOW_SCALING, "scalar", np.array(float(flow))),
-        MAF_SENSOR_SCALING: Table(MAF_SENSOR_SCALING, "scalar", np.array(float(maf))),
+        FUEL_INJECTOR_LATENCY: Table(FUEL_INJECTOR_LATENCY, "scalar", np.array(float(latency))),
+        FUEL_INJECTOR_FLOW: Table(FUEL_INJECTOR_FLOW, "scalar", np.array(float(flow))),
+        SENSOR_MAF_TRANSFER: Table(SENSOR_MAF_TRANSFER, "scalar", np.array(float(maf))),
     })
 
 

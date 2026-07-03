@@ -65,9 +65,9 @@ def run_convergence(seed: int = 0, max_iters: int | None = None,
         violations += len(result.violations)
 
     from .mvem import _scalar
-    from ..core.tables import INJECTOR_FLOW_SCALING, INJECTOR_LATENCY, MAF_SENSOR_SCALING
+    from ..core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_TRANSFER
     scalars = {tid: round(_scalar(tables, tid), 4)
-               for tid in (INJECTOR_LATENCY, INJECTOR_FLOW_SCALING, MAF_SENSOR_SCALING)}
+               for tid in (FUEL_INJECTOR_LATENCY, FUEL_INJECTOR_FLOW, SENSOR_MAF_TRANSFER)}
     return ConvergenceResult(
         iterations=len(trims),
         converged=abs(trims[-1]) <= CONVERGENCE_TOL_PCT,

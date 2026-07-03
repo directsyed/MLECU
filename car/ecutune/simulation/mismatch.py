@@ -18,16 +18,16 @@ from __future__ import annotations
 import numpy as np
 
 from ..core.models import Table, TableSet
-from ..core.tables import INJECTOR_FLOW_SCALING, INJECTOR_LATENCY, MAF_SENSOR_SCALING
+from ..core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_TRANSFER
 from .mvem import EngineParams
 
 
 def ej20x_into_ej255() -> tuple[TableSet, EngineParams]:
     """Return (believed starting tables, true engine params). Error seeded across ALL fuel levers."""
     believed = TableSet({
-        INJECTOR_LATENCY: Table(INJECTOR_LATENCY, "scalar", np.array(0.96), units="ms"),           # ~4% off
-        INJECTOR_FLOW_SCALING: Table(INJECTOR_FLOW_SCALING, "scalar", np.array(510.0), units="cc/min"),  # ~2% off
-        MAF_SENSOR_SCALING: Table(MAF_SENSOR_SCALING, "scalar", np.array(0.93), units="scale"),     # ~7% low (intake mods)
+        FUEL_INJECTOR_LATENCY: Table(FUEL_INJECTOR_LATENCY, "scalar", np.array(0.96), units="ms"),           # ~4% off
+        FUEL_INJECTOR_FLOW: Table(FUEL_INJECTOR_FLOW, "scalar", np.array(510.0), units="cc/min"),  # ~2% off
+        SENSOR_MAF_TRANSFER: Table(SENSOR_MAF_TRANSFER, "scalar", np.array(0.93), units="scale"),     # ~7% low (intake mods)
     })
     truth = EngineParams(
         displacement_l=2.0, idle_air_g=0.10,

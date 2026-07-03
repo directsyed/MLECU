@@ -1,20 +1,35 @@
-"""Canonical ECUFlash table IDs — verified in the ingested SubaruDefs.
+"""SEMANTIC table IDs — the universal vocabulary the whole deterministic layer speaks.
 
-Using the *exact* RomRaider/ECUFlash names as our internal table_id means the eventual
-ROM-write bridge is a 1:1 name map (no translation layer to get wrong). Source of truth:
-ml/data-pipeline/data/raw/SubaruDefs/ECUFlash/subaru standard/Forester 2.5/E2UE101J.xml
+Every ECU exposes the same tuning surface (fuel scaling, injector dead time, airflow transfer,
+AFR targets, timing, idle targets — the concepts behind the SAE J1979 channel vocabulary), so the
+algorithms and safety clamps operate ONLY on these platform-neutral semantic IDs. What a given
+platform *calls* each table lives in ecutune/platforms/ adapters:
+
+    semantic ID              subaru_ecuflash (A2WC400x)        tunerstudio (speeduino.ini)
+    fuel.injector_flow    -> "Injector Flow Scaling"           (reqFuel scalar analog)
+    sensor.maf_transfer   -> "MAF Sensor Scaling"              (speed-density: absent)
+
+This keeps Subaru as adapter #1 rather than the foundation — the universal-first constraint
+(decisions.md 2026-07-03). Adapters also absorb per-ROM-def name drift (the 2005 FXT def says
+"Injector Latency"; the Forester 2.5 def says "Injector Latency_" — same table, same semantic ID).
 """
 from __future__ import annotations
 
-# Global scalars / 1-D curves — the EJ20X-vs-EJ255 idle problem lives here.
-INJECTOR_FLOW_SCALING = "Injector Flow Scaling"   # scalar; cc/min — whole-map fuel shift
-INJECTOR_LATENCY = "Injector Latency_"            # 1-D curve vs battery voltage (dead time, ms)
-MAF_SENSOR_SCALING = "MAF Sensor Scaling"         # 1-D curve, 48 pts — airflow estimate
+# --- fuel path (global scalars / curves — the idle Stage-2 levers) --------------------
+FUEL_INJECTOR_FLOW = "fuel.injector_flow"        # injector flow the ECU believes (cc/min); INVERSE lever
+FUEL_INJECTOR_LATENCY = "fuel.injector_latency"  # injector dead time vs battery voltage (ms); DIRECT
+SENSOR_MAF_TRANSFER = "sensor.maf_transfer"      # MAF sensor transfer/scaling (airflow estimate); DIRECT
 
-# 2-D maps (X = load, Y = rpm).
-PRIMARY_OPEN_LOOP_FUELING_A = "Primary Open Loop Fueling A_"   # commanded AFR target map
-PRIMARY_OPEN_LOOP_FUELING_B = "Primary Open Loop Fueling B_"
+# --- fuel targets / closed-loop infrastructure -----------------------------------------
+FUEL_TARGET_AFR_PRIMARY_A = "fuel.target_afr_primary_a"   # primary open-loop AFR target map (X=load, Y=rpm)
+FUEL_TARGET_AFR_PRIMARY_B = "fuel.target_afr_primary_b"
+FUEL_CL_LEARNING_RANGES = "fuel.cl_learning_ranges"       # A/F learning airflow ranges
+FUEL_CL_LEARNING_LIMITS = "fuel.cl_learning_limits"       # A/F learning clamp limits
 
-# Closed-loop trim infrastructure (the ECU's own fuel learning).
-AF_LEARNING_1_RANGES = "A/F Learning #1 Airflow Ranges"
-AF_LEARNING_1_LIMITS = "A/F Learning #1 Limits"
+# --- ignition ---------------------------------------------------------------------------
+IGNITION_BASE_TIMING = "ignition.base_timing"
+IGNITION_TIMING_COMP_A = "ignition.timing_comp_a"         # per-cylinder/aux timing compensation
+
+# --- idle / boost ------------------------------------------------------------------------
+IDLE_SPEED_TARGET_A = "idle.speed_target_a"
+BOOST_WASTEGATE_DUTY = "boost.wastegate_duty"

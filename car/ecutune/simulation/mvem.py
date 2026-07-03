@@ -22,7 +22,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..core.models import TableSet
-from ..core.tables import INJECTOR_FLOW_SCALING, INJECTOR_LATENCY, MAF_SENSOR_SCALING
+from ..core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_TRANSFER
 
 
 @dataclass
@@ -55,9 +55,9 @@ def _scalar(tables: TableSet, table_id: str) -> float:
 
 def open_loop_fuel(tables: TableSet, params: EngineParams) -> tuple[float, float]:
     """Return (delivered, required) fuel mass per event for the believed tables."""
-    flow_b = _scalar(tables, INJECTOR_FLOW_SCALING)
-    lat_b = _scalar(tables, INJECTOR_LATENCY)
-    maf_b = _scalar(tables, MAF_SENSOR_SCALING)
+    flow_b = _scalar(tables, FUEL_INJECTOR_FLOW)
+    lat_b = _scalar(tables, FUEL_INJECTOR_LATENCY)
+    maf_b = _scalar(tables, SENSOR_MAF_TRANSFER)
     a_true = params.idle_air_g
     a_est = a_true * (maf_b / params.maf_scaling_true)
     m_target = a_est / params.afr_target

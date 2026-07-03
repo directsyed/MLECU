@@ -7,7 +7,7 @@ from ecutune.algorithms import AlgoState, propose_idle_correction
 from ecutune.algorithms.controller import BoundedIntegralState, PIConfig, step
 from ecutune.core.config import load_config
 from ecutune.core.models import ClampContext, Table, TableSet
-from ecutune.core.tables import INJECTOR_FLOW_SCALING, INJECTOR_LATENCY, MAF_SENSOR_SCALING
+from ecutune.core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_TRANSFER
 from ecutune.logparse.binning import BinnedGrid, GridSpec
 from ecutune.safety import apply_clamps
 
@@ -23,9 +23,9 @@ def _grid_with_trim(trim_pct: float) -> BinnedGrid:
 
 def _tables() -> TableSet:
     return TableSet({
-        INJECTOR_LATENCY: Table(INJECTOR_LATENCY, "scalar", np.array(1.0), units="ms"),
-        INJECTOR_FLOW_SCALING: Table(INJECTOR_FLOW_SCALING, "scalar", np.array(800.0), units="cc/min"),
-        MAF_SENSOR_SCALING: Table(MAF_SENSOR_SCALING, "scalar", np.array(1.0), units="scale"),
+        FUEL_INJECTOR_LATENCY: Table(FUEL_INJECTOR_LATENCY, "scalar", np.array(1.0), units="ms"),
+        FUEL_INJECTOR_FLOW: Table(FUEL_INJECTOR_FLOW, "scalar", np.array(800.0), units="cc/min"),
+        SENSOR_MAF_TRANSFER: Table(SENSOR_MAF_TRANSFER, "scalar", np.array(1.0), units="scale"),
     })
 
 
@@ -60,11 +60,11 @@ def test_idle_proposal_shape_and_signs():
     assert prop.provenance == "algorithm:idle_global_scalar"
     assert state2.iterations == 1
     by_id = {e.table_id: e.new_value for e in prop.edits}
-    assert set(by_id) == {INJECTOR_LATENCY, INJECTOR_FLOW_SCALING, MAF_SENSOR_SCALING}
+    assert set(by_id) == {FUEL_INJECTOR_LATENCY, FUEL_INJECTOR_FLOW, SENSOR_MAF_TRANSFER}
     # lean => add fuel: latency UP, MAF UP, flow-scaling DOWN (inverse lever)
-    assert by_id[INJECTOR_LATENCY] > 1.0
-    assert by_id[MAF_SENSOR_SCALING] > 1.0
-    assert by_id[INJECTOR_FLOW_SCALING] < 800.0
+    assert by_id[FUEL_INJECTOR_LATENCY] > 1.0
+    assert by_id[SENSOR_MAF_TRANSFER] > 1.0
+    assert by_id[FUEL_INJECTOR_FLOW] < 800.0
 
 
 def test_idle_proposal_passes_clamps_clean():

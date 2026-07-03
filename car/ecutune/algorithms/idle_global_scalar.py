@@ -18,7 +18,7 @@ import numpy as np
 
 from ..core.config import AlgoCfg
 from ..core.models import CellEdit, Proposal, TableSet
-from ..core.tables import INJECTOR_FLOW_SCALING, INJECTOR_LATENCY, MAF_SENSOR_SCALING
+from ..core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_TRANSFER
 from ..logparse.binning import BinnedGrid, weighted_mean_trim
 from . import fueling
 from .controller import BoundedIntegralState, PIConfig, step
@@ -47,14 +47,14 @@ def propose_idle_correction(grid: BinnedGrid, tables: TableSet, state: AlgoState
     edits = (
         # priority order: latency, then flow, then MAF (degenerate at one idle point; the loop
         # separates them over iterations, attributing conservatively).
-        CellEdit(INJECTOR_LATENCY, 0, 0,
-                 fueling.corrected_latency(_scalar(tables, INJECTOR_LATENCY),
+        CellEdit(FUEL_INJECTOR_LATENCY, 0, 0,
+                 fueling.corrected_latency(_scalar(tables, FUEL_INJECTOR_LATENCY),
                                            split.w_latency * correction), why),
-        CellEdit(INJECTOR_FLOW_SCALING, 0, 0,
-                 fueling.corrected_flow_scaling(_scalar(tables, INJECTOR_FLOW_SCALING),
+        CellEdit(FUEL_INJECTOR_FLOW, 0, 0,
+                 fueling.corrected_flow_scaling(_scalar(tables, FUEL_INJECTOR_FLOW),
                                                 split.w_flow * correction), why),
-        CellEdit(MAF_SENSOR_SCALING, 0, 0,
-                 fueling.corrected_maf(_scalar(tables, MAF_SENSOR_SCALING),
+        CellEdit(SENSOR_MAF_TRANSFER, 0, 0,
+                 fueling.corrected_maf(_scalar(tables, SENSOR_MAF_TRANSFER),
                                        split.w_maf * correction), why),
     )
     prop = Proposal(f"idle-{state.iterations}", "idle_stage2", edits, "fuel",

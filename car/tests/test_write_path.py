@@ -15,12 +15,12 @@ SAFETY = load_config().safety
 
 
 def _ts(val=750.0):
-    return TableSet({"Injector Flow Scaling": Table("Injector Flow Scaling", "scalar",
+    return TableSet({"fuel.injector_flow": Table("fuel.injector_flow", "scalar",
                                                     np.array(float(val)), units="cc/min")})
 
 
 def _prop(new):
-    return Proposal("p", "idle_stage2", (CellEdit("Injector Flow Scaling", 0, 0, new),),
+    return Proposal("p", "idle_stage2", (CellEdit("fuel.injector_flow", 0, 0, new),),
                     "fuel", "algorithm:test")
 
 
@@ -28,15 +28,15 @@ def test_apply_proposal_unchanged_on_knock():
     ts = _ts(750.0)
     new_ts, res = apply_proposal(ts, _prop(760.0), ClampContext(ts, SAFETY, knock_active=True))
     assert res.ok is False
-    assert float(new_ts.tables["Injector Flow Scaling"].values) == 750.0   # nothing written
-    assert float(ts.tables["Injector Flow Scaling"].values) == 750.0       # original unmutated
+    assert float(new_ts.tables["fuel.injector_flow"].values) == 750.0   # nothing written
+    assert float(ts.tables["fuel.injector_flow"].values) == 750.0       # original unmutated
 
 
 def test_apply_proposal_writes_clamped_value():
     ts = _ts(750.0)
     new_ts, res = apply_proposal(ts, _prop(900.0), ClampContext(ts, SAFETY))  # +20% -> clamped 3%
-    assert float(new_ts.tables["Injector Flow Scaling"].values) == 772.5
-    assert float(ts.tables["Injector Flow Scaling"].values) == 750.0          # COPY semantics
+    assert float(new_ts.tables["fuel.injector_flow"].values) == 772.5
+    assert float(ts.tables["fuel.injector_flow"].values) == 750.0          # COPY semantics
 
 
 def test_only_safety_layer_applies_edits():
