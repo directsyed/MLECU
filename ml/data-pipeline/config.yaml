@@ -265,3 +265,64 @@ sources:
     local_path: data/raw/speeduino
     ini_path: reference/speeduino.ini
     auto_update: true
+
+  # ---- XenForo boards (VerticalScope 202 JS stub -> BrowserFetcher) ------------------
+  forum_subaruforester:           # subaruforester.org — Syed's exact chassis (SG Forester)
+    enabled: true
+    rate_limit_per_min: 12
+    base_url: https://www.subaruforester.org
+    domain: subaru
+    discover_forums:              # node slugs from the live probe (2026-07-03)
+      - engine-management-tuning-and-datalogging.95   # the tuning/datalogging goldmine
+      - ej25-2-5l-turbocharged-2004-2013.87           # EJ255 FXT era — his platform
+      - ej20-2-0l-turbocharged.159                    # EJ20 turbo family
+    # VerticalScope's JS challenge makes each page ~20-25s (ad-polling never idles), so keep the
+    # per-run crawl SMALL — the daily timer accumulates over many nights via skip-known dedup.
+    discover_max_pages: 1
+    discover_max_new: 3
+    max_thread_pages: 3
+    discover_keywords: &universal_tuning_kws_ref
+      - tune
+      - tuning
+      - ecu
+      - romraider
+      - accessport
+      - cobb
+      - ecutek
+      - knock
+      - afr
+      - fuel trim
+      - trim
+      - closed loop
+      - open loop
+      - maf
+      - injector
+      - timing
+      - idle
+      - boost
+      - wideband
+      - datalog
+      - logging
+      - dyno
+      - swap
+      - ej20
+      - ej25
+      - avcs
+      - stock rom
+      - base map
+      - learning
+      - dam
+      - fkl
+
+  forum_iwsti:                    # iwsti.com — STI tuning knowledge (32-bit era overlaps FXT ECU)
+    enabled: true
+    rate_limit_per_min: 12
+    base_url: https://www.iwsti.com
+    domain: subaru
+    discover_forums:
+      - ecu-tuning-performance-electronics.114        # the tuning goldmine
+      - gr-engine-ecu-power-drivetrain.334
+    discover_max_pages: 1
+    discover_max_new: 3
+    max_thread_pages: 3
+    discover_keywords: *universal_tuning_kws_ref

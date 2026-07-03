@@ -27,6 +27,17 @@ sim-generated eval marked as follow-ups); "add every source not yet ingested" ex
 **Corpus: 1,026 docs (976 reference / 50 community), 22 tests green.** Daily timer now accumulates
 from three new boards passively.
 
+**Follow-on same day — XenForo boards + NASIOC gating:**
+- **`forum_xenforo`** engine → **subaruforester.org** (Syed's chassis: engine-tuning-datalogging +
+  EJ25-turbo-2004-2013 + EJ20-turbo nodes) and **iwsti.com** (STI tuning). VerticalScope 202 stub →
+  BrowserFetcher; verified end-to-end (20-post thread parsed). Slow (~25 s/page) so caps kept tight;
+  nightly timer accumulates.
+- **NASIOC**: built + enabled but **cf_clearance-cookie-gated** — its Cloudflare managed challenge is
+  unbeatable headless (confirmed); a home-browser cookie (same public IP as the T630) auto-activates it.
+- **BrowserFetcher** hardened (wait_until param, non-fatal goto, CF re-read, cookie injection).
+- **6 forum boards** now (legacygt, speeduino, msextra, romraider, subaruforester, iwsti) + NASIOC gated.
+- **RAM spec for the parser:** 32GB DDR4-2400 ECC RDIMM 2Rx4 PC4-19200 288-pin 1.2V. **27 tests green.**
+
 **Decided** (decisions.md): model choices re-verified at execution time (Qwen2.5-32B judge plan was
 2 generations stale — Syed's catch); judge as of 2026-07 = **Qwen3.6-35B-A3B @ Q8** via MoE expert
 offload on the single 3090 + 32 GB RAM; **Q6 min / Q8 preferred** inference floor.

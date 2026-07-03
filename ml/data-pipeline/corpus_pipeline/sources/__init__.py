@@ -16,6 +16,7 @@ from . import (
     forum_legacygt,
     forum_nasioc,
     forum_phpbb,
+    forum_xenforo,
     local_pdf,
     romraider_defs,
     romraider_logger,
@@ -38,5 +39,8 @@ REGISTRY: dict[str, FetchFn] = {
     "forum_romraider": forum_phpbb.fetch_for("forum_romraider"),
     "forum_nasioc": forum_nasioc.fetch,
     "tunerstudio_ini": tunerstudio_ini.fetch,
-    # kaggle_datalogs — later; XenForo boards (subaruforester/iwsti) — next tier.
+    # XenForo boards (VerticalScope 202 stub) — one engine, per-site bindings
+    "forum_subaruforester": forum_xenforo.fetch_for("forum_subaruforester"),
+    "forum_iwsti": forum_xenforo.fetch_for("forum_iwsti"),
+    # kaggle_datalogs — later.
 }

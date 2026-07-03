@@ -180,4 +180,26 @@ Qwen2.5-32B judge being two generations stale — Qwen3.6 released 2026-04, afte
 - **Fine-tune base (pilot): Qwen3.6-27B**, re-verify at pilot time.
 - RAM pricing correction: the earlier $15–25/32GB DDR4 RDIMM figure was stale — prices rose with AI
   demand. RAM buy deferred to opportunistic (Syed watches for lots); NOT blocking: the judge fits
-  the current 24 GB + 32 GB.
+  the current 24 GB + 32 GB. **RAM spec for the parser: 32GB DDR4-2400 ECC RDIMM 2Rx4 PC4-19200
+  288-pin 1.2V** (runs 1866 now on the v3, 2400 after the v4 swap; RDIMM not UDIMM/LRDIMM).
+
+### 2026-07-03 (cont.) — XenForo forums + BrowserFetcher hardening; NASIOC gated
+
+- **XenForo engine** (`forum_xenforo.py`, per-site bindings) → **forum_subaruforester** (Syed's exact
+  chassis — engine-management-tuning-and-datalogging + EJ25-turbo-2004-2013 + EJ20-turbo nodes) and
+  **forum_iwsti** (STI tuning). Both are VerticalScope boards behind a 202 JS stub → BrowserFetcher.
+  Verified end-to-end (40-thread listing, a 20-post thread parsed with authors/dates).
+- **VerticalScope is SLOW** (~25 s/page — the JS challenge clears in <9 s but ad-trackers keep
+  networkidle from ever settling, so each page waits out a non-fatal timeout). Kept per-page timeout
+  at 25 s + tight caps (discover_max_new 3, discover_max_pages 1, **max_thread_pages 3**) so nightly
+  runs stay bounded; a full foreground `--once` exceeds a few minutes, which is fine for the systemd
+  timer. **Lesson: do NOT reload-loop per page in the fetcher** — it multiplies the per-page cost on
+  slow-challenge boards; single-pass non-fatal goto + wait_selector is correct.
+- **BrowserFetcher hardening (shared, benefits legacygt too):** `wait_until` param (networkidle vs
+  domcontentloaded), non-fatal goto, CF-interstitial re-read loop, and cookie injection. A
+  persistent-context experiment rendered an empty body here and was reverted — kept launch()+new_context().
+- **NASIOC: built, enabled, but cookie-GATED.** Confirmed its Cloudflare managed challenge cannot be
+  cleared headless (persistent stealth ctx + interaction + reload all return the identical block).
+  Path: cf_clearance cookie exported from Syed's home browser (same public IP as the T630 → valid)
+  into `data/raw/.cf-cookies/nasioc.json`; `require_cf_cookies` auto-activates it once present.
+- Sources now: 12 registry keys (6 forums + defs/logger/theory/efi/ini/pdf). 27 pipeline tests green.

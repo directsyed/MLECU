@@ -46,10 +46,22 @@ class BrowserFetcher:
 
     def get_html(self, url: str, *, wait_selector: str | None = None,
                  timeout: int = 45000, settle_ms: int = 4000,
-                 challenge_retries: int = 6) -> str:
+                 challenge_retries: int = 6, wait_until: str = "networkidle") -> str:
+        """Fetch rendered HTML past JS stubs / Cloudflare.
+
+        Single-pass by design: the goto wait event is NON-FATAL (ad-heavy XenForo/VerticalScope
+        boards keep trackers polling and never reach networkidle), but letting networkidle run its
+        full timeout gives the 202-stub JS the ~15-30s it needs to clear to real content; we then
+        confirm with wait_selector and read once. A short CF-interstitial retry handles Cloudflare's
+        "Just a moment" (which swaps out on its own). Do NOT reload-loop per page — that multiplies
+        the per-page cost on boards whose challenge is inherently slow.
+        """
         pg = self._ctx.new_page()
         try:
-            pg.goto(url, wait_until="networkidle", timeout=timeout)
+            try:
+                pg.goto(url, wait_until=wait_until, timeout=timeout)
+            except Exception as e:
+                log.debug("goto %s did not settle (non-fatal): %s", url, str(e)[:80])
             if wait_selector:
                 try:
                     pg.wait_for_selector(wait_selector, timeout=10000)
@@ -57,18 +69,11 @@ class BrowserFetcher:
                     log.debug("wait_selector %s not seen on %s", wait_selector, url)
             pg.wait_for_timeout(settle_ms)
             html = pg.content()
-            # Cloudflare managed challenge: "Just a moment..." swaps out once JS clears (5-15s).
             for _ in range(challenge_retries):
                 if "Just a moment" not in html and "challenge-platform" not in html \
                         and "cf-browser-verification" not in html:
                     break
-                log.debug("challenge page on %s — waiting for clearance", url)
                 pg.wait_for_timeout(6000)
-                if wait_selector:
-                    try:
-                        pg.wait_for_selector(wait_selector, timeout=8000)
-                    except Exception:
-                        pass
                 html = pg.content()
             return html
         finally:
