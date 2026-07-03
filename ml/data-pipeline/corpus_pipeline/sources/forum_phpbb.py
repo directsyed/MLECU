@@ -35,6 +35,43 @@ name = "forum_phpbb"  # generic engine; Document.source comes from the bound ins
 _SID = re.compile(r"[?&]sid=[0-9a-f]+")
 _T_ID = re.compile(r"[?&]t=(\d+)")
 _START = re.compile(r"[?&]start=(\d+)")
+_ATT_ID = re.compile(r"download/file\.php\?id=(\d+)")
+# strong ROM formats (always a ROM) vs archives (ROM only if the filename hints it)
+_ROM_EXT = re.compile(r"\.(srf|hex|bin|rom|mot|s19)$", re.I)
+_ARCHIVE_EXT = re.compile(r"\.(zip|7z|rar|gz)$", re.I)
+_ROM_HINT = re.compile(
+    r"\brom\b|fxt|wrx|\bsti\b|legacy|forester|impreza|outback|baja|"
+    r"stock|\becu\b|tune|base\s*map|basemap|4eat|5mt|6mt|[0-9A-Fa-f]{10,16}",
+    re.I,
+)
+
+
+def attachment_links(soup: BeautifulSoup, base_url: str) -> list[tuple[str, str, str]]:
+    """(attachment_id, filename, absolute_url) for ROM-like phpBB attachments in a thread.
+
+    phpBB attachments are `download/file.php?id=N` anchors whose link text is the filename. We keep
+    real ROM formats (.srf/.hex/.bin/...) unconditionally and archives (.zip/...) only when the
+    filename hints a ROM (chassis code, "stock", or a ROM-id-like hex token). Avatars (`?avatar=`)
+    are excluded.
+    """
+    out: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+    for a in soup.select('a[href*="download/file.php?id="]'):
+        href = _strip_sid(a.get("href") or "")
+        m = _ATT_ID.search(href)
+        if not m or "avatar=" in href:
+            continue
+        aid, fname = m.group(1), (a.get_text(strip=True) or "").strip()
+        if not fname or aid in seen:
+            continue
+        is_rom = bool(_ROM_EXT.search(fname)) or (
+            bool(_ARCHIVE_EXT.search(fname)) and bool(_ROM_HINT.search(fname)))
+        if not is_rom:
+            continue
+        seen.add(aid)
+        url = href if href.startswith("http") else f"{base_url}/{href.lstrip('./')}"
+        out.append((aid, fname, url))
+    return out
 
 _DEFAULT_REJECT = ["for sale", "fs:", "f/s", "wtb", "group buy", "gb:", "raffle",
                    "for trade", "ft:", "meet", "gtg", "sold"]

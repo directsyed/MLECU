@@ -18,6 +18,26 @@ notify:                           # Discord run summary — set DISCORD_WEBHOOK_
   discord_webhook_env: DISCORD_WEBHOOK_URL
   only_when_new: false            # false = ping every run (liveness heartbeat); true = only when new
 
+# ROM-attachment harvester (car-side binaries, NOT the LLM corpus). Runs via `--harvest-roms`.
+# Gated on a one-time session cookie: log in on the board with your free account, export the phpBB
+# cookie (raw `Cookie:` header) to data/raw/.cookies/<name>.txt. Then it downloads ROM attachments
+# from the same threads we already scrape. Downloads + manifest land in data/raw/roms/ (gitignored).
+rom_harvest:
+  enabled: true
+  out_dir: data/raw/roms
+  boards:
+    - name: romraider
+      base_url: https://www.romraider.com/forum
+      rate_limit_per_min: 8
+      cookie_file: data/raw/.cookies/romraider.txt
+      threads:
+        - https://www.romraider.com/forum/viewtopic.php?f=15&t=15258   # 05 FXT 4EAT stock ROM (3B12504206)
+      subforums: [15, 32]        # Subaru Tuning; Tuning Utilities & Spreadsheets — scan for ROM threads
+      discover_max_pages: 3
+      discover_max_new: 40
+      title_keywords: [rom, stock, base map, basemap, fxt, wrx, sti, forester, legacy, impreza,
+                       outback, baja, 4eat, 5mt, 6mt, calid, ecu id, definition]
+
 sources:
   romraider_defs:
     enabled: true

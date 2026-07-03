@@ -224,3 +224,19 @@ Qwen2.5-32B judge being two generations stale — Qwen3.6 released 2026-04, afte
   RAG-vs-fine-tune protocol) stay Syed's learning thread.
 - **Autopilot stop point:** queue complete up to the judge design session (learning-priority —
   not auto-built, per the root CLAUDE.md split).
+
+### 2026-07-03 (cont.) — ROM-binary harvesting: attachments are gated, cookie is the key
+
+Investigated login-free ROM sources per Syed ("shouldn't be trapped behind a login"). Findings:
+archive.org has no Subaru ROM collection; GitHub has tuning *tools* but no ROM-binary repos;
+SubaruDefs is defs-only. **RomRaider thread text is public but the attachment download 403s for
+guests** (verified). So bulk ROMs realistically live as forum attachments behind a one-time login —
+not an unbreakable wall, a cookie. Built **`rom_harvest.py`**: crawls the same phpBB threads we
+already scrape, extracts `download/file.php?id=N` ROM attachments (strong exts always; archives only
+if the filename hints a ROM), and downloads them **authenticated by a session cookie the user exports
+once** into `data/raw/.cookies/<board>.txt` (same pattern as NASIOC cf_clearance). ROMs are car-side
+files under `data/raw/roms/` + a manifest — NOT corpus Documents (binaries, and they feed the
+ROM-value reader / reference library, not the LLM text corpus). CLI `--harvest-roms`; gated so it
+skips cleanly (with guidance) until the cookie exists. Docs: `ml/data-pipeline/ROM_HARVEST.md`.
+**The 2005 FXT 4EAT stock ROM (3B12504206) is attached to the seeded RomRaider thread** — Syed's
+exact platform calibration, one cookie away. 31 pipeline tests green.

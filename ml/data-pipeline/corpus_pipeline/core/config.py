@@ -57,6 +57,7 @@ class Config(BaseModel):
     gates: GatesCfg = Field(default_factory=GatesCfg)
     notify: NotifyCfg = Field(default_factory=NotifyCfg)
     sources: dict[str, SourceCfg] = Field(default_factory=dict)
+    rom_harvest: dict = Field(default_factory=dict)   # ROM-attachment harvester (car-side, not corpus)
 
     def resolve(self, p: str | Path) -> Path:
         """Resolve a config path: absolute as-is, else relative to REPO_ROOT."""

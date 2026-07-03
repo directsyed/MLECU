@@ -3,6 +3,7 @@
   python -m corpus_pipeline.cli --once                       # ingest all enabled sources
   python -m corpus_pipeline.cli --once --sources romraider_defs --dry-run   # isolate, no writes
   python -m corpus_pipeline.cli --status                     # corpus counts by source/kind
+  python -m corpus_pipeline.cli --harvest-roms               # download ROM attachments (needs cookie)
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ import logging
 import sys
 
 from .core.config import load_config
+from .core.http import HttpClient
 from .core.state import State
 from .ingest import one_pass
 
@@ -41,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="corpus_pipeline")
     ap.add_argument("--once", action="store_true", help="run one ingestion pass")
     ap.add_argument("--status", action="store_true", help="print corpus counts and exit")
+    ap.add_argument("--harvest-roms", action="store_true",
+                    help="download ROM attachments from configured boards (needs a session cookie)")
     ap.add_argument("--sources", help="comma-separated subset of sources to run")
     ap.add_argument("--dry-run", action="store_true", help="fetch + gate but do not write")
     ap.add_argument("--debug", action="store_true", help="verbose logging")
@@ -48,6 +52,12 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     _setup_logging(args.debug)
 
+    if args.harvest_roms:
+        from .rom_harvest import harvest
+        cfg = load_config(args.config)
+        res = harvest(cfg, HttpClient(cfg.pipeline.user_agent_pool))
+        print(f"rom harvest: {res}")
+        return 0
     if args.status:
         return cmd_status(args.config)
     if args.once:
