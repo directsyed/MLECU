@@ -203,3 +203,24 @@ Qwen2.5-32B judge being two generations stale — Qwen3.6 released 2026-04, afte
   Path: cf_clearance cookie exported from Syed's home browser (same public IP as the T630 → valid)
   into `data/raw/.cf-cookies/nasioc.json`; `require_cf_cookies` auto-activates it once present.
 - Sources now: 12 registry keys (6 forums + defs/logger/theory/efi/ini/pdf). 27 pipeline tests green.
+
+### 2026-07-03 (cont.) — semantic table layer + sim-generated eval (autopilot queue)
+
+- **Semantic table layer (car/ecutune):** algorithms + clamps now speak ONLY platform-neutral
+  semantic IDs (`fuel.injector_flow`, `fuel.injector_latency`, `sensor.maf_transfer`,
+  `fuel.target_afr_primary_a`, `ignition.*`, `boost.*`); platform names live in
+  `ecutune/platforms/` adapters. `subaru_ecuflash` maps to the verified 2005 FXT (A2WC400x) names
+  with VARIANTS absorbing per-def drift ("Injector Latency" vs "Injector Latency_"); a second
+  `tunerstudio` adapter (injOpen/reqFuel/advTable1Tbl) proves the seam, with speed-density gaps as
+  honest absences. Subaru is adapter #1 on a universal foundation — the structural encoding of
+  Syed's universal-first directive. 35→40 tests green; convergence PASS unchanged.
+- **Sim-generated diagnostic eval (ecutune/evals + ml/eval/data):** faults seeded in the MVEM
+  (extended with `leak_air_g` unmetered air + `air_scale` operating points) → two-point datalog
+  prompts in the universal channel vocabulary → scored against seeded truth. 7-fault taxonomy;
+  leak-vs-dead-time degeneracy handled with acceptable-sets (separating them needs a voltage
+  sweep — same doctrine as the real logging plan). **v1 artifact: 70 cases; rules baseline 85.7%
+  top1 / 100% acceptable; random 18.6% / 25.7%** — the eval discriminates, and the future LLM
+  evaluee must at least match rules. Eval DESIGN decisions (thresholds, taxonomy growth,
+  RAG-vs-fine-tune protocol) stay Syed's learning thread.
+- **Autopilot stop point:** queue complete up to the judge design session (learning-priority —
+  not auto-built, per the root CLAUDE.md split).

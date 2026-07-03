@@ -6,6 +6,28 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-07-03 — Semantic table layer + sim-generated diagnostic eval
+
+**Semantic table layer** (`car/ecutune`): algorithms + safety clamps now operate ONLY on
+platform-neutral semantic IDs (`fuel.injector_flow`, `sensor.maf_transfer`, ...); platform names
+live in `ecutune/platforms/` adapters — `subaru_ecuflash` (verified 2005 FXT A2WC400x names +
+VARIANTS absorbing per-def spelling drift) and `tunerstudio` (Speeduino: injOpen/reqFuel/advTable1Tbl;
+speed-density gaps are honest absences). **Subaru is now adapter #1 on a universal foundation** —
+the structural encoding of the universal-first directive. Convergence PASS unchanged.
+
+**Sim-generated diagnostic eval** (`ecutune/evals/` + `ml/eval/data/sim_cases_v1.jsonl`): known
+faults seeded in the MVEM (extended with unmetered-leak air + operating-point scaling) → two-point
+datalog prompts in the universal channel vocabulary → scored against seeded ground truth.
+Contamination-free (generated, not scraped), infinitely regenerable, universal. 7-fault taxonomy;
+the genuine leak-vs-dead-time degeneracy is scored with acceptable-sets (separating them needs a
+battery-voltage sweep — the same doctrine as the real logging plan).
+
+**v1 numbers (70 cases):** rules baseline **85.7% top1 / 100% acceptable** vs random
+**18.6% / 25.7%** — a 74-point spread; the eval discriminates. The future LLM evaluee must at
+least match rules. **40 car tests green** (5 eval + 4 adapter tests added).
+
+---
+
 ## 2026-07-03 — Universal-first corpus expansion (4 new sources live)
 
 **Context:** Syed's directive — the framework foundation is universal (every ECU speaks the same
@@ -163,7 +185,10 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-06-27 | car/ecutune test suite | 31 passed (1.8 s) | unit + hypothesis property (safety bounds) + keystone convergence |
 | 2026-07-03 | Corpus: total | 1,026 docs (976 ref / 50 comm) | after universal-first expansion: +3 phpBB boards, +55 TunerStudio defs, +OBD-II PIDs, +AEM manuals |
 | 2026-07-03 | Corpus: cross-platform ECU defs | 55 docs | tunerstudio_ini (speeduino.ini tables/curves, reference tier) |
-| 2026-07-03 | Pipeline test suite | 22 passed (0.5 s) | incl. new phpBB/vBulletin/INI fixture tests |
+| 2026-07-03 | Pipeline test suite | 27 passed (0.5 s) | incl. phpBB/vBulletin/XenForo/INI fixture tests |
+| 2026-07-03 | Sim-eval: rules baseline | 85.7% top1 / 100% acceptable | 70 cases (10×7 faults), two-point signatures, seed 0 |
+| 2026-07-03 | Sim-eval: random baseline | 18.6% top1 / 25.7% acceptable | chance floor — 74-pt spread vs rules = eval discriminates |
+| 2026-07-03 | car/ecutune test suite | 40 passed (1.8 s) | + semantic-adapter tests + sim-eval tests |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
