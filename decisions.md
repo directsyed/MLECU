@@ -240,3 +240,32 @@ ROM-value reader / reference library, not the LLM text corpus). CLI `--harvest-r
 skips cleanly (with guidance) until the cookie exists. Docs: `ml/data-pipeline/ROM_HARVEST.md`.
 **The 2005 FXT 4EAT stock ROM (3B12504206) is attached to the seeded RomRaider thread** — Syed's
 exact platform calibration, one cookie away. 31 pipeline tests green.
+
+### 2026-07-04 — ROM-value reader + the sim grounded in the REAL FXT calibration
+
+Both cookie gates opened today (NASIOC cf_clearance + RomRaider phpBB session) → `rom_harvest`
+pulled 10/10 attachments including **the 2005 FXT 4EAT stock ROM (CID 3B12504206)**. Extracted the
+1MB image from the EcuFlash `.srf` (INFO/DRMI/MEML/MEMD block container; MEMD = the ROM) — internal
+ID at 0x2000 says **A2WC411D**, a revision with **no community def anywhere in SubaruDefs**.
+
+**Decision: read via sibling revision defs with deterministic reconciliation, never guessing.**
+New READ-ONLY `car/ecutune/romread/` (ECUFlash def parser incl. include-chain merge + value
+reader). Empirical finding that shaped it: A2WC412D's late-ROM addresses are shifted +0x20 vs our
+ROM (its latency read is non-monotonic garbage), while every A2WC410D read is physically sane →
+411D shares the 410D layout. Rule codified in `read_semantic_tables()`: per table, defs that read
+bit-identically corroborate; where they disagree, a candidate survives only if its axes are strictly
+monotonic AND values sit inside the def's own min/max — and the survivor must be UNIQUE, else hard
+error. Provenance is reported per table (`agree(...)` / `plausible-only(...)`).
+
+**Decision: the sim's believed state now comes from the real ROM** (`simulation/rom_seed.py`,
+CLI `--run-convergence --rom` / `--rom-report`). Believed = ROM facts: injector flow **503.93
+cc/min** (the "~500cc matched injectors" prior is now a measured fact), latency curve interpolated
+at 14.1V charging = **0.661 ms** (vs the 1.0 ms guess), hot idle target from the ROM's own table =
+**700 rpm** (vs the 850 guess). Truth keeps the SAME neutral swap-uncertainty ratios as
+`ej20x_into_ej255` (MAF ~7% low, flow ~2% high, latency ~4% low — no pre-decided culprit),
+expressed relative to the real values. Result: **ROM-seeded convergence PASS** (+12.68% → +4.46%,
+4 iters, 0 clamp violations) alongside the unchanged synthetic control (+14.18% → +4.56%). The
+start-trim difference is physical: a 4% latency error on the real 0.66 ms dead time is a smaller
+absolute fuel error than on the assumed 1.0 ms. 44 tests green (4 new romread).
+
+No write path exists in romread by construction — ROM writes stay behind safety.apply_proposal.

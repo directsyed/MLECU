@@ -41,11 +41,18 @@ class ConvergenceResult:
 
 
 def run_convergence(seed: int = 0, max_iters: int | None = None,
-                    cfg: Config | None = None) -> ConvergenceResult:
+                    cfg: Config | None = None,
+                    seeded: tuple[TableSet, "EngineParams", OperatingPoint] | None = None,
+                    ) -> ConvergenceResult:
+    """`seeded` overrides the synthetic mismatch — e.g. rom_seed.fxt_rom_into_ej20x() grounds
+    the believed tables + idle operating point in the real A2WC411D calibration."""
     cfg = cfg or load_config()
     max_iters = max_iters or cfg.algo.max_iters
-    tables, params = ej20x_into_ej255()
-    op = OperatingPoint()
+    if seeded is not None:
+        tables, params, op = seeded
+    else:
+        tables, params = ej20x_into_ej255()
+        op = OperatingPoint()
     spec = idle_grid_spec(op)
     rng = np.random.default_rng(seed)
     state = AlgoState()

@@ -19,9 +19,19 @@ REPO_ROOT = Path(__file__).resolve().parents[2]   # .../MLECU
 DEFAULT_EVAL_OUT = REPO_ROOT / "ml" / "eval" / "data" / "sim_cases_v1.jsonl"
 
 
-def _run_convergence(seed: int) -> int:
+def _run_convergence(seed: int, rom: str | None = None) -> int:
     from .simulation.harness import CONVERGENCE_TOL_PCT, run_convergence
-    r = run_convergence(seed=seed)
+    seeded = None
+    if rom:
+        from .simulation.rom_seed import fxt_rom_into_ej20x
+        believed, truth, op, report = fxt_rom_into_ej20x(rom)
+        seeded = (believed, truth, op)
+        s = report["seed"]
+        print(f"ROM-seeded from {Path(rom).name} (internal id {report['internal_id']})")
+        print(f"  believed injector flow : {s['flow_cc_min']:.2f} cc/min")
+        print(f"  believed latency @14.1V: {s['latency_ms_at_14v']:.3f} ms")
+        print(f"  hot idle target (ROM)  : {s['hot_idle_target_rpm']:.0f} rpm")
+    r = run_convergence(seed=seed, seeded=seeded)
     ok = r.converged and r.clamp_violations == 0
     print(f"convergence run (seed={r.seed})")
     print(f"  start trim    : {r.trim_history[0]:+.2f}%")
@@ -33,6 +43,24 @@ def _run_convergence(seed: int) -> int:
     print(f"  final scalars : {r.scalars}")
     print(f"  RESULT        : {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1
+
+
+def _rom_report(rom: str | None) -> int:
+    from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
+    from .romread import EcuFlashDefs, RomImage, read_semantic_tables
+    from .simulation.rom_seed import DEFAULT_DEFS, DEFAULT_ROM, SIBLING_DEFS
+    path = rom if rom and rom != "DEFAULT" else str(DEFAULT_ROM)
+    image = RomImage.load(path)
+    defs = EcuFlashDefs(DEFAULT_DEFS)
+    tables, report = read_semantic_tables(image, defs, list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
+    print(f"ROM {Path(path).name} — internal id {report['internal_id']}")
+    print(f"read via sibling defs {report['def_ids']} (411D has no community def)")
+    for sid, t in tables.items():
+        v = t.values
+        head = (f"{float(v):.3f}" if v.ndim == 0
+                else f"shape={v.shape} range [{v.min():.2f} .. {v.max():.2f}]")
+        print(f"  {sid:28s} {t.kind:9s} {head:38s} {t.units:30s} {report['provenance'][sid]}")
+    return 0
 
 
 def _status() -> int:
@@ -68,6 +96,11 @@ def main(argv=None) -> int:
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--run-convergence", action="store_true",
                    help="run the offline idle-convergence harness and report the three guarantees")
+    p.add_argument("--rom", nargs="?", const="DEFAULT", metavar="PATH",
+                   help="seed the sim from a real ROM image (no PATH = the harvested "
+                        "3B12504206/A2WC411D stock FXT ROM)")
+    p.add_argument("--rom-report", action="store_true",
+                   help="read + cross-validate the semantic table set from the ROM and print it")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (default 0)")
     p.add_argument("--status", action="store_true", help="show config + active clamps/stages")
     p.add_argument("--generate-eval-cases", type=int, metavar="N",
@@ -80,7 +113,13 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
 
     if args.run_convergence:
-        return _run_convergence(args.seed)
+        rom = None
+        if args.rom:
+            from .simulation.rom_seed import DEFAULT_ROM
+            rom = str(DEFAULT_ROM) if args.rom == "DEFAULT" else args.rom
+        return _run_convergence(args.seed, rom)
+    if args.rom_report:
+        return _rom_report(args.rom)
     if args.generate_eval_cases:
         return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out)
     if args.score_sim_eval:

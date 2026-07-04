@@ -6,6 +6,41 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-07-04 (later) — Cookie gates opened; the REAL FXT stock ROM read; sim grounded in it
+
+**Corpus/harvest:** Syed exported the two blocking cookies. **NASIOC is live** — cf_clearance +
+matching home-browser UA passes Cloudflare (the UA must stay pinned to the cookie in config.yaml);
+seed thread ingested and 5 tuning subforums (Engine Mgmt & Tuning, Open Source Reflashes, Factory
+2.0L/2.5L Turbo, Subaru Conversions) enabled for nightly keyword discovery — first pass pulled a
+200-post AVCS-tuning thread. **RomRaider ROM harvest: 10/10 attachments** downloaded (SHA1
+manifest), headlined by **the 2005 FXT 4EAT stock ROM, CID 3B12504206** — the exact calibration
+family of the test car's ECU.
+
+**car/ecutune — ROM-value reader (`romread/`, READ-ONLY by construction):** parses ECUFlash defs
+(include-chain merge: base metadata + revision addresses) and decodes tables from the raw image
+(big-endian uint8/16/float, toexpr scaling). The harvested image's internal ID is **A2WC411D — a
+revision no community def covers**, so the reader reads through BOTH sibling defs (A2WC410D/412D)
+and reconciles deterministically: bit-identical reads corroborate; disagreements survive only as
+the UNIQUE candidate whose axes are strictly monotonic and whose values respect the def's own
+min/max (zero or multiple survivors = hard error). Finding: 412D's late-ROM addresses sit +0x20
+from ours; every 410D read is physically sane → 411D shares the 410D layout. Extraction also
+covered the EcuFlash `.srf` container (INFO/DRMI/MEML/MEMD; MEMD = the 1MB image).
+
+**Real calibration facts recovered** (`--rom-report`): injector flow scaling **503.93 cc/min**
+(the "~500cc matched injectors" prior is now measured), injector latency **0.48–4.90 ms** over
+5 voltage points (**0.661 ms @ 14.1V**), 48-point MAF transfer (1.3–296.5 g/s), primary AFR map
+10.94–14.70, base timing 2.15–45.04° BTDC, **hot idle target 700 rpm** (replaces the 850 guess).
+
+**Sim grounded in the real ROM** (`rom_seed.py`, `--run-convergence --rom`): believed state = the
+ROM's actual values; truth keeps the neutral swap-uncertainty ratios (MAF ~7% low, flow ~2% high,
+latency ~4% low — no pre-decided culprit). **ROM-seeded convergence PASS: +12.68% → +4.46% in 4
+iterations, 0 clamp violations** (synthetic control unchanged: +14.18% → +4.56%). The lower start
+trim is physical — a 4% latency error on the real 0.66 ms dead time is a smaller absolute fuel
+error than on the assumed 1.0 ms. **44 tests green** (4 new: def merge/decode, reconciliation,
+plausibility bounds, real-ROM integration that skips on fresh clones).
+
+---
+
 ## 2026-07-04 — 2nd GPU installed + validated (RTX 3090 Ti); fan/monitor tooling made multi-GPU
 
 **Hardware:** Zotac RTX 3090 Ti (450W) installed alongside the HP OEM 3090 — both enumerate
@@ -220,6 +255,9 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-07-04 | Dual-card soak (both loaded, ~780 W) | 3090 VRAM 100–102 °C, Ti 92–94 °C | 20-min memtest_vulkan both cards; fans ~4680 RPM near max; inlet 21 °C — chassis adds only ~2 °C, the 3090's pads are the limiter |
 | 2026-07-04 | 3090 undervolt (PL 300 W, from 350) | VRAM 102→98 °C | but memtest bandwidth ~800→~600 GB/s (~20%); core cap can't cool GDDR6X's fixed power → repad is the real VRAM fix |
 | 2026-07-04 | 3090 Ti undervolt (PL 400 W, from 450) | ~862 GB/s (vs ~872 full) | near-zero perf loss — the Ti has the headroom; keep it capped for heat/noise |
+| 2026-07-04 | ROM harvest (RomRaider, cookie-gated) | 10/10 attachments, 0 blocked | incl. 2005 FXT 4EAT stock ROM CID 3B12504206 (internal id A2WC411D) + SHA1 manifest |
+| 2026-07-04 | NASIOC first ingest | 3 threads kept / 261 posts | cf_clearance + pinned home-browser UA; 5 tuning subforums enabled for nightly discovery |
+| 2026-07-04 | ROM-seeded idle convergence | PASS: +12.68% → +4.46% in 4 iters, 0 clamp violations | believed = real A2WC411D values (503.93 cc/min, 0.661 ms @14.1V, 700 rpm idle target); truth = neutral swap-error priors; synthetic control +14.18% → +4.56% |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
