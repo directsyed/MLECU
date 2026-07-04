@@ -56,8 +56,13 @@ restore full state; below is the delta + the exact next steps Syed named.
 ## Open items / waiting on Syed
 - Two cookies (NASIOC cf_clearance + RomRaider phpBB session). · ROM read of his own ECU (Openport,
   read-only) for the real sim seed. · Repad decision on the 3090. · RAM (32GB DDR4-2400 ECC RDIMM,
-  opportunistic). · A book ingest was running at session end (`--sources local_pdf`) — verify it
-  finished and check `--status` (EPUBs: Banish/Kirkpatrick/Cramer now supported).
+  opportunistic).
+- **Books ingested: `local_pdf` = 4,596 PDF pages + 72 EPUB chapters (4,668 docs).** EPUB support
+  works (Banish/Kirkpatrick/Cramer). **BUT 3 scanned/image-only PDFs extracted 0 text and were
+  dropped — they need OCR** (`ocrmypdf --skip-text <in> <out>`, then re-run `--sources local_pdf`):
+  **Corky Bell *Maximum Boost*, Banish *Designing & Tuning HP Fuel Injection*, Richard Stone *Intro to
+  ICE*.** OCR is a clean next-add the docstring already flags. (Banish showed "0/1 pages" = pypdf
+  couldn't parse it either — try re-downloading a text-layer copy first, else OCR.)
 
 ## Key state / policy
 - **Model choices re-verified at execution time**, never from training memory (Qwen2.5 plan was stale).
