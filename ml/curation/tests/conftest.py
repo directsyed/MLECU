@@ -62,7 +62,7 @@ class FakeLlm:
     def __call__(self, llm_cfg, system, user, json_schema=None, retries=3):
         self.calls.append({"system": system, "user": user})
         if self.fail_first and len(self.calls) == 1:
-            return "not json at all", {"prompt_tokens": 10, "completion_tokens": 2}
+            return "not json at all", {"prompt_tokens": 10, "completion_tokens": 2}, ""
         verdict = {
             "score": self.score,
             "rationale": "canned rationale",
@@ -70,7 +70,7 @@ class FakeLlm:
                        "change": "rescale 7%", "outcome": "trims +2%"}],
             "claims_checked": [],
         }
-        return json.dumps(verdict), {"prompt_tokens": 100, "completion_tokens": 50}
+        return json.dumps(verdict), {"prompt_tokens": 100, "completion_tokens": 50}, "thinking…"
 
 
 @pytest.fixture()

@@ -5,7 +5,7 @@ llm:
   base_url: http://127.0.0.1:8080/v1     # llama-server, OpenAI-compatible
   model: qwen3.6-27b-q8_0                # recorded verbatim into judgment.judge_model
   temperature: 0.0                       # judging is deterministic scoring, not sampling
-  max_completion_tokens: 1500
+  max_completion_tokens: 4096   # thinking model: reasoning + JSON share this budget; 1500 starved it
   json_retries: 2                        # re-asks after a schema-invalid reply (grammar makes this rare)
   request_timeout_s: 600
 

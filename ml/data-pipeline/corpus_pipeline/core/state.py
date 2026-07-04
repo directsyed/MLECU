@@ -152,7 +152,19 @@ class State:
                GROUP BY source, tier, kind ORDER BY tier DESC, source"""
         ).fetchall()
 
-    def pending_for_judge(self, limit: int = 100) -> list[sqlite3.Row]:
+    def pending_for_judge(self, limit: int = 100,
+                          sources: tuple[str, ...] | None = None) -> list[sqlite3.Row]:
+        """Next docs awaiting the judge, oldest first. `sources` filters in SQL — filtering
+        after the fetch would starve the batch when the low ids are all other sources."""
+        if sources:
+            marks = ",".join("?" * len(sources))
+            return self.conn.execute(
+                f"""SELECT * FROM document
+                    WHERE gate_status='kept' AND judgment_status='pending' AND gone_at IS NULL
+                      AND source IN ({marks})
+                    ORDER BY id LIMIT ?""",
+                (*sources, limit),
+            ).fetchall()
         return self.conn.execute(
             """SELECT * FROM document
                WHERE gate_status='kept' AND judgment_status='pending' AND gone_at IS NULL

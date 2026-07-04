@@ -45,9 +45,11 @@ def _judge_chunk(cfg: Config, pack: PromptPack, state: State, doc, ch: chunker.C
     attempts = cfg.llm.json_retries + 1
     last_err: Exception | None = None
     for attempt in range(attempts):
-        raw, usage = llm.chat(cfg.llm, pack.system, user, json_schema=pack.extraction_schema)
+        raw, usage, reasoning = llm.chat(cfg.llm, pack.system, user,
+                                         json_schema=pack.extraction_schema)
         try:
-            return verdict_mod.parse(raw), refs, {"raw": raw, "usage": usage}
+            return verdict_mod.parse(raw), refs, {"raw": raw, "usage": usage,
+                                                  "reasoning": reasoning}
         except verdict_mod.VerdictError as e:
             last_err = e
             # re-ask with the validation error appended — the model sees WHY it failed
@@ -68,9 +70,8 @@ def run(cfg: Config, state: State, *, limit: int | None = None,
     stats = RunStats()
 
     while limit is None or stats.judged + stats.auto_passed < limit:
-        batch = state.pending_for_judge(cfg.judge.batch_size)
-        if sources:
-            batch = [d for d in batch if d["source"] in sources]
+        batch = state.pending_for_judge(cfg.judge.batch_size,
+                                        sources=tuple(sorted(sources)) if sources else None)
         if not batch:
             break
         for doc in batch:
@@ -111,6 +112,7 @@ def run(cfg: Config, state: State, *, limit: int | None = None,
                                 rationale=v.rationale, pairs=v.pairs,
                                 grounding=[r.__dict__ for r in refs],
                                 raw=extra["raw"], usage=extra["usage"],
+                                reasoning=extra["reasoning"],
                                 judge_model=cfg.llm.model, rubric_version=pack.version)
                 doc_score = chunker.aggregate(scores, lengths, cfg.chunking.aggregate)
                 if not dry_run:

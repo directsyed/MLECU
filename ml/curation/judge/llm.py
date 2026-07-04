@@ -31,8 +31,11 @@ def health_check(cfg: LlmCfg) -> str:
 
 
 def chat(cfg: LlmCfg, system: str, user: str, json_schema: dict | None = None,
-         retries: int = 3) -> tuple[str, dict[str, Any]]:
-    """One completion. Returns (content, usage). Retries transport errors with backoff."""
+         retries: int = 3) -> tuple[str, dict[str, Any], str]:
+    """One completion. Returns (content, usage, reasoning). Retries transport errors.
+
+    Thinking models (Qwen3.6) emit deliberation as `reasoning_content`, kept separate from
+    the grammar-constrained `content` by the server — we pass it through for the audit log."""
     body: dict[str, Any] = {
         "model": cfg.model,
         "temperature": cfg.temperature,
@@ -53,8 +56,8 @@ def chat(cfg: LlmCfg, system: str, user: str, json_schema: dict | None = None,
                               timeout=cfg.request_timeout_s)
             r.raise_for_status()
             data = r.json()
-            content = data["choices"][0]["message"]["content"]
-            return content, data.get("usage", {})
+            msg = data["choices"][0]["message"]
+            return msg["content"], data.get("usage", {}), msg.get("reasoning_content") or ""
         except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
             last = e
             time.sleep(delay)
