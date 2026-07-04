@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "corpus-pipeline"
+version = "0.1.0"
+description = "MLECU corpus pipeline (scraper + sqlite state); installable so ml/curation can import it"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["corpus_pipeline", "corpus_pipeline.core", "corpus_pipeline.sources"]

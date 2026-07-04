@@ -1,0 +1,40 @@
+# MLECU curation — LLM-judge harness config. Every design decision Syed owns lands HERE or in
+# prompts/ (the code never hardcodes rubric/grounding/threshold choices).
+
+llm:
+  base_url: http://127.0.0.1:8080/v1     # llama-server, OpenAI-compatible
+  model: qwen3.6-27b-q8_0                # recorded verbatim into judgment.judge_model
+  temperature: 0.0                       # judging is deterministic scoring, not sampling
+  max_completion_tokens: 1500
+  json_retries: 2                        # re-asks after a schema-invalid reply (grammar makes this rare)
+  request_timeout_s: 600
+
+corpus:
+  db_path: ../data-pipeline/data/corpus.sqlite   # ONE shared datastore, owned by corpus_pipeline
+
+judge:
+  batch_size: 25
+  keep_threshold: 4                      # >=4 feeds the fine-tune set (locked decision)
+  prompts_dir: prompts/rubric-r1         # rubric_version == the directory name
+  reference_policy:                      # D1 (Syed): machine-generated defs don't need an LLM's opinion
+    default: light_judge
+    romraider_defs: auto_pass
+    romraider_logger: auto_pass
+    tunerstudio_ini: auto_pass
+
+chunking:
+  max_chars: 24000                       # ~6k tokens: doc chunk + rubric + grounding fit a 16k ctx
+  overlap_chars: 600
+  aggregate: min                         # D1 (Syed): doc score = worst chunk (pairs still harvest per-chunk)
+
+retrieval:
+  mode: fts5                             # D2 (Syed): BM25 baseline; embeddings are a later swap
+  top_k: 3
+  snippet_max_chars: 1200
+
+audit:
+  dir: data/audit
+
+calibration:
+  set_name: calibration-100
+  blind_subset: 20                       # Syed rates these BEFORE seeing Claude's ratings (anti-anchoring)

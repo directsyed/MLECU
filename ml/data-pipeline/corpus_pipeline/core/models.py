@@ -89,6 +89,42 @@ CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+-- Stage-B judge verdicts, one row PER CHUNK (chunk_index 0..n_chunks-1; whole doc = 1 chunk).
+-- UNIQUE(doc_id, chunk_index, rubric_version): re-judging under the same rubric overwrites;
+-- a new rubric version keeps old verdicts for comparison. document.judge_score holds the
+-- doc-level aggregate; this table is the audit-grade record behind it.
+CREATE TABLE IF NOT EXISTS judgment (
+    id                 INTEGER PRIMARY KEY,
+    doc_id             INTEGER NOT NULL,
+    chunk_index        INTEGER NOT NULL DEFAULT 0,
+    n_chunks           INTEGER NOT NULL DEFAULT 1,
+    score              INTEGER,
+    rationale          TEXT,
+    pairs_json         TEXT,
+    grounding_json     TEXT,
+    judge_model        TEXT NOT NULL,
+    rubric_version     TEXT NOT NULL,
+    prompt_tokens      INTEGER,
+    completion_tokens  INTEGER,
+    created_at         TEXT NOT NULL,
+    UNIQUE(doc_id, chunk_index, rubric_version)
+);
+CREATE INDEX IF NOT EXISTS idx_judgment_doc ON judgment(doc_id);
+
+-- Trusted calibration / spot-check labels. rater: 'syed' | 'claude' | 'adjudicated'.
+-- label_set freezes a sample (e.g. 'calibration-100'); agreement queries join on doc_id.
+CREATE TABLE IF NOT EXISTS human_label (
+    id          INTEGER PRIMARY KEY,
+    doc_id      INTEGER NOT NULL,
+    score       INTEGER NOT NULL,
+    notes       TEXT,
+    label_set   TEXT NOT NULL,
+    rater       TEXT NOT NULL DEFAULT 'syed',
+    created_at  TEXT NOT NULL,
+    UNIQUE(doc_id, label_set, rater)
+);
+CREATE INDEX IF NOT EXISTS idx_label_set ON human_label(label_set);
 """
 
 

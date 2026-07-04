@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "properties": {
+    "score": {"type": "integer", "minimum": 1, "maximum": 5},
+    "rationale": {"type": "string", "minLength": 1},
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "symptoms": {"type": "string"},
+          "diagnosis": {"type": "string"},
+          "change": {"type": "string"},
+          "outcome": {"type": "string"}
+        },
+        "required": ["symptoms", "diagnosis", "change", "outcome"],
+        "additionalProperties": false
+      }
+    },
+    "claims_checked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claim": {"type": "string"},
+          "verdict": {"type": "string", "enum": ["supported", "contradicted", "unverifiable"]},
+          "ref_doc_id": {"type": ["integer", "null"]}
+        },
+        "required": ["claim", "verdict"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["score", "rationale", "pairs", "claims_checked"],
+  "additionalProperties": false
+}

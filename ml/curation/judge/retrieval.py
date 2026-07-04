@@ -1,0 +1,79 @@
+"""Reference-tier grounding retrieval — FTS5/BM25 baseline (D2; embeddings are a later swap).
+
+Why BM25 first: grounding queries in this domain are lexically sharp ("Primary Open Loop
+Fueling", "injector latency", PID names) — exact-term match over 5.6k reference docs is
+adequate, inspectable, and needs zero new dependencies. The public seam is
+`grounding(state, cfg, text) -> list[RefSnippet]`; swapping in embeddings later touches only
+this module.
+
+The index is a contentless FTS5 table (`ref_fts`) living in the SAME sqlite file as the corpus
+(rowid == document.id, text never duplicated into the index storage beyond the trigram/posting
+data). It is rebuilt whenever the reference kept-count changes — the corpus grows nightly and a
+full rebuild of 5.6k docs is sub-second.
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
+from corpus_pipeline.core.state import State
+
+from .config import Config
+
+_WORD = re.compile(r"[A-Za-z][A-Za-z0-9_/.-]{2,}")
+_STOP = frozenset("""the and for with that this from have has was were are you your not can will
+would should could about into over under than then them they there their what when where which
+while been being does doing very just like also some more most much many each other only same
+""".split())
+
+_META_COUNT_KEY = "ref_fts_doc_count"
+
+
+@dataclass(frozen=True)
+class RefSnippet:
+    ref_doc_id: int
+    title: str
+    snippet: str
+
+
+def ensure_index(state: State, cfg: Config) -> bool:
+    """Create/refresh ref_fts iff the reference corpus changed. Returns True if rebuilt."""
+    current = state.reference_kept_count()
+    if state.get_meta(_META_COUNT_KEY) == str(current):
+        return False
+    conn = state.conn
+    conn.execute("DROP TABLE IF EXISTS ref_fts")
+    conn.execute("CREATE VIRTUAL TABLE ref_fts USING fts5(title, text)")
+    with state.transaction() as tx:
+        for row in state.reference_kept_docs():
+            tx.execute("INSERT INTO ref_fts(rowid, title, text) VALUES (?,?,?)",
+                       (row["id"], row["title"] or "", row["text"]))
+    state.set_meta(_META_COUNT_KEY, str(current))
+    return True
+
+
+def _query_terms(text: str, max_terms: int = 12) -> list[str]:
+    """Salient query terms: frequency-ranked content words, longest-first tiebreak.
+    Each term is double-quoted — FTS5 treats bare tokens as syntax (AND/OR/NEAR, '-')."""
+    freq: dict[str, int] = {}
+    for w in _WORD.findall(text):
+        lw = w.lower()
+        if lw not in _STOP:
+            freq[lw] = freq.get(lw, 0) + 1
+    ranked = sorted(freq, key=lambda w: (-freq[w], -len(w)))
+    return [f'"{w}"' for w in ranked[:max_terms]]
+
+
+def grounding(state: State, cfg: Config, text: str) -> list[RefSnippet]:
+    """Top-k reference snippets for a community chunk, or [] when nothing matches."""
+    terms = _query_terms(text)
+    if not terms:
+        return []
+    rows = state.conn.execute(
+        """SELECT rowid, title,
+                  snippet(ref_fts, 1, '', '', ' … ', 24) AS snip
+           FROM ref_fts WHERE ref_fts MATCH ? ORDER BY bm25(ref_fts) LIMIT ?""",
+        (" OR ".join(terms), cfg.retrieval.top_k),
+    ).fetchall()
+    cap = cfg.retrieval.snippet_max_chars
+    return [RefSnippet(r["rowid"], r["title"], r["snip"][:cap]) for r in rows]

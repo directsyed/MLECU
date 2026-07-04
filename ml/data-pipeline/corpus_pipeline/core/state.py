@@ -36,6 +36,9 @@ class State:
             ("judge_score", "INTEGER"),
             ("gone_at", "TEXT"),
             ("tier", "TEXT NOT NULL DEFAULT 'community'"),
+            ("judge_model", "TEXT"),        # which model produced judge_score (audit)
+            ("rubric_version", "TEXT"),     # which rubric it was scored under
+            ("judged_at", "TEXT"),
         ]:
             if col not in existing:
                 self.conn.execute(f"ALTER TABLE document ADD COLUMN {col} {decl}")
@@ -155,6 +158,86 @@ class State:
                WHERE gate_status='kept' AND judgment_status='pending' AND gone_at IS NULL
                ORDER BY id LIMIT ?""",
             (limit,),
+        ).fetchall()
+
+    # --- Stage-B judge writes (curation harness) --------------------------
+    def mark_judged(self, doc_id: int, *, score: int, judge_model: str,
+                    rubric_version: str, chunks: list[dict]) -> None:
+        """Record a full judgment atomically: per-chunk verdict rows + the document rollup.
+
+        `chunks`: [{chunk_index, n_chunks, score, rationale, pairs_json, grounding_json,
+                    prompt_tokens, completion_tokens}]. All-or-nothing by design — a crash
+        mid-doc leaves judgment_status='pending' so the next run re-picks it cleanly.
+        """
+        now = utcnow_iso()
+        with self.transaction() as conn:
+            for ch in chunks:
+                conn.execute(
+                    """INSERT OR REPLACE INTO judgment (
+                        doc_id, chunk_index, n_chunks, score, rationale, pairs_json,
+                        grounding_json, judge_model, rubric_version,
+                        prompt_tokens, completion_tokens, created_at
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (doc_id, ch.get("chunk_index", 0), ch.get("n_chunks", 1),
+                     ch.get("score"), ch.get("rationale"), ch.get("pairs_json"),
+                     ch.get("grounding_json"), judge_model, rubric_version,
+                     ch.get("prompt_tokens"), ch.get("completion_tokens"), now),
+                )
+            conn.execute(
+                """UPDATE document SET judgment_status='judged', judge_score=?,
+                   judge_model=?, rubric_version=?, judged_at=? WHERE id=?""",
+                (score, judge_model, rubric_version, now, doc_id),
+            )
+
+    def mark_judge_failed(self, doc_id: int, reason: str = "") -> None:
+        """Park a doc that exhausted retries so the batch loop can't spin on it.
+        (pending_for_judge filters on ='pending', so 'failed' is naturally excluded.)"""
+        self.conn.execute(
+            "UPDATE document SET judgment_status='failed', judged_at=? WHERE id=?",
+            (utcnow_iso(), doc_id),
+        )
+
+    def reset_failed_judgments(self) -> int:
+        """failed -> pending (e.g. after a server fix). Returns rows flipped."""
+        cur = self.conn.execute(
+            "UPDATE document SET judgment_status='pending' WHERE judgment_status='failed'"
+        )
+        return cur.rowcount
+
+    def reference_kept_count(self) -> int:
+        """Cheap staleness signal for the grounding index."""
+        return self.conn.execute(
+            """SELECT COUNT(*) FROM document
+               WHERE tier='reference' AND gate_status='kept' AND gone_at IS NULL"""
+        ).fetchone()[0]
+
+    def reference_kept_docs(self) -> list[sqlite3.Row]:
+        return self.conn.execute(
+            """SELECT id, title, text FROM document
+               WHERE tier='reference' AND gate_status='kept' AND gone_at IS NULL"""
+        ).fetchall()
+
+    # --- calibration / spot-check labels ----------------------------------
+    def add_label(self, doc_id: int, *, score: int, label_set: str,
+                  rater: str = "syed", notes: str = "") -> None:
+        self.conn.execute(
+            """INSERT INTO human_label (doc_id, score, notes, label_set, rater, created_at)
+               VALUES (?,?,?,?,?,?)
+               ON CONFLICT(doc_id, label_set, rater)
+               DO UPDATE SET score=excluded.score, notes=excluded.notes,
+                             created_at=excluded.created_at""",
+            (doc_id, score, notes, label_set, rater, utcnow_iso()),
+        )
+
+    def labels(self, label_set: str, rater: str | None = None) -> list[sqlite3.Row]:
+        if rater:
+            return self.conn.execute(
+                "SELECT * FROM human_label WHERE label_set=? AND rater=? ORDER BY doc_id",
+                (label_set, rater),
+            ).fetchall()
+        return self.conn.execute(
+            "SELECT * FROM human_label WHERE label_set=? ORDER BY doc_id, rater",
+            (label_set,),
         ).fetchall()
 
     def total_docs(self) -> int:
