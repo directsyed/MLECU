@@ -1,0 +1,28 @@
+# MLECU — GPU persistence + power limits at boot (undervolt-by-power-cap for 24/7 thermal headroom).
+#
+# WHY: `nvidia-smi -pl` does NOT persist across reboots, and worse, without persistence mode the
+# driver RESETS the power limit whenever the GPU goes idle (the limit silently reverts to stock).
+# This oneshot enables persistence mode FIRST (so the limit sticks), then caps each card. It waits
+# for the driver to be ready so it can't race the nvidia module load at boot.
+#
+# TUNE the watts on the ExecStart lines below (3090 = GPU0 @ 04:00.0, 3090 Ti = GPU1 @ 83:00.0).
+# Deploy:  sudo cp infrastructure/server/gpu-powerlimit.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now gpu-powerlimit.service
+#          nvidia-smi --query-gpu=index,persistence_mode,power.limit --format=csv   # verify
+[Unit]
+Description=MLECU GPU persistence + power limits (24/7 undervolt-by-cap)
+After=multi-user.target
+Wants=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# wait up to ~60s for the nvidia driver to be responsive (avoids a boot race)
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do /usr/bin/nvidia-smi >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
+# persistence mode ON first — without it the caps below get reset on GPU idle
+ExecStart=/usr/bin/nvidia-smi -pm 1
+ExecStart=/usr/bin/nvidia-smi -i 0 -pl 300
+ExecStart=/usr/bin/nvidia-smi -i 1 -pl 400
+
+[Install]
+WantedBy=multi-user.target

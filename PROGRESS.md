@@ -217,6 +217,9 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-07-04 | RTX 3090 Ti junction (hotspot) plateau | 88–89 °C | same soak; no throttle (held ~1950 MHz boost) |
 | 2026-07-04 | RTX 3090 Ti core plateau | 76–77 °C | same soak; power-limited at the 446 W cap, not thermal |
 | 2026-07-04 | RTX 3090 Ti vs OEM 3090 | 94 °C @ 446 W vs 100 °C @ 335 W | Ti's aftermarket cooler far better — no repad needed for the Ti |
+| 2026-07-04 | Dual-card soak (both loaded, ~780 W) | 3090 VRAM 100–102 °C, Ti 92–94 °C | 20-min memtest_vulkan both cards; fans ~4680 RPM near max; inlet 21 °C — chassis adds only ~2 °C, the 3090's pads are the limiter |
+| 2026-07-04 | 3090 undervolt (PL 300 W, from 350) | VRAM 102→98 °C | but memtest bandwidth ~800→~600 GB/s (~20%); core cap can't cool GDDR6X's fixed power → repad is the real VRAM fix |
+| 2026-07-04 | 3090 Ti undervolt (PL 400 W, from 450) | ~862 GB/s (vs ~872 full) | near-zero perf loss — the Ti has the headroom; keep it capped for heat/noise |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
