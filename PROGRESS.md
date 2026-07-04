@@ -6,6 +6,30 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-07-04 — 2nd GPU installed + validated (RTX 3090 Ti); fan/monitor tooling made multi-GPU
+
+**Hardware:** Zotac RTX 3090 Ti (450W) installed alongside the HP OEM 3090 — both enumerate
+(GPU0 = 3090 @ 04:00.0, GPU1 = 3090 Ti @ 83:00.0). The slot/power/clearance block is resolved.
+
+**Tooling — made multi-GPU-aware** (was single-GPU, a real safety gap): the closed-loop fan
+controller (`gpu-fan-control.sh`) now drives off the **MAX core temp across both cards** (was
+`head -n1` = GPU0 only, so a hot Ti wouldn't ramp the fans while the 3090 idled). The soak-logger
+now parses **per-GPU** gputemps JSON (per-card core/junction/VRAM columns + a compact ≤80-col
+console view) and its thermal auto-abort watches the **hottest** card. Deploy gotcha caught: the
+service runs `/usr/local/sbin/gpu-fan-control.sh`, not the repo copy — fixes must be `cp`'d there.
+
+**Validation — 30-min memtest_vulkan soak on the 3090 Ti** (full 446W, SM+mem 100%, cover on, fans
+auto-ramping ~4300 RPM): steady state **VRAM 92–94 °C, junction 88–89 °C, core 76–77 °C, no
+throttle** (held ~1950 MHz full boost — power-limited, not thermal). vs the OEM 3090's 100 °C VRAM
+at 335 W → the Ti's aftermarket cooler is far superior; **no repad needed for the Ti.** The 3090 sat
+idle/cold throughout; inlet barely moved (20 → 21 °C).
+
+**Next:** the **dual-card soak** (both loaded, ~780 W) — the real 2-GPU-viability test, where the
+3090's marginal pads meet a hotter chassis and the repad decision gets made. Then: revisit the fan
+curve with this data; stand up the 48 GB judge (Qwen3.6-35B-A3B).
+
+---
+
 ## 2026-07-03 — Semantic table layer + sim-generated diagnostic eval
 
 **Semantic table layer** (`car/ecutune`): algorithms + safety clamps now operate ONLY on
@@ -189,6 +213,10 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-07-03 | Sim-eval: rules baseline | 85.7% top1 / 100% acceptable | 70 cases (10×7 faults), two-point signatures, seed 0 |
 | 2026-07-03 | Sim-eval: random baseline | 18.6% top1 / 25.7% acceptable | chance floor — 74-pt spread vs rules = eval discriminates |
 | 2026-07-03 | car/ecutune test suite | 40 passed (1.8 s) | + semantic-adapter tests + sim-eval tests |
+| 2026-07-04 | RTX 3090 Ti VRAM (GDDR6X) plateau | 92–94 °C | 30-min memtest_vulkan, 446 W, SM+mem 100%, cover on, fans ~4300 RPM, inlet 21 °C |
+| 2026-07-04 | RTX 3090 Ti junction (hotspot) plateau | 88–89 °C | same soak; no throttle (held ~1950 MHz boost) |
+| 2026-07-04 | RTX 3090 Ti core plateau | 76–77 °C | same soak; power-limited at the 446 W cap, not thermal |
+| 2026-07-04 | RTX 3090 Ti vs OEM 3090 | 94 °C @ 446 W vs 100 °C @ 335 W | Ti's aftermarket cooler far better — no repad needed for the Ti |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*

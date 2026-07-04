@@ -53,8 +53,12 @@ curve_pct() {
 }
 
 read_gpu_temp() {
+  # MAX core temp across ALL GPUs — the hottest card drives the chassis fans. (Was head -n1 =
+  # GPU0 only; with both a 3090 and a 3090 Ti installed, a hot Ti must still ramp the fans even
+  # if the 3090 is idle. Fail-safe direction: we always respond to the worst card.)
   local t
-  t=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -n1 | tr -dc '0-9')
+  t=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null \
+        | tr -dc '0-9\n' | sort -n | tail -n1)
   [[ -n "$t" ]] && echo "$t" || return 1
 }
 

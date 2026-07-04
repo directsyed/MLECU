@@ -31,13 +31,12 @@
 - **THERMAL FINDING: memory junction hit 106°C under memtest_vulkan** — this is a **thermal/pad-quality characteristic, NOT a defect** (zero errors at temp). Cause = OEM HP thermal pads + cramped Omen chassis. **REPAD DECISION DEFERRED until measured in the T630** (different thermal environment). Re-measure mem-junction in-server under load; repad (~$15–20 quality pads, mind the multi-thickness zone map) ONLY if still 105°C+ there.
 - **Currently: installed in T630 slot 3** (it physically fits where the 3090 Ti did not — see below), powered via the interposer/DRXPD chain, **booting / ready to boot.** Driver not yet installed (see §5).
 
-### (b) Zotac RTX 3090 Ti AMP Extreme Holo — VALIDATED, but UN-BENCHED in T630, BLOCKED
-- Purchased earlier for $500. Has its 16-pin adapter (3× 8-pin → 16-pin) in hand, attached to the card.
-- **Blocked on TWO fronts:**
-  - **Power:** needs THREE 8-pin inputs (~450W). The Omen prebuilt can't power it (2×8-pin, ~800W, too tight). Its proper home is the T630 (1100W PSUs + cables).
-  - **Physical clearance in T630:** **slot 3 is obstructed by the on-board "SW RAID" header** (the PERC software-RAID key standup). The Ti is too thick and contacts it. **Slot 1 also too thick. Slots 6/7 fit perfectly but are DEAD (no CPU2).** Syed could NOT remove the SW RAID obstruction (likely bare soldered pins).
-  - **SAFETY: never force a card backplate against the SW RAID pins — short risk on power-up. Insulate or relocate.**
-- **Path forward for the Ti:** install **CPU2 → slot 6 becomes live and fits the Ti**, OR use a **PCIe riser/extension cable** to float the Ti clear of the SW RAID header in slot 3.
+### (b) Zotac RTX 3090 Ti AMP Extreme Holo — INSTALLED + VALIDATED (2026-07-04)
+- Purchased $500; 16-pin adapter (3× 8-pin → 16-pin) in hand. **Now installed and LIVE:** enumerates as **GPU1 (PCI 83:00.0), 450W cap, driver reads it**; both cards run (GPU0 = 3090 @ 04:00.0). The prior blockers (3× 8-pin power + slot-3 SW-RAID-header clearance) are RESOLVED — **confirm the exact mount used (PCIe riser vs a CPU2 slot) and record it here.**
+- **Thermal validation — 30-min memtest_vulkan soak (full 446W, SM+mem 100%, cover on, fans auto-ramping ~4300 RPM):** VRAM **92–94 °C**, junction **88–89 °C**, core 76–77 °C, **no throttle** (held ~1950 MHz boost — power-limited, not thermal). Inlet 20 → 21 °C; ~12% fan headroom left. **No repad needed for the Ti** — aftermarket cooler holds 94 °C @ 446W vs the OEM 3090's 100 °C @ 335W.
+- **Still to test: BOTH cards loaded (~780W) — the real 2-GPU chassis soak,** where inlet climbs and the 3090's marginal pads get hotter (this is where the 3090 repad decision gets made).
+- **Tooling made multi-GPU (2026-07-04):** the fan controller now drives off MAX core across both cards; the soak-logger logs per-GPU columns + aborts on the hottest card. NOTE: the running fan script is `/usr/local/sbin/gpu-fan-control.sh` (a deployed copy) — repo edits must be `cp`'d there + service restarted.
+- *(History — the now-resolved blockers: needed 3× 8-pin (~450W); slot 3 fouled by the on-board SW-RAID standup header — NEVER force a backplate against those pins, short risk; slots 6/7 fit but were CPU2-gated.)*
 
 ### (c) The earlier validated 3090 (from prior sessions)
 - Prior sessions reference a validated 3090. NOTE: the "$1,100 HP OEM 3090" in standing memory and the card acquired THIS session (§a) are **almost certainly the same card** — this session is its acquisition/validation/install story. If they turn out distinct, the GPU count and dual-GPU planning change — flag to Syed.
