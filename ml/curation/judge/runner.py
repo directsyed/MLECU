@@ -35,13 +35,26 @@ class RunStats:
         self.score_hist[score] = self.score_hist.get(score, 0) + 1
 
 
+def _doc_synopsis(cfg: Config, pack: PromptPack, doc, first_chunk_text: str) -> str:
+    """Per-doc synopsis pre-pass for multi-chunk docs (context decision 2026-07-05).
+
+    Built from the doc HEAD (title + first ~10k chars) — thread subject and setup are
+    established early; a full-doc synopsis wouldn't fit the context. Factual-only prompt so
+    it can't bias chunk scores."""
+    if not pack.synopsis:
+        return ""
+    head = f"title: {doc['title']}\nsource: {doc['source']}\n\n{first_chunk_text[:10000]}"
+    text, _usage, _ = llm.chat(cfg.llm, pack.synopsis, head)
+    return (text or "").strip()[:1500]
+
+
 def _judge_chunk(cfg: Config, pack: PromptPack, state: State, doc, ch: chunker.Chunk,
-                 policy: str) -> tuple[verdict_mod.Verdict, list, dict]:
+                 policy: str, doc_synopsis: str = "") -> tuple[verdict_mod.Verdict, list, dict]:
     refs = (retrieval.grounding(state, cfg, ch.text)
             if doc["tier"] == "community" and cfg.retrieval.top_k > 0 else [])
     user = pack.render_user(title=doc["title"] or "", source=doc["source"], tier=doc["tier"],
                             text=ch.text, chunk_index=ch.index, n_chunks=ch.n_chunks,
-                            refs=refs, policy=policy)
+                            refs=refs, policy=policy, doc_synopsis=doc_synopsis)
     attempts = cfg.llm.json_retries + 1
     last_err: Exception | None = None
     for attempt in range(attempts):
@@ -93,11 +106,17 @@ def run(cfg: Config, state: State, *, limit: int | None = None,
 
                 chunks = chunker.chunk(doc["text"], cfg.chunking.max_chars,
                                        cfg.chunking.overlap_chars)
+                synopsis = ""
+                if len(chunks) > 1:
+                    synopsis = _doc_synopsis(cfg, pack, doc, chunks[0].text)
+                    if synopsis:
+                        audit.write(doc_id=doc["id"], source=doc["source"],
+                                    synopsis=synopsis, rubric_version=pack.version)
                 rows: list[dict] = []
                 scores: list[int] = []
                 lengths: list[int] = []
                 for ch in chunks:
-                    v, refs, extra = _judge_chunk(cfg, pack, state, doc, ch, policy)
+                    v, refs, extra = _judge_chunk(cfg, pack, state, doc, ch, policy, synopsis)
                     scores.append(v.score)
                     lengths.append(len(ch.text))
                     rows.append({
@@ -106,10 +125,13 @@ def run(cfg: Config, state: State, *, limit: int | None = None,
                         "grounding_json": json.dumps([r.__dict__ for r in refs]),
                         "prompt_tokens": extra["usage"].get("prompt_tokens"),
                         "completion_tokens": extra["usage"].get("completion_tokens"),
+                        "relevance": v.relevance,
+                        "evidence_in_images": int(v.evidence_in_images),
                     })
                     audit.write(doc_id=doc["id"], source=doc["source"], policy=policy,
                                 chunk_index=ch.index, n_chunks=ch.n_chunks, score=v.score,
                                 rationale=v.rationale, pairs=v.pairs,
+                                relevance=v.relevance, evidence_in_images=v.evidence_in_images,
                                 grounding=[r.__dict__ for r in refs],
                                 raw=extra["raw"], usage=extra["usage"],
                                 reasoning=extra["reasoning"],

@@ -42,6 +42,13 @@ class State:
         ]:
             if col not in existing:
                 self.conn.execute(f"ALTER TABLE document ADD COLUMN {col} {decl}")
+        existing_j = {row[1] for row in self.conn.execute("PRAGMA table_info(judgment)")}
+        for col, decl in [
+            ("relevance", "TEXT"),
+            ("evidence_in_images", "INTEGER"),
+        ]:
+            if existing_j and col not in existing_j:
+                self.conn.execute(f"ALTER TABLE judgment ADD COLUMN {col} {decl}")
 
     def close(self) -> None:
         self.conn.close()
@@ -188,12 +195,14 @@ class State:
                     """INSERT OR REPLACE INTO judgment (
                         doc_id, chunk_index, n_chunks, score, rationale, pairs_json,
                         grounding_json, judge_model, rubric_version,
-                        prompt_tokens, completion_tokens, created_at
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        prompt_tokens, completion_tokens, relevance, evidence_in_images,
+                        created_at
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (doc_id, ch.get("chunk_index", 0), ch.get("n_chunks", 1),
                      ch.get("score"), ch.get("rationale"), ch.get("pairs_json"),
                      ch.get("grounding_json"), judge_model, rubric_version,
-                     ch.get("prompt_tokens"), ch.get("completion_tokens"), now),
+                     ch.get("prompt_tokens"), ch.get("completion_tokens"),
+                     ch.get("relevance"), ch.get("evidence_in_images"), now),
                 )
             conn.execute(
                 """UPDATE document SET judgment_status='judged', judge_score=?,

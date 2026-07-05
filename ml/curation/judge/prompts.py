@@ -27,12 +27,16 @@ class PromptPack:
     rubric_reference: str
     grounding: str
     extraction_schema: dict
+    synopsis: str = ""              # pre-pass prompt; empty in packs without one (r1)
 
     def render_user(self, *, title: str, source: str, tier: str, text: str,
                     chunk_index: int, n_chunks: int, refs: list[RefSnippet],
-                    policy: str) -> str:
+                    policy: str, doc_synopsis: str = "") -> str:
         rubric = self.rubric_community if tier == "community" else self.rubric_reference
         parts = [rubric]
+        if doc_synopsis:
+            parts.append("# Document synopsis (context for this chunk — score ONLY the "
+                         "chunk's own content)\n" + doc_synopsis)
         if refs:
             lines = [f"[REF {s.ref_doc_id}] {s.title}\n{s.snippet}" for s in refs]
             parts.append(self.grounding + "\n\n" + "\n\n".join(lines))
@@ -49,6 +53,7 @@ def load_prompt_pack(prompts_dir: Path) -> PromptPack:
         if not p.exists():
             raise FileNotFoundError(f"prompt pack incomplete: missing {p}")
         return p.read_text(encoding="utf-8")
+    synopsis_path = d / "synopsis.md"
     return PromptPack(
         version=d.name,
         system=read("system.md"),
@@ -56,4 +61,5 @@ def load_prompt_pack(prompts_dir: Path) -> PromptPack:
         rubric_reference=read("rubric_reference.md"),
         grounding=read("grounding.md"),
         extraction_schema=json.loads(read("extraction_schema.json")),
+        synopsis=synopsis_path.read_text(encoding="utf-8") if synopsis_path.exists() else "",
     )

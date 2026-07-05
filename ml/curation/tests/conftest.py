@@ -20,7 +20,7 @@ def cfg(tmp_path) -> Config:
     c = Config()
     c.corpus.db_path = str(tmp_path / "corpus.sqlite")
     c.audit.dir = str(tmp_path / "audit")
-    c.judge.prompts_dir = str(Path(__file__).resolve().parents[1] / "prompts" / "rubric-r1")
+    c.judge.prompts_dir = str(Path(__file__).resolve().parents[1] / "prompts" / "rubric-r2")
     # mirror config.yaml's reference policy (pydantic defaults are deliberately conservative)
     c.judge.reference_policy = {"default": "light_judge", "romraider_defs": "auto_pass"}
     return c
@@ -60,12 +60,17 @@ class FakeLlm:
         self.calls: list[dict] = []
 
     def __call__(self, llm_cfg, system, user, json_schema=None, retries=3):
-        self.calls.append({"system": system, "user": user})
+        self.calls.append({"system": system, "user": user, "schema": json_schema})
+        if json_schema is None:                      # synopsis pre-pass (plain completion)
+            return "Canned synopsis of a long thread.", {"prompt_tokens": 50,
+                                                         "completion_tokens": 20}, ""
         if self.fail_first and len(self.calls) == 1:
             return "not json at all", {"prompt_tokens": 10, "completion_tokens": 2}, ""
         verdict = {
             "score": self.score,
             "rationale": "canned rationale",
+            "relevance": "subaru_ej",
+            "evidence_in_images": False,
             "pairs": [{"symptoms": "+12% trims", "diagnosis": "MAF misscale",
                        "change": "rescale 7%", "outcome": "trims +2%"}],
             "claims_checked": [],

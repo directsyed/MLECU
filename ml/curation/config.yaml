@@ -17,7 +17,7 @@ corpus:
 judge:
   batch_size: 25
   keep_threshold: 4                      # >=4 feeds the fine-tune set (locked decision)
-  prompts_dir: prompts/rubric-r1         # rubric_version == the directory name
+  prompts_dir: prompts/rubric-r2         # rubric_version == the directory name (r1 kept for history)
   reference_policy:                      # D1 (Syed): machine-generated defs don't need an LLM's opinion
     default: light_judge
     romraider_defs: auto_pass

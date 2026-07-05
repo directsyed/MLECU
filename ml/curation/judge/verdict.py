@@ -24,6 +24,8 @@ class Verdict:
     rationale: str
     pairs: list[dict] = field(default_factory=list)
     claims_checked: list[dict] = field(default_factory=list)
+    relevance: str = "general"            # subaru_ej | subaru | general (r2+)
+    evidence_in_images: bool = False      # key evidence lives in unreadable images (r2+)
 
     @property
     def pairs_json(self) -> str:
@@ -56,5 +58,9 @@ def parse(raw: str) -> Verdict:
     claims = data.get("claims_checked", [])
     if not isinstance(claims, list):
         raise VerdictError("claims_checked must be a list")
+    relevance = data.get("relevance", "general")
+    if relevance not in ("subaru_ej", "subaru", "general"):
+        raise VerdictError(f"relevance must be subaru_ej|subaru|general, got {relevance!r}")
     return Verdict(score=score, rationale=rationale.strip(), pairs=pairs,
-                   claims_checked=claims)
+                   claims_checked=claims, relevance=relevance,
+                   evidence_in_images=bool(data.get("evidence_in_images", False)))

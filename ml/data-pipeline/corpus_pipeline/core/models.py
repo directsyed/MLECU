@@ -107,6 +107,8 @@ CREATE TABLE IF NOT EXISTS judgment (
     rubric_version     TEXT NOT NULL,
     prompt_tokens      INTEGER,
     completion_tokens  INTEGER,
+    relevance          TEXT,               -- subaru_ej | subaru | general (corpus composition)
+    evidence_in_images INTEGER,            -- 1 = key evidence in unreadable images (VLM backlog)
     created_at         TEXT NOT NULL,
     UNIQUE(doc_id, chunk_index, rubric_version)
 );
