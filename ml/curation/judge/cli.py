@@ -118,6 +118,9 @@ def main(argv=None) -> int:
     p.add_argument("--blind", action="store_true", help="label only the blind subset")
     p.add_argument("--set")
     p.add_argument("--rater", default="syed")
+    p.add_argument("--harvest", action="store_true",
+                   help="extract training pairs from chunk>=threshold verdicts (JSONL)")
+    p.add_argument("--out", help="harvest output path (default data/pairs/pairs-<rubric>.jsonl)")
     p.add_argument("--agreement", action="store_true")
     p.add_argument("--truth", default="adjudicated")
     p.add_argument("--vs", help="compare truth rater against another rater instead of the judge")
@@ -148,6 +151,17 @@ def main(argv=None) -> int:
         s = _state(cfg)
         ids = calibrate.freeze_sample(s, cfg)
         print(f"calibration set {cfg.calibration.set_name}: {len(ids)} docs frozen")
+        s.close()
+        return 0
+    if args.harvest:
+        from .harvest import harvest
+        s = _state(cfg)
+        out = Path(args.out) if args.out else cfg.resolve(f"data/pairs/pairs-{cfg.rubric_version}.jsonl")
+        st = harvest(s, cfg, out)
+        print(f"harvest -> {out}")
+        print(f"  chunks with pairs: {st['chunks_seen']}  pairs seen: {st['pairs_seen']}")
+        print(f"  PAIRS KEPT: {st['pairs_kept']} (dropped {st['dropped_no_outcome']} without outcome)")
+        print(f"  from {st['docs']} docs  by relevance: {st['by_relevance']}")
         s.close()
         return 0
     if args.label:

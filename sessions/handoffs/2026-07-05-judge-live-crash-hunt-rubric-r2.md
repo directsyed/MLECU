@@ -78,3 +78,12 @@ tier judged (116 docs). Dense 27B = certified gate of record.
    (2 sightings), qualitative-outcome rule (1088/1114 consistency), runaway-deliberation cap
    (5781 parked), evidence_in_images -> future VLM pass worklist.
 4. Ops: 5781 in manual-review queue; audit-writer fsync hardening; flight-recorder systemd unit.
+
+## ADDENDUM 2 (~08:20) — harvest live, reference tier running unattended
+- **First training pairs harvested: 65 pairs / 12 docs** (48 subaru_ej, 6 subaru, 11 general)
+  -> ml/curation/data/pairs/pairs-rubric-r2.jsonl, full per-pair provenance. `--harvest` CLI.
+- **llama-judge.service** (systemd, After=gpu-powerlimit) replaces tmux serving — deployed+enabled.
+- **Reference-tier run DETACHED** (setsid, log: ml/curation/data/ref-tier-run.log): 552 auto-passed,
+  ~5,050 light-judge docs at ~40s/doc ≈ 2.5 days. Resume-safe; just check the log / --status.
+- On resume: check `judge.cli --status`, then queue = gone-marked 9 docs, 5781 manual review,
+  MoE spot-check decision, r3 backlog, pair-harvest rerun when tier completes.
