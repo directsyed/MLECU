@@ -6,6 +6,24 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-07-05 — Slot-3 PCIe Bus Fatal root-caused (transient brownout) → boot-time clock locks
+
+Four hard system hangs during the judge's first real inference runs — box alive, NIC dead,
+kernel silent (Dell firmware-first AER); only the iDRAC SEL recorded each `Bus Fatal Error
+(Slot 3)`. Systematic single-variable elimination across five instrumented benches: dual-PSU
+load sharing, ASPM off, physical reseat, and cross-socket P2P all ruled out (crash #5 was solo
+on the 3090). A purpose-built **1 Hz fsync'd PCIe flight recorder** (survives hard hangs; now in
+`infrastructure/monitoring/`) proved the link pristine to the final second every time — which
+pointed away from signal integrity and at **power transients: boost/limiter oscillation
+(recorded 1065↔1500 MHz at 299 W/300 W cap) sagging slot 3's 12 V → instant poisoned
+transaction**. Discriminating experiment: core clock pinned at 1395 MHz, same everything else →
+**15/15 requests, ~13 min sustained, zero events** (unlocked died ≤7 min, 4/4). Fix made
+permanent in `gpu-powerlimit.service` (boot-time `-lgc` both cards). Cost ≈ nil — inference is
+memory-bound (mem clock untouched). Bonus: 15 bit-identical verdicts at temp 0 — judge
+determinism demonstrated on real hardware.
+
+---
+
 ## 2026-07-04 (later) — Cookie gates opened; the REAL FXT stock ROM read; sim grounded in it
 
 **Corpus/harvest:** Syed exported the two blocking cookies. **NASIOC is live** — cf_clearance +
@@ -258,6 +276,9 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-07-04 | ROM harvest (RomRaider, cookie-gated) | 10/10 attachments, 0 blocked | incl. 2005 FXT 4EAT stock ROM CID 3B12504206 (internal id A2WC411D) + SHA1 manifest |
 | 2026-07-04 | NASIOC first ingest | 3 threads kept / 261 posts | cf_clearance + pinned home-browser UA; 5 tuning subforums enabled for nightly discovery |
 | 2026-07-04 | ROM-seeded idle convergence | PASS: +12.68% → +4.46% in 4 iters, 0 clamp violations | believed = real A2WC411D values (503.93 cc/min, 0.661 ms @14.1V, 700 rpm idle target); truth = neutral swap-error priors; synthetic control +14.18% → +4.56% |
+| 2026-07-05 | Judge inference (27B Q8, dual-GPU, MTP) | ~64 tok/s decode, 1282 tok/s prefill, draft acceptance 0.73 | Qwen3.6-27B-MTP Q8_0 split across 3090+Ti, before crash; ~40 s/doc end-to-end |
+| 2026-07-05 | Slot-3 Bus Fatal MTBF, unlocked clocks | 4/4 crashes ≤7 min under bursty inference | steady memtest 30 min passes; reseat/ASPM/dual-PSU/P2P eliminated; link pristine to last second (flight recorder) |
+| 2026-07-05 | Locked-clock stability (3090 @1395 MHz) | 15/15 requests, ~13 min, 0 PCIe events | solo Q6_K bench, 51.8 s/req; identical verdicts ×15 (temp-0 determinism); fix persisted via gpu-powerlimit.service |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
