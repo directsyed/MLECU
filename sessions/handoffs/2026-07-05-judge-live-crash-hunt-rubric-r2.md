@@ -60,3 +60,21 @@ Marathon session (cookie paste → 4 AM). Read 2026-07-04 handoff for prior stat
   line exists; parsers must skip).
 - memory/judge-design-directives.md holds Syed's standing directives (detailed rubric,
   Subaru context, yield concern, bigger fine-tune base if RAM grows).
+
+## ADDENDUM (07-05 ~08:00) — CALIBRATION COMPLETE, JUDGE CERTIFIED
+The NEXT list above is superseded: calibration ran the same night. **PASS on all pre-registered
+bars** (keep/drop 93.1%, ±1 97.7%, dangerous 0; any-chunk>=4 keep metric ruled blind by Syed).
+Adjudicated labels: human_label(calibration-100, rater='adjudicated'), 9 keeps. Full community
+tier judged (116 docs). Dense 27B = certified gate of record.
+
+### NEW next steps
+1. **Reference tier run** (auto_pass defs/logger/ini instantly; light_judge the 4.6k PDFs
+   overnight). DECISION FIRST: MoE for this tier needs a spot-check pass (it fabricated once);
+   or run dense over several nights. Also judge the 9 gone-marked community docs (one-off
+   pattern proven on 1031) + decide gone-sweep-vs-judge policy.
+2. **Pair harvest**: extract chunk>=4 pairs (non-empty outcome filter) -> first training-pair
+   corpus stats. The 9 kept docs are pair-dense (960 alone ~20+).
+3. **r3 backlog**: methodology-genre undervaluation (1127 miss), synthetic/LLM-content policy
+   (2 sightings), qualitative-outcome rule (1088/1114 consistency), runaway-deliberation cap
+   (5781 parked), evidence_in_images -> future VLM pass worklist.
+4. Ops: 5781 in manual-review queue; audit-writer fsync hardening; flight-recorder systemd unit.
