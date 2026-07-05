@@ -269,3 +269,34 @@ start-trim difference is physical: a 4% latency error on the real 0.66 ms dead t
 absolute fuel error than on the assumed 1.0 ms. 44 tests green (4 new romread).
 
 No write path exists in romread by construction — ROM writes stay behind safety.apply_proposal.
+
+### 2026-07-05 — Slot-3 Bus Fatal incident: locked GPU clocks are now mandatory on syedlab
+
+Four hard system hangs during the first real judge inference runs (box alive, NIC dead — the
+fatal PCIe error takes the root complex and the kernel's ability to log with it; only the iDRAC
+SEL recorded each event: `Critical Interrupt — Bus Fatal Error (Slot 3)` x4).
+
+**Eliminated one variable at a time:** cf. sessions/handoffs. Dual-PSU load sharing (crash #2
+happened anyway), ASPM/link power management off via kernel params (crash #3), full physical
+reseat of the 3090 (crash #4), cross-socket GPU P2P (crash #5 was SOLO on the 3090 — no P2P
+traffic existed). A 1 Hz fsync'd flight recorder (infrastructure/monitoring/pcie-flight-
+recorder.sh) proved the link was PRISTINE to the final second every time: Gen3 x16, zero
+replays, zero correctable errors — instant fatal, no prelude. Firmware-first AER (Dell) is why
+the kernel never saw anything.
+
+**Mechanism (confirmed by discriminating experiment):** boost clocking oscillates the card
+against its power limiter (recorded: 1065<->1500 MHz at 299W/300W cap) -> current transients
+through slot 3's 12V -> momentary brownout of the card's PCIe logic -> one poisoned transaction
+-> Bus Fatal. Steady loads never trigger it (30-min memtest soaks pass); bursty LLM inference
+does. **With GPU0 core pinned at 1395 MHz: 15/15 bench requests, ~13 min sustained, zero
+events** — nearly 2x the longest unlocked survival. Cost ~nil (inference is memory-bound; mem
+clock untouched at 9501 MHz).
+
+**Standing config:** gpu-powerlimit.service now also locks clocks at boot (GPU0 1395, Ti 1560).
+Do NOT unlock without re-testing slot 3 under bursty load with the flight recorder armed.
+**Open attribution:** card's transient appetite vs slot 3 board-side power delivery — settled
+someday by swapping the cards between slots; not blocking (locked clocks are a legitimate
+permanent operating mode; datacenter GPUs ship clock-capped for the same reason).
+
+Bonus finding from the incident benches: temp-0 judge determinism is real — 15 identical
+verdicts (score + token count) on identical input.

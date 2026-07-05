@@ -23,6 +23,13 @@ ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do /usr/bin/nvidia-smi >/dev/null
 ExecStart=/usr/bin/nvidia-smi -pm 1
 ExecStart=/usr/bin/nvidia-smi -i 0 -pl 300
 ExecStart=/usr/bin/nvidia-smi -i 1 -pl 400
+# LOCKED CLOCKS (2026-07-05 incident, see decisions.md): boost oscillation against the power
+# limiter creates current transients that brown out slot 3's 12V -> PCIe Bus Fatal Error ->
+# hard hang (NIC dies, kernel can't log; only the iDRAC SEL + flight recorder saw it).
+# Proven: 4 crashes unlocked (dual-GPU and solo), 15/15 clean with GPU0 pinned @1395.
+# Inference is memory-bound so fixed core costs ~nothing. Do NOT unlock without re-testing.
+ExecStart=/usr/bin/nvidia-smi -i 0 -lgc 1395,1395
+ExecStart=/usr/bin/nvidia-smi -i 1 -lgc 1560,1560
 
 [Install]
 WantedBy=multi-user.target
