@@ -7,8 +7,8 @@ llm:
                                          # (flip when swapping GGUFs — the audit trail keys on this)
                                          # dense 27B = community-tier judge of record (smoke-10 verdict)
   temperature: 0.0                       # judging is deterministic scoring, not sampling
-  max_completion_tokens: 6144   # thinking model: reasoning + JSON share this budget; 1500 starved
-                                # short docs, 4096 truncated long-chunk verdicts (doc 960, 3 attempts)
+  max_completion_tokens: 8192   # thinking model: reasoning + JSON share budget; 1500 starved short
+                                # docs, 4096 truncated long chunks, 6144 still failed 2 monster docs
   json_retries: 2                        # re-asks after a schema-invalid reply (grammar makes this rare)
   request_timeout_s: 600
 

@@ -6,6 +6,29 @@ table at the bottom (date / metric / value / conditions) for a comparable histor
 
 ---
 
+## 2026-07-05 — THE JUDGE IS CERTIFIED: calibration PASSED all pre-registered bars
+
+Full calibration protocol executed end-to-end in one overnight session: 100-doc frozen sample,
+three independent raters (Claude full-context base ratings, Syed guard/boundary review, the
+dense-27B judge under rubric-r2), pass bars pre-registered in DB meta BEFORE any agreement
+numbers existed (keep/drop >=90%, within-±1 >=90%, zero dangerous cells; failure clause =
+rubric revision, never bar-lowering). Keep metric ruled blind by Syed: any-chunk >=4 (matches
+per-chunk pair harvesting; noise chunks of kept docs never enter training by construction).
+
+**Result: PASS on all three bars — keep/drop 93.1% (81/87), within-±1 97.7% (85/87),
+dangerous cells 0.** Judge's errors are the safe kind: 2 missed keeps (one a human judgment-call
+promotion, one a methodology-genre undervaluation -> r3 note), 4 over-keeps all at adjudicated-3
+(never noise), all still subject to chunk-level harvest filters. The dense 27B judge is now the
+gate of record for the community tier. Judged the full tier (116 docs, 152+ chunks) overnight on
+locked clocks with zero PCIe events — the platform fix held under the real workload.
+
+Also surfaced during calibration: gone-sweep vs judge-queue policy gap (docs marked gone while
+kept+pending never get judged — 10 affected, one-off'd or queued); runaway-deliberation failure
+mode on table-dense chunks (2 docs; fallback re-chunk to 12k fixed one, one parked as honest
+'failed' -> manual queue); two sightings of LLM-generated content inside forum threads (synthetic
+-content policy needed before scale-out); corpus yield reality: 9/100 doc-level keeps (~8%), with
+chunk-level harvest as the true yield mechanism (e.g. doc 1031: doc-min 2, four gold chunks @4).
+
 ## 2026-07-05 — Slot-3 PCIe Bus Fatal root-caused (transient brownout) → boot-time clock locks
 
 Four hard system hangs during the judge's first real inference runs — box alive, NIC dead,
@@ -279,6 +302,8 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-07-05 | Judge inference (27B Q8, dual-GPU, MTP) | ~64 tok/s decode, 1282 tok/s prefill, draft acceptance 0.73 | Qwen3.6-27B-MTP Q8_0 split across 3090+Ti, before crash; ~40 s/doc end-to-end |
 | 2026-07-05 | Slot-3 Bus Fatal MTBF, unlocked clocks | 4/4 crashes ≤7 min under bursty inference | steady memtest 30 min passes; reseat/ASPM/dual-PSU/P2P eliminated; link pristine to last second (flight recorder) |
 | 2026-07-05 | Locked-clock stability (3090 @1395 MHz) | 15/15 requests, ~13 min, 0 PCIe events | solo Q6_K bench, 51.8 s/req; identical verdicts ×15 (temp-0 determinism); fix persisted via gpu-powerlimit.service |
+| 2026-07-05 | Judge calibration (dense 27B, rubric-r2) | PASS: keep/drop 93.1%, ±1 97.7%, dangerous 0 | 87 community docs vs adjudicated 3-rater labels; bars pre-registered; any-chunk≥4 keep metric ruled blind |
+| 2026-07-05 | Full community tier judged | 116 docs / 152+ chunks overnight, 0 crashes | locked clocks, ~40-90 s/doc, 3 JSON re-asks total at 6144+ budget; 1 doc honest-failed (table-dense rumination) |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
