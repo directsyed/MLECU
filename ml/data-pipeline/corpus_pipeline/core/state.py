@@ -22,6 +22,9 @@ class State:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA synchronous=NORMAL")
+        # Two writers can coexist during calibration (judge runner + labeling CLI): WAL
+        # serializes them, busy_timeout makes the loser wait instead of throwing.
+        self.conn.execute("PRAGMA busy_timeout=10000")
         self.conn.executescript(SCHEMA_SQL)
         self._migrate()
 

@@ -72,7 +72,11 @@ def _label(cfg, args) -> int:
         print(f"[{doc_id}] {row['source']} | {row['tier']} | {row['title']}")
         print(row["url"] or "")
         print("-" * 78)
-        print(textwrap.shorten(row["text"], 4000, placeholder=" …[truncated]…"))
+        # FULL text, never truncated — a 6k-char preview already skewed one guard read.
+        # Long docs scroll; use terminal scrollback, or open the URL alongside.
+        print(row["text"])
+        print("-" * 78)
+        print(f"[{len(row['text'])} chars | {row['tier']} | {row['source']}]")
         while True:
             ans = input("score 1-5 (n=note, s=skip, q=quit): ").strip().lower()
             if ans == "q":

@@ -3,8 +3,9 @@
 
 llm:
   base_url: http://127.0.0.1:8080/v1     # llama-server, OpenAI-compatible
-  model: qwen3.6-35b-a3b-q8_0            # recorded verbatim into judgment.judge_model
+  model: qwen3.6-27b-q8_0                # recorded verbatim into judgment.judge_model
                                          # (flip when swapping GGUFs — the audit trail keys on this)
+                                         # dense 27B = community-tier judge of record (smoke-10 verdict)
   temperature: 0.0                       # judging is deterministic scoring, not sampling
   max_completion_tokens: 6144   # thinking model: reasoning + JSON share this budget; 1500 starved
                                 # short docs, 4096 truncated long-chunk verdicts (doc 960, 3 attempts)
