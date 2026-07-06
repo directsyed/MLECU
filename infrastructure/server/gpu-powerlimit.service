@@ -11,8 +11,11 @@
 #          nvidia-smi --query-gpu=index,persistence_mode,power.limit --format=csv   # verify
 [Unit]
 Description=MLECU GPU persistence + power limits (24/7 undervolt-by-cap)
-After=multi-user.target
-Wants=multi-user.target
+# NO After=multi-user.target: that created an ordering CYCLE once llama-judge.service declared
+# After=gpu-powerlimit + WantedBy=multi-user (systemd silently deleted the judge's start job,
+# boot 2026-07-05 17:56). The only real dependency is the nvidia driver, which ExecStartPre
+# polls for directly.
+After=network.target
 
 [Service]
 Type=oneshot
@@ -23,13 +26,21 @@ ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do /usr/bin/nvidia-smi >/dev/null
 ExecStart=/usr/bin/nvidia-smi -pm 1
 ExecStart=/usr/bin/nvidia-smi -i 0 -pl 300
 ExecStart=/usr/bin/nvidia-smi -i 1 -pl 400
-# LOCKED CLOCKS (2026-07-05 incident, see decisions.md): boost oscillation against the power
-# limiter creates current transients that brown out slot 3's 12V -> PCIe Bus Fatal Error ->
-# hard hang (NIC dies, kernel can't log; only the iDRAC SEL + flight recorder saw it).
-# Proven: 4 crashes unlocked (dual-GPU and solo), 15/15 clean with GPU0 pinned @1395.
-# Inference is memory-bound so fixed core costs ~nothing. Do NOT unlock without re-testing.
-ExecStart=/usr/bin/nvidia-smi -i 0 -lgc 1395,1395
-ExecStart=/usr/bin/nvidia-smi -i 1 -lgc 1560,1560
+# LOCKED CLOCKS (2026-07-05 incident + overnight recurrence, see decisions.md): current
+# transients through slot 3's 12V cause PCIe Bus Fatal -> hard hang. Core lock @1395 alone
+# suppressed the fault ~50-100x (minutes -> ~5h MTBF) but the flight recorder proved two
+# residual transient channels: (a) MEMORY clock swinging 810<->9501 between requests
+# (-lgc does not touch mem), (b) the 300W power limiter overriding the core lock downward
+# under peak load (dips to 1155-1290 recorded). Therefore:
+#   - core lock LOWERED so peak power sits under the cap and the limiter never engages
+#   - memory clock ALSO locked at full rate (kills the between-request mem transitions;
+#     costs idle watts - accepted for 24/7 stability)
+# If Bus Fatal recurs even with core+mem fully pinned, software options are EXHAUSTED ->
+# card-vs-slot swap isolation is mandatory. Do NOT raise these without the recorder armed.
+ExecStart=/usr/bin/nvidia-smi -i 0 -lgc 1200,1200
+ExecStart=/usr/bin/nvidia-smi -i 1 -lgc 1500,1500
+ExecStart=/usr/bin/nvidia-smi -i 0 -lmc 9501,9501
+ExecStart=/usr/bin/nvidia-smi -i 1 -lmc 10251,10251
 
 [Install]
 WantedBy=multi-user.target

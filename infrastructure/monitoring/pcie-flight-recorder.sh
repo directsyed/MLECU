@@ -12,7 +12,10 @@
 #   - kernel sysfs AER counters (zeros under firmware-first = itself a finding)
 # One-time header: lspci tree, full root-port + GPU PCIE state.
 set -u
-GPU_BDF="0000:04:00.0"                      # the OEM 3090 (slot 3)
+# Auto-detect the OEM 3090's PCI address (survives slot moves — 2026-07-06 slot-1 test).
+# The " Ti]" suffix keeps the match from hitting the 3090 Ti.
+GPU_BDF=$(lspci -Dnn | grep -i "GeForce RTX 3090\]" | head -1 | awk '{print $1}')
+[ -z "$GPU_BDF" ] && GPU_BDF="0000:04:00.0"   # fallback: last known address
 PORT_BDF=$(basename "$(dirname "$(readlink "/sys/bus/pci/devices/$GPU_BDF")")")
 STAMP=$(date +%Y%m%d-%H%M%S)
 OUT="${1:-$(dirname "$0")/pcie-flight-$STAMP.log}"
