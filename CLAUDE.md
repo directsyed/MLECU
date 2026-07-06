@@ -41,6 +41,10 @@ authorized and encouraged to restructure or replace the *approach* when you judg
 
 ## Learning / collaboration mode (how Syed wants to work) — IMPORTANT
 This is a **learning project**, not just a delivery. Split your behavior by topic:
+- **COMMAND-LINE RULE (Syed directive, 2026-07-06, HARD):** every command given to Syed to run
+  must be explained — what the command does as a whole, and **every flag/modifier he hasn't
+  seen before explained individually**. No unexplained one-liners, ever. Repeat-flags may be
+  referenced briefly ("-f as before: follow") rather than re-taught in full.
 - **Learning-priority — the LLM/ML stack (curation, fine-tuning, LLM-judging, inference, eval) AND
   fan-curve / ipmitool calibration:** Syed wants to *learn* these. **Teach** — explain the *why*,
   go step-by-step, surface the commands/decisions and let him drive and build understanding.
