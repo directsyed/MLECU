@@ -300,3 +300,26 @@ permanent operating mode; datacenter GPUs ship clock-capped for the same reason)
 
 Bonus finding from the incident benches: temp-0 judge determinism is real — 15 identical
 verdicts (score + token count) on identical input.
+
+### 2026-07-06 — CARD CONVICTED: slot-swap test ends the Bus Fatal investigation
+
+Crash #9 settled it. Full card swap (3090 -> CPU2 slot 7; Ti -> slot 3, RAID pins cleared):
+provoked run (locks reset, caps kept — the historical trigger recipe) killed the box in ~40s of
+load, SEL reporting **Slot 7** — the fault followed the HP OEM 3090 across the chassis while
+the Ti boosted to 1890MHz in slot 3 in perfect health. Black box: 3090 bouncing 1575-1800MHz
+at 269-273W (limiter oscillation), link clean to the last sample. Slot 3 exonerated after
+eight wrongful accusations. Verdict: the card's own power-delivery/PCIe interface electronics
+glitch under its own load transients.
+
+**Supporting color:** Syed found the card's backplate screws show tamper evidence (paint
+chipping/slight stripping) — someone was inside this card before purchase. Repad upgraded to
+forensic teardown: document prior-rework evidence (flux residue, mismatched pads), inspect
+12V input filtering + the six backside cap groups (the 2020 GA102 POSCAP/MLCC boost-crash
+story matches our signature exactly), measure old pad thicknesses, clean/inspect edge fingers.
+
+**Interim ops (Syed's option C):** dual-GPU batches at deepened margin — 3090 core lock
+1200->1000 (measured load draw 215W vs 300W cap; limiter mathematically unreachable), Ti
+unchanged. UUID-targeted service (slot-proof after the index-swap incident). Batches resume
+via documented one-liner after each crash; DB snapshotted per stint; ~5-6h+ MTBF expected.
+Endgame: repad/inspect the 3090, re-test with the 1-minute provoked-crash diagnostic, then
+repair/retire/replace decision.

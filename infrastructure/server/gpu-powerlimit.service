@@ -23,9 +23,14 @@ RemainAfterExit=yes
 # wait up to ~60s for the nvidia driver to be responsive (avoids a boot race)
 ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do /usr/bin/nvidia-smi >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
 # persistence mode ON first — without it the caps below get reset on GPU idle
+# Cards targeted by UUID (2026-07-06): the slot swap reversed enumeration order and the old
+# index-based lines applied each card's caps to the OTHER card (-pl 400 on the 3090 = invalid,
+# aborting the batch -> NO locks applied). UUIDs are burned into the GPU and slot-independent.
+#   GPU-f070f3ef-... = HP OEM RTX 3090   (the slot-3 suspect, now on CPU2)
+#   GPU-d7426a2e-... = Zotac RTX 3090 Ti (now in slot 3 as the slot probe)
 ExecStart=/usr/bin/nvidia-smi -pm 1
-ExecStart=/usr/bin/nvidia-smi -i 0 -pl 300
-ExecStart=/usr/bin/nvidia-smi -i 1 -pl 400
+ExecStart=/usr/bin/nvidia-smi -i GPU-f070f3ef-ce00-c63a-8855-b429f59a05b5 -pl 300
+ExecStart=/usr/bin/nvidia-smi -i GPU-d7426a2e-1af9-d7bf-3aeb-6a63436681b6 -pl 400
 # LOCKED CLOCKS (2026-07-05 incident + overnight recurrence, see decisions.md): current
 # transients through slot 3's 12V cause PCIe Bus Fatal -> hard hang. Core lock @1395 alone
 # suppressed the fault ~50-100x (minutes -> ~5h MTBF) but the flight recorder proved two
@@ -37,10 +42,14 @@ ExecStart=/usr/bin/nvidia-smi -i 1 -pl 400
 #     costs idle watts - accepted for 24/7 stability)
 # If Bus Fatal recurs even with core+mem fully pinned, software options are EXHAUSTED ->
 # card-vs-slot swap isolation is mandatory. Do NOT raise these without the recorder armed.
-ExecStart=/usr/bin/nvidia-smi -i 0 -lgc 1200,1200
-ExecStart=/usr/bin/nvidia-smi -i 1 -lgc 1500,1500
-ExecStart=/usr/bin/nvidia-smi -i 0 -lmc 9501,9501
-ExecStart=/usr/bin/nvidia-smi -i 1 -lmc 10251,10251
+# 3090 core dropped 1200->1000 (2026-07-06, card convicted by slot-swap test): at 1200 the
+# measured peak was 238W vs the 300W cap; at 1000 peak lands ~200-210W — the limiter becomes
+# unreachable, so no forced clock excursions are physically possible. Interim batches config
+# until the card's repad/inspection. Ti untouched (healthy, huge margin).
+ExecStart=/usr/bin/nvidia-smi -i GPU-f070f3ef-ce00-c63a-8855-b429f59a05b5 -lgc 1000,1000
+ExecStart=/usr/bin/nvidia-smi -i GPU-d7426a2e-1af9-d7bf-3aeb-6a63436681b6 -lgc 1500,1500
+ExecStart=/usr/bin/nvidia-smi -i GPU-f070f3ef-ce00-c63a-8855-b429f59a05b5 -lmc 9501,9501
+ExecStart=/usr/bin/nvidia-smi -i GPU-d7426a2e-1af9-d7bf-3aeb-6a63436681b6 -lmc 10251,10251
 
 [Install]
 WantedBy=multi-user.target
