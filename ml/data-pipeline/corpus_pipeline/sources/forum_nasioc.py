@@ -161,6 +161,16 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
     profile = str(cfg.resolve("data/raw/.cf-nasioc-profile"))
     bf = BrowserFetcher(ua, profile_dir=profile, cookies=cookies)
     try:
+        # Canary probe (2026-07-07): cf_clearance cookies for this site live only HOURS. A dead
+        # cookie previously produced silent "ok, fetched=0" nightly runs — indistinguishable
+        # from a genuinely quiet forum. Probe one page first and FAIL LOUDLY so the run summary
+        # (and Discord ping) shows the real reason instead of a silent zero.
+        canary = bf.get_html(f"{base_url}/forumdisplay.php?f=80")
+        if "Just a moment" in (canary or "") or "challenge-platform" in (canary or ""):
+            raise RuntimeError(
+                "cf_clearance cookie EXPIRED (Cloudflare challenge on canary page). "
+                "Re-export from the home browser (SAME browser/UA) to "
+                "data/raw/.cf-cookies/nasioc.json")
         skip = _known_ids(cfg)
         for seed in seeds:
             m = _T_ID.search(seed)
