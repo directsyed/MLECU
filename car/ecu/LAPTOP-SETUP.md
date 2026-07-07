@@ -51,12 +51,34 @@ Two independent paths; do BOTH and compare (this is §4's validation, done as fi
   flaky clone, cable chip) before trusting anything.
 
 ## 4. Validate the Openport clone BEFORE trusting it to flash
-The clone reads fine for logging (§3). Before it earns flash trust:
-1. **Read the ROM with ECUFlash** (read-only): ECUFlash → Read → save as `.bin` AND `.srf`.
-2. **Cross-check the read:** if the KKL path can also produce a read (or via a second Openport
-   read), confirm identical ROM ID and, ideally, identical bytes. A clone that reads a *stable,
-   repeatable, ID-correct* image is trustworthy for the read; flash trust is only exercised much
-   later (Phase C), still with the sacred-backup ritual first.
+The KKL path validates identity and live data only — **it cannot dump ROMs** (FreeSSM reads
+live parameters, not flash). So the split is:
+1. **Identity cross-check (KKL vs Openport):** ECU ID from FreeSSM/KKL must equal the ID
+   RomRaider/Openport reports (§3). Two independent cables agreeing = both honest.
+2. **Read-stability check (Openport against itself):** read the ROM TWICE with ECUFlash,
+   save both, then on the T630:
+   ```
+   .venv/bin/python -m ecutune.cli --rom-diff read1.bin read2.bin
+   ```
+   `IDENTICAL` = the clone reads deterministically; that image is trustworthy. Any difference
+   between two back-to-back reads = the clone is corrupting data — stop, do not trust it, and
+   nothing gets flashed with it ever.
+3. Flash trust is exercised much later (Phase C), still behind the sacred-backup ritual.
+
+> ⚠ **EXPECT "Unknown ROM Image" in ECUFlash — and do NOT "fix" it.** If this ECU is the
+> A2WC411D revision (likely: same family as the harvested ROM), ECUFlash will show *Unknown
+> ROM Image* because **no community definition exists for 411D** — we proved this ourselves
+> decoding the harvested copy. **The read is still complete and valid.** The forum thread for
+> this exact situation (corpus doc 1036) "solved" it by flashing the A2WC412D sibling over the
+> ECU — **we do NOT do that**: it's an unnecessary write of a different revision purely to make
+> a GUI happy. Our `romread` tooling decodes 411D via sibling-def reconciliation; the editor
+> can open it with the 410D def when editing day comes. Save the read, archive it, move on.
+
+> ⚠ **RomRaider Logger may not recognize the ECU ID either.** The community logger defs cover
+> `3B12504006/106/306` but not `...206` (verified in our SubaruDefs checkout). If the Logger
+> refuses the ECU: open `RomRaider/logger/logger.xml`, find the `3B12504106` entry, duplicate
+> it with your actual ECU ID (the SSM2 addresses are identical within the family — same
+> reconciliation logic our romread uses). Keep the edited copy in the repo so it's versioned.
 
 ## 5. THE FIRST ROM READ — archive + verify (the sacred step)
 1. Battery charger on the car, laptop on AC.

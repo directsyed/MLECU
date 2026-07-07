@@ -68,8 +68,9 @@ Per the staged doctrine (Stage 0 mechanical truth → Stage 1 instrument+baselin
   precise numbers is unreliable and a confident near-miss is engine-grenading. The retrieval
   store = kept reference chunks (FTS5 now, embeddings when dedupe lands).
 - **Fine-tune serves reasoning** (the diagnostic arc discipline) — pilot QLoRA on a base model
-  re-verified at execution time (July pick: Qwen3.6-27B; NOT trained on judge-filtered
-  community content that the judge itself produced — non-circularity holds).
+  re-verified at execution time (July pick: Qwen3.6-27B), trained ON the judge-curated corpus —
+  that is the pipeline's whole point. Non-circularity constrains the JUDGE, not the tuning
+  model: the judge stays a general model never fine-tuned on the corpus it filters.
 - **The empirical gate decides the balance:** pilot fine-tune vs RAG-only baseline vs
   RAG+fine-tune hybrid, all on the held-out eval. Winner becomes the brain. EPYC money moves
   ONLY if fine-tune wins AND ambitions exceed 24GB (doctrine).

@@ -48,10 +48,16 @@ def _run_convergence(seed: int, rom: str | None = None) -> int:
 def _rom_diff(path_a: str, path_b: str) -> int:
     from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
     from .romread import EcuFlashDefs
-    from .romread.diff import diff_roms, format_report
+    from .romread.diff import byte_only_diff, diff_roms, format_report
     from .simulation.rom_seed import DEFAULT_DEFS, SIBLING_DEFS
     defs = EcuFlashDefs(DEFAULT_DEFS)
-    d = diff_roms(path_a, path_b, defs, list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
+    try:
+        d = diff_roms(path_a, path_b, defs, list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
+    except ValueError as e:
+        # Reconciliation can refuse on a heavily modified image ("refusing to guess").
+        # The byte-level diff needs no defs and is always available — degrade to it.
+        print(f"semantic decode failed ({e}); falling back to byte-level diff only")
+        d = byte_only_diff(path_a, path_b)
     print(format_report(d))
     return 0 if d.is_identical else 2      # exit 2 = differences found (scriptable)
 

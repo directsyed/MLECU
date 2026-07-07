@@ -50,6 +50,17 @@ def test_single_cell_edit_detected_and_attributed(env):
     assert "fuel.injector_flow" in format_report(d)
 
 
+def test_byte_only_fallback(env):
+    from ecutune.romread.diff import byte_only_diff
+    defs, tmp, a = env
+    rom = bytearray(_build_rom())
+    rom[0x12] ^= 0xFF
+    b = tmp / "b.bin"
+    b.write_bytes(bytes(rom))
+    d = byte_only_diff(a, b)
+    assert d.byte_diff_count == 1 and not d.table_diffs and not d.is_identical
+
+
 def test_out_of_table_change_not_hidden(env):
     defs, tmp, a = env
     rom = bytearray(_build_rom())

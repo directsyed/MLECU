@@ -91,6 +91,14 @@ def diff_roms(path_a, path_b, defs: EcuFlashDefs, def_ids: list[str],
                    table_diffs=table_diffs, tables_identical=identical)
 
 
+def byte_only_diff(path_a, path_b) -> RomDiff:
+    """Defs-free fallback: byte-level comparison only (semantic decode unavailable/refused)."""
+    a, b = RomImage.load(path_a), RomImage.load(path_b)
+    count, ranges = _byte_ranges(a.data, b.data)
+    return RomDiff(ids=("?", "?"), byte_diff_count=count, byte_diff_ranges=ranges,
+                   table_diffs=[], tables_identical=0)
+
+
 def format_report(d: RomDiff) -> str:
     lines = [f"ROM diff: {d.ids[0]} vs {d.ids[1]}"]
     if d.is_identical:
