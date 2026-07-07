@@ -45,6 +45,17 @@ def _run_convergence(seed: int, rom: str | None = None) -> int:
     return 0 if ok else 1
 
 
+def _rom_diff(path_a: str, path_b: str) -> int:
+    from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
+    from .romread import EcuFlashDefs
+    from .romread.diff import diff_roms, format_report
+    from .simulation.rom_seed import DEFAULT_DEFS, SIBLING_DEFS
+    defs = EcuFlashDefs(DEFAULT_DEFS)
+    d = diff_roms(path_a, path_b, defs, list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
+    print(format_report(d))
+    return 0 if d.is_identical else 2      # exit 2 = differences found (scriptable)
+
+
 def _rom_report(rom: str | None) -> int:
     from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
     from .romread import EcuFlashDefs, RomImage, read_semantic_tables
@@ -101,6 +112,8 @@ def main(argv=None) -> int:
                         "3B12504206/A2WC411D stock FXT ROM)")
     p.add_argument("--rom-report", action="store_true",
                    help="read + cross-validate the semantic table set from the ROM and print it")
+    p.add_argument("--rom-diff", nargs=2, metavar=("ROM_A", "ROM_B"),
+                   help="table-level + byte-level diff of two ROM images (exit 2 if they differ)")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (default 0)")
     p.add_argument("--status", action="store_true", help="show config + active clamps/stages")
     p.add_argument("--generate-eval-cases", type=int, metavar="N",
@@ -120,6 +133,8 @@ def main(argv=None) -> int:
         return _run_convergence(args.seed, rom)
     if args.rom_report:
         return _rom_report(args.rom)
+    if args.rom_diff:
+        return _rom_diff(args.rom_diff[0], args.rom_diff[1])
     if args.generate_eval_cases:
         return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out)
     if args.score_sim_eval:

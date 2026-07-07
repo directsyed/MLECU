@@ -4,6 +4,27 @@ Reverse-chronological (newest first). This is a portfolio/resume artifact — en
 legible to a technical reader who wasn't in the room. Performance numbers are also recorded in the
 table at the bottom (date / metric / value / conditions) for a comparable history over time.
 
+**Full forward plan: [docs/ROADMAP.md](docs/ROADMAP.md)** — every remaining arc from the first
+ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the definition of done.
+
+---
+
+## 2026-07-07 — Master roadmap adopted; rom-diff + laptop guide built; NASIOC jackpot
+
+**Roadmap** (`docs/ROADMAP.md`): the full path certified-judge → driving Forester, in 7 phases
+(close curation → laptop+first ECU read → manual idle-tune arc → tuning-LLM v1 → LLM→ECU bridge
+→ dashboard → definition-of-done), all under the immutable safety doctrine. Answers Syed's nine
+questions incl. the **RAG-vs-fine-tune gate fully specified**: 4 arms (base / +RAG / fine-tuned /
++both) × 3 eval sets (E1 diagnostic-reasoning mechanical-scored vs the rules baseline; E2
+exact-value integrity with a **dangerous-near-miss HARD GATE**; E3 real-car cases adjudicated
+blind), pre-registered bars + paired-margin significance, decision rule pre-committed.
+**Built now** (car-independent): `ecutune.cli --rom-diff` (table+byte comparison of a real ECU
+read vs the harvested stock 3B12504206 — the "is it really stock?" artifact; 3 tests, 47 car
+tests green) and `car/ecu/LAPTOP-SETUP.md` (full RomRaider/ECUFlash/Openport guide + clone
+validation + the sacred first-read/archive ritual, against the real A2WC411D defs).
+**NASIOC** (fresh cookie + new canary probe that fails loudly on expiry): +6 threads incl.
+"A Complete Tuning Guide" (200 posts) + a MerpMod speed-density thread — now in the judge queue.
+
 ---
 
 ## 2026-07-05 — THE JUDGE IS CERTIFIED: calibration PASSED all pre-registered bars
