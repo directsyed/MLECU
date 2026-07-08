@@ -7,10 +7,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
-from . import e1, llm
-from .config import Config
+from . import e1, e2, e2gen, llm
+from .config import Config, EVAL_DIR
 
 
 def main() -> None:
@@ -21,8 +22,24 @@ def main() -> None:
     p.add_argument("--limit", type=int, default=None, help="first N cases only (smoke)")
     p.add_argument("--score", type=Path, default=None, help="score a results JSONL")
     p.add_argument("--baselines", action="store_true", help="rules + random reference scores")
+    p.add_argument("--gen-e2", action="store_true", help="draft E2 probes from reference keeps")
+    p.add_argument("--run-e2", action="store_true", help="run an arm over the E2 probe file")
+    p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_draft.jsonl")
+    p.add_argument("--tolerance", type=float, default=1.0, help="E2 match tolerance in %%")
     args = p.parse_args()
     cfg = Config()
+
+    if args.gen_e2:
+        llm.health_check(cfg.llm)
+        e2gen.generate(cfg, limit=args.limit or 60)
+        print("DRAFT ONLY — Syed spot-check required before any arm runs against it.")
+        return
+
+    if args.run_e2:
+        llm.health_check(cfg.llm)
+        out = e2.run_arm(cfg, args.arm, args.probes, tolerance_pct=args.tolerance)
+        print(json.dumps(e2.score(out), indent=2))
+        return
 
     if args.baselines:
         scoring = e1.load_scoring(cfg.scoring_py)

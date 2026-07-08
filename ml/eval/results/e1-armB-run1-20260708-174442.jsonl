@@ -1,0 +1,2 @@
+{"case_id": "sim_eval_v1-0000", "arm": "B", "run": 1, "model": "qwen3.6-27b-q8_0", "answer": "healthy", "fault": "healthy", "acceptable": ["healthy"], "retrieved_doc_ids": [721, 621, 567], "latency_s": 18.96, "prompt_tokens": 470, "completion_tokens": 1101}
+{"case_id": "sim_eval_v1-0001", "arm": "B", "run": 1, "model": "qwen3.6-27b-q8_0", "answer": "healthy", "fault": "healthy", "acceptable": ["healthy"], "retrieved_doc_ids": [721, 621, 567], "latency_s": 17.01, "prompt_tokens": 470, "completion_tokens": 972}
