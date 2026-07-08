@@ -46,7 +46,13 @@ ExecStart=/usr/bin/nvidia-smi -i GPU-d7426a2e-1af9-d7bf-3aeb-6a63436681b6 -pl 40
 # measured peak was 238W vs the 300W cap; at 1000 peak lands ~200-210W — the limiter becomes
 # unreachable, so no forced clock excursions are physically possible. Interim batches config
 # until the card's repad/inspection. Ti untouched (healthy, huge margin).
-ExecStart=/usr/bin/nvidia-smi -i GPU-f070f3ef-ce00-c63a-8855-b429f59a05b5 -lgc 1000,1000
+# 1000 -> 800 (2026-07-08, crashes #10/#11): the 1000MHz config stopped holding — two hangs
+# during ORDINARY decode at ~230W / <65C / zero AER, i.e. below every limit with no excursion
+# possible. The "software options exhausted" line above has fired; this drop is a DIAGNOSTIC
+# EXPERIMENT (Syed's explicit call, paired with llama-judge --tensor-split 2,1 cutting the
+# card's duty to ~1/3): if it still hangs at 800MHz + ~150W, raw power is exonerated and the
+# teardown looks at signal integrity / cracked joints. DB snapshot before each run.
+ExecStart=/usr/bin/nvidia-smi -i GPU-f070f3ef-ce00-c63a-8855-b429f59a05b5 -lgc 800,800
 ExecStart=/usr/bin/nvidia-smi -i GPU-d7426a2e-1af9-d7bf-3aeb-6a63436681b6 -lgc 1500,1500
 ExecStart=/usr/bin/nvidia-smi -i GPU-f070f3ef-ce00-c63a-8855-b429f59a05b5 -lmc 9501,9501
 ExecStart=/usr/bin/nvidia-smi -i GPU-d7426a2e-1af9-d7bf-3aeb-6a63436681b6 -lmc 10251,10251

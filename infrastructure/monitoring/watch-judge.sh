@@ -6,7 +6,9 @@
 # Usage: bash infrastructure/monitoring/watch-judge.sh   (reattach: tmux attach -t watch)
 set -u
 MLECU="$HOME/Shared/Computing Projects/MLECU"
-TIER_LOG="$MLECU/ml/curation/data/ref-tier-run.log"
+# newest *run*.log at launch — each batch run gets its own log file, so restart the
+# cockpit after starting a new run to re-resolve
+TIER_LOG="$(ls -t "$MLECU/ml/curation/data/"*run*.log | head -1)"
 S=watch
 
 tmux kill-session -t "$S" 2>/dev/null

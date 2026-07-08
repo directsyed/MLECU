@@ -9,7 +9,26 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
-## 2026-07-07 — Master roadmap adopted; rom-diff + laptop guide built; NASIOC jackpot
+## 2026-07-08 — CORPUS JUDGING COMPLETE; the 3090's derate stops holding — bracketed instead
+
+**The whole corpus is judged** under the certified rubric-r2: 5,691 docs / 5,796 scored chunks,
+**keep≥4 = 3,790 chunks** (histogram 12/865/1,129/2,755/1,035 for scores 1–5). Final structured-pair
+harvest: **82 pairs** (61 subaru_ej / 8 subaru / 13 general) from 23 docs — the corpus is
+**RAG-rich, pair-poor**: retrieval substrate is strong today; arms C/D of the eval gate need the
+Phase-D pair-synthesis bridge before a pilot fine-tune is meaningful.
+
+**The convicted 3090's story escalated.** Crashes #10/#11 (SEL: Slot 7 Bus Fatal, the usual) both
+hit during *ordinary decode* at the locked 1005 MHz / ~230 W / <65 °C / zero AER — the 2026-07-06
+derate stopped suppressing the fault after ~2 days. Forensics ruled out config drift (powerlimit +
+judge units verified byte-identical across boots) and workload shape (second crash was 32 s into a
+108-token doc). Response, Syed's call — accept crash risk, keep speed, harvest diagnostic data:
+DB snapshot (`.backup` API), then **`--tensor-split 3.5,1` + 3090 core 1000→800 MHz**: the Ti
+carries ~49 layers (21.9 GiB), the sick card ~15 (7.5 GiB) at **~152 W decode** — and the batch ran
+**~95 min / 56 docs / 0 crashes at ~54 t/s** (layer-split is sequential; the faster Ti absorbs the
+skew for free). Net: the failure threshold is now **bracketed between ~152 W and ~230 W steady
+decode** — a power-delivery signature that points the teardown at the backside cap groups first.
+Also: watch-judge cockpit fixed (hardcoded log → newest-log glob, verified live); NASIOC canary
+caught the expired cf_clearance loudly, as designed.
 
 **Roadmap** (`docs/ROADMAP.md`): the full path certified-judge → driving Forester, in 7 phases
 (close curation → laptop+first ECU read → manual idle-tune arc → tuning-LLM v1 → LLM→ECU bridge
@@ -325,6 +344,10 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 | 2026-07-05 | Locked-clock stability (3090 @1395 MHz) | 15/15 requests, ~13 min, 0 PCIe events | solo Q6_K bench, 51.8 s/req; identical verdicts ×15 (temp-0 determinism); fix persisted via gpu-powerlimit.service |
 | 2026-07-05 | Judge calibration (dense 27B, rubric-r2) | PASS: keep/drop 93.1%, ±1 97.7%, dangerous 0 | 87 community docs vs adjudicated 3-rater labels; bars pre-registered; any-chunk≥4 keep metric ruled blind |
 | 2026-07-05 | Full community tier judged | 116 docs / 152+ chunks overnight, 0 crashes | locked clocks, ~40-90 s/doc, 3 JSON re-asks total at 6144+ budget; 1 doc honest-failed (table-dense rumination) |
+| 2026-07-08 | CORPUS JUDGING COMPLETE (rubric-r2) | 5,691 docs / 5,796 chunks; keep≥4 = 3,790 | both tiers 100% judged; 2 honest-fails; score histogram 12/865/1,129/2,755/1,035 |
+| 2026-07-08 | Final training-pair harvest (r2) | 82 pairs kept (61 subaru_ej) | from 23 docs; vs 500–1,000 pilot target → pair-synthesis bridge required (ROADMAP Phase D) |
+| 2026-07-08 | 3090 crashes #10/#11 (Slot 7 Bus Fatal) | died in plain decode @ locked 1005 MHz, ~230 W, <65 °C, 0 AER | 1000-MHz derate stopped holding after ~2 days; config drift + workload shape ruled out; 0 data loss (doc-atomic runner + snapshot) |
+| 2026-07-08 | Stability bracket (split 3.5:1 + 800 MHz) | 56 docs / ~95 min / 0 crashes @ ~54 t/s | 3090 @ ~152 W (15 layers), Ti ~296 W (49 layers); threshold bracketed 152 W < fail < 230 W — power-delivery signature for the teardown |
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
