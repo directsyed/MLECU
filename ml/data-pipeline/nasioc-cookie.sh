@@ -30,5 +30,7 @@ echo "wrote $OUT"
 
 if [ "${2:-}" = "--pull" ]; then
     echo "running NASIOC pull (canary validates the cookie first)..."
-    "$DIR/.venv/bin/python" -m corpus_pipeline.cli --once --sources forum_nasioc
+    # cd first: `python -m` resolves corpus_pipeline via the working directory, so the pull
+    # must run from the pipeline dir no matter where the user invoked this script from.
+    cd "$DIR" && ".venv/bin/python" -m corpus_pipeline.cli --once --sources forum_nasioc
 fi
