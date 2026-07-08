@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # ml/eval/ on the path
 
-from harness import arms, e1, retrieval                            # noqa: E402
+from harness import arms, e1                                       # noqa: E402
 from harness.config import Config                                  # noqa: E402
 
 CFG = Config()
@@ -21,13 +21,6 @@ def test_cases_load_and_have_contract():
     assert len(CASES) >= 70
     c = CASES[0]
     assert {"case_id", "prompt", "choices", "fault", "acceptable"} <= c.keys()
-
-
-def test_query_terms_quoted_and_stopword_free():
-    terms = retrieval.query_terms("the MAF reading and fuel trim at idle idle idle")
-    assert '"idle"' == terms[0]                  # frequency-ranked
-    assert all(t.startswith('"') for t in terms)
-    assert '"the"' not in terms
 
 
 def test_answer_schema_pins_choices():
@@ -46,11 +39,11 @@ def test_unknown_arm_rejected():
         arms.build_user("C", CFG, "x")
 
 
-@pytest.mark.skipif(not CFG.retrieval.db_path.exists(), reason="corpus DB not present")
-def test_arm_b_injects_reference_block():
-    user, refs = arms.build_user("B", CFG, CASES[0]["prompt"])
-    assert refs, "expected retrieval hits for a fuel-trim prompt against 3.8k kept chunks"
-    assert "[REF " in user and CASES[0]["prompt"] in user
+def test_arm_b_awaits_syed_build():
+    # arm B fails LOUDLY (not silently degrading to arm A) until the RAG build lands —
+    # this test flips to failing when Syed implements it; delete it then.
+    with pytest.raises(NotImplementedError):
+        arms.build_user("B", CFG, "x")
 
 
 def test_run_arm_with_stub_and_score(tmp_path):
