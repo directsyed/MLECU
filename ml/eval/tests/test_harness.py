@@ -39,11 +39,6 @@ def test_unknown_arm_rejected():
         arms.build_user("C", CFG, "x")
 
 
-def test_arm_b_awaits_syed_build():
-    # arm B fails LOUDLY (not silently degrading to arm A) until the RAG build lands —
-    # this test flips to failing when Syed implements it; delete it then.
-    with pytest.raises(NotImplementedError):
-        arms.build_user("B", CFG, "x")
 
 
 def test_run_arm_with_stub_and_score(tmp_path):

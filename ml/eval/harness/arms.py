@@ -9,6 +9,7 @@ them from scratch. Acceptance suite: tests/test_rag_syed.py (skips until the mod
 """
 from __future__ import annotations
 
+from . import retrieval
 from .config import Config
 
 SYSTEM = (
@@ -31,7 +32,11 @@ def build_user(arm: str, cfg: Config, case_prompt: str) -> tuple[str, list[int]]
     if arm == "A":
         return case_prompt, []
     if arm == "B":
-        raise NotImplementedError(
-            "Arm B (RAG) is Syed's build — implement harness/retrieval.py and this branch. "
-            "Spec: tests/test_rag_syed.py")
+        snips = retrieval.retrieve(cfg.retrieval, case_prompt)
+        if not snips:
+            return case_prompt, []          # degrade to arm-A behavior, LOGGED via empty ids
+        block = "\n\n".join(f"[REF {s.ref_doc_id}] {s.title}\n{s.snippet}" for s in snips)
+        header = ("Reference excerpts retrieved from tuning literature (may or may not be "
+                  "relevant — weigh them against the datalog evidence):")
+        return f"{header}\n\n{block}\n\n---\n\n{case_prompt}", [s.ref_doc_id for s in snips]
     raise ValueError(f"unknown arm {arm!r} (implemented: A, B)")

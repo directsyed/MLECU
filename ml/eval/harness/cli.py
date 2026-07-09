@@ -10,7 +10,7 @@ import argparse
 import json
 from pathlib import Path
 
-from . import e1, e2, e2gen, llm
+from . import e1, e2, e2gen, llm, pairgen
 from .config import Config, EVAL_DIR
 
 
@@ -23,11 +23,19 @@ def main() -> None:
     p.add_argument("--score", type=Path, default=None, help="score a results JSONL")
     p.add_argument("--baselines", action="store_true", help="rules + random reference scores")
     p.add_argument("--gen-e2", action="store_true", help="draft E2 probes from reference keeps")
+    p.add_argument("--gen-pairs", action="store_true",
+                   help="draft synthetic training pairs from reference keeps")
     p.add_argument("--run-e2", action="store_true", help="run an arm over the E2 probe file")
     p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_draft.jsonl")
     p.add_argument("--tolerance", type=float, default=1.0, help="E2 match tolerance in %%")
     args = p.parse_args()
     cfg = Config()
+
+    if args.gen_pairs:
+        llm.health_check(cfg.llm)
+        pairgen.generate(cfg, limit=args.limit or 400)
+        print("DRAFT ONLY — Syed spot-check (knob C3) before any training mix.")
+        return
 
     if args.gen_e2:
         llm.health_check(cfg.llm)
