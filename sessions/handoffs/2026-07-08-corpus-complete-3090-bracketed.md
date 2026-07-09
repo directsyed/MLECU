@@ -35,6 +35,16 @@ Read this FIRST on session start. Supersedes the 2026-07-08 morning handoff. For
 5. `mlecu-corpus.timer` bug: inline comment on `Persistent=true` → systemd ignores it (parse
    warning in journal); move comment to its own line, redeploy user unit.
 
+## OVERNIGHT (launched 02:52 2026-07-09, setsid, log: ml/eval/results/overnight-2026-07-08.log)
+Sequential chain: E1 arm A 70×2 → E1 arm B 70×2 (bars PRE-REGISTERED in DB meta
+`eval.e1.preregistration` — Claude-recommended, **Syed must ratify before winners are
+declared**) → pairgen 400 reference docs (~ done 10:00). E2 draft (118 probes) + synthetic
+pairs are both `spot_checked:false` QUARANTINE until Syed's samples. RAG is COMPLETE —
+query_terms is Syed's own first Python (solo, green); retrieve()/arm-B finished by Claude
+late-night; **resume the scaffold+acceptance-test teaching pattern at retrieve()** (memory:
+syed-rag-learning-progress). Morning queue: ratify A1 · E2 20-probe spot-check (B2) · pair
+sample (C3) · read E1 A-vs-B scores.
+
 ## Standing gotchas (carry forward)
 - Commands to Syed: full explanation, every new flag (HARD). Narrate ALL actions live (HARD,
   new 2026-07-08 — in memory/narrate-all-actions.md).
