@@ -58,6 +58,20 @@ def test_run_arm_with_stub_and_score(tmp_path):
     assert 0.0 <= report.top1 <= 1.0
 
 
+def test_empty_completion_is_a_miss_not_a_crash(tmp_path):
+    # thinking-budget exhaustion returns "" (overnight 2026-07-09) — must score as wrong
+    cfg = Config(results_dir=tmp_path)
+
+    def starved_chat(llm_cfg, system, user, json_schema=None):
+        return "", {"completion_tokens": 8192}, 0.01
+
+    out = e1.run_arm(cfg, "A", 1, CASES[:3], chat_fn=starved_chat, log=lambda *_: None)
+    rows = [json.loads(l) for l in out.read_text().splitlines()]
+    assert len(rows) == 3 and all(r["answer"] == "" for r in rows)
+    report = e1.score_results(cfg, out)
+    assert report.top1 == 0.0 and report.acceptable == 0.0
+
+
 def test_determinism_helper(tmp_path):
     a, b = tmp_path / "a.jsonl", tmp_path / "b.jsonl"
     a.write_text(json.dumps({"case_id": "x", "answer": "healthy"}) + "\n")

@@ -14,7 +14,10 @@ class LlmCfg:
     base_url: str = "http://127.0.0.1:8080/v1"
     model: str = "qwen3.6-27b-q8_0"        # recorded verbatim into every result row
     temperature: float = 0.0               # eval is measurement, not sampling
-    max_completion_tokens: int = 4096      # thinking model: reasoning + tiny JSON share this
+    max_completion_tokens: int = 8192      # thinking model: reasoning + JSON share ONE budget.
+                                           # 4096 proved too small overnight 2026-07-09: hard
+                                           # E1 cases deliberate past it -> empty content.
+                                           # 8192 = the judge's proven value (config.yaml).
     request_timeout_s: int = 600
 
 

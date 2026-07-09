@@ -75,7 +75,10 @@ def run_arm(cfg: Config, arm: str, probes_path: Path, run_idx: int = 1,
             user, ref_ids = arms.build_user(arm, cfg, p["question"])
             content, usage, latency = chat_fn(cfg.llm, SYSTEM, user,
                                               json_schema=ANSWER_SCHEMA)
-            ans = json.loads(content)
+            try:
+                ans = json.loads(content) if content else {"value": None, "must_retrieve": False}
+            except json.JSONDecodeError:
+                ans = {"value": None, "must_retrieve": False}   # scored honest_decline; audited via raw row
             cls = classify(p, ans, tolerance_pct)
             f.write(json.dumps({
                 "probe_id": p["probe_id"], "arm": arm, "run": run_idx,

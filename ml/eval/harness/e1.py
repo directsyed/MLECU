@@ -50,7 +50,14 @@ def run_arm(cfg: Config, arm: str, run_idx: int, cases: list[dict],
             user, ref_ids = arms.build_user(arm, cfg, case["prompt"])
             content, usage, latency = chat_fn(
                 cfg.llm, arms.SYSTEM, user, json_schema=arms.answer_schema(case["choices"]))
-            answer = json.loads(content)["fault"]     # grammar guarantees shape
+            # The grammar guarantees shape ONLY if generation reached the content phase — a
+            # thinking model that exhausts its budget mid-deliberation returns "" (overnight
+            # 2026-07-09, case 43). An unanswerable case is a MISS for that arm, never a
+            # harness crash.
+            try:
+                answer = json.loads(content)["fault"] if content else ""
+            except (json.JSONDecodeError, KeyError, TypeError):
+                answer = ""
             f.write(json.dumps({
                 "case_id": case["case_id"], "arm": arm, "run": run_idx,
                 "model": cfg.llm.model, "answer": answer,

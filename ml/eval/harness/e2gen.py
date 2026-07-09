@@ -80,10 +80,16 @@ def generate(cfg: Config, limit: int = 60, chat_fn: Callable | None = None,
     with out.open("w") as f:
         for i, d in enumerate(docs):
             text = d["text"][:12000]              # keep prompt+thinking inside 16k ctx
-            content, usage, latency = chat_fn(
-                cfg.llm, SYSTEM, _USER_TMPL.format(title=d["title"] or "untitled", text=text),
-                json_schema=PROBE_SCHEMA)
-            for k, p in enumerate(json.loads(content)["probes"]):
+            try:
+                content, usage, latency = chat_fn(
+                    cfg.llm, SYSTEM,
+                    _USER_TMPL.format(title=d["title"] or "untitled", text=text),
+                    json_schema=PROBE_SCHEMA)
+                probes = json.loads(content)["probes"] if content else []
+            except (llm.LlmError, json.JSONDecodeError, KeyError) as e:
+                log(f"  [{i+1}/{len(docs)}] doc {d['id']}: FAILED ({e}) — skipping")
+                continue
+            for k, p in enumerate(probes):
                 n_probes += 1
                 f.write(json.dumps({
                     "probe_id": f"e2-{d['id']}-{k}", "generated_at": time.strftime("%F"),
@@ -93,7 +99,6 @@ def generate(cfg: Config, limit: int = 60, chat_fn: Callable | None = None,
                     "generator_model": cfg.llm.model, "spot_checked": False,
                 }) + "\n")
             f.flush()
-            log(f"  [{i+1}/{len(docs)}] doc {d['id']}: +{len(json.loads(content)['probes'])} "
-                f"probes ({latency:.0f}s)")
+            log(f"  [{i+1}/{len(docs)}] doc {d['id']}: +{len(probes)} probes ({latency:.0f}s)")
     log(f"draft: {n_probes} probes from {len(docs)} docs -> {out}")
     return out

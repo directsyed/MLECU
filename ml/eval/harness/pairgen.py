@@ -78,11 +78,15 @@ def generate(cfg: Config, limit: int = 400, out: Path = OUT_DEFAULT,
     n_pairs = 0
     with out.open("w") as f:
         for i, d in enumerate(docs):
-            content, usage, latency = chat_fn(
-                cfg.llm, SYSTEM,
-                _USER_TMPL.format(title=d["title"] or "untitled", text=d["text"][:12000]),
-                json_schema=PAIR_SCHEMA)
-            pairs = json.loads(content)["pairs"]
+            try:
+                content, usage, latency = chat_fn(
+                    cfg.llm, SYSTEM,
+                    _USER_TMPL.format(title=d["title"] or "untitled", text=d["text"][:12000]),
+                    json_schema=PAIR_SCHEMA)
+                pairs = json.loads(content)["pairs"] if content else []
+            except (llm.LlmError, json.JSONDecodeError, KeyError) as e:
+                log(f"  [{i+1}/{len(docs)}] doc {d['id']}: FAILED ({e}) — skipping")
+                continue
             for k, pair in enumerate(pairs):
                 n_pairs += 1
                 f.write(json.dumps({
