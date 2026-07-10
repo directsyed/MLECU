@@ -90,9 +90,10 @@ def _status() -> int:
     return 0
 
 
-def _generate_eval(n_per_fault: int, seed: int, out: str) -> int:
-    from .evals import generate_cases, save_cases
-    cases = generate_cases(n_per_fault, seed=seed)
+def _generate_eval(n_per_fault: int, seed: int, out: str, version: int = 1) -> int:
+    from .evals import generate_cases, generate_cases_v2, save_cases
+    gen = generate_cases_v2 if version == 2 else generate_cases
+    cases = gen(n_per_fault, seed=seed)
     save_cases(cases, out)
     faults = sorted({c["fault"] for c in cases})
     print(f"wrote {len(cases)} cases ({n_per_fault}/fault x {len(faults)} faults, seed={seed}) -> {out}")
@@ -128,7 +129,9 @@ def main(argv=None) -> int:
                    help=f"eval-case output path (default {DEFAULT_EVAL_OUT})")
     p.add_argument("--score-sim-eval", metavar="PATH",
                    help="score a baseline against an eval-case JSONL")
-    p.add_argument("--baseline", choices=("rules", "random"), default="rules")
+    p.add_argument("--baseline", choices=("rules", "rules_v2", "random"), default="rules")
+    p.add_argument("--eval-version", type=int, choices=(1, 2), default=1,
+                   help="sim-eval generator version (2 = adds the voltage-sweep probe point)")
     args = p.parse_args(argv)
 
     if args.run_convergence:
@@ -142,7 +145,8 @@ def main(argv=None) -> int:
     if args.rom_diff:
         return _rom_diff(args.rom_diff[0], args.rom_diff[1])
     if args.generate_eval_cases:
-        return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out)
+        return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out,
+                              args.eval_version)
     if args.score_sim_eval:
         return _score_eval(args.score_sim_eval, args.baseline, args.seed)
     if args.status:

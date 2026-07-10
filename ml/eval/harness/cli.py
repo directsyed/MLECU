@@ -28,8 +28,10 @@ def main() -> None:
     p.add_argument("--run-e2", action="store_true", help="run an arm over the E2 probe file")
     p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_draft.jsonl")
     p.add_argument("--tolerance", type=float, default=1.0, help="E2 match tolerance in %%")
+    p.add_argument("--cases", type=Path, default=None,
+                   help="E1 cases JSONL override (e.g. data/sim_cases_v2.jsonl)")
     args = p.parse_args()
-    cfg = Config()
+    cfg = Config(cases_path=args.cases) if args.cases else Config()
 
     if args.gen_pairs:
         llm.health_check(cfg.llm)

@@ -11,12 +11,14 @@ near-indistinguishable in the trim. Cases therefore include TWO operating points
 fast idle at ~2x airflow), which separates constant-fraction faults (MAF transfer, injector flow)
 from constant-absolute faults (dead time, vacuum leak) — the same multi-condition-logging doctrine
 as the car tuning plan. Leak-vs-latency remains degenerate without a battery-voltage sweep (real
-logging separates them); scoring handles that with acceptable-answer sets.
+logging separates them); v1 scoring handles that with acceptable-answer sets. sim_eval_v2 adds
+the voltage-sweep point itself (dead time is voltage-dependent, unmetered air is not), breaking
+the degeneracy — v2 acceptable sets are exact-only and the bar rises accordingly.
 """
 from __future__ import annotations
 
-from .cases import generate_cases, load_cases, save_cases
-from .scoring import random_baseline, rules_baseline, score
+from .cases import generate_cases, generate_cases_v2, load_cases, save_cases
+from .scoring import random_baseline, rules_baseline, rules_v2_baseline, score
 
-__all__ = ["generate_cases", "save_cases", "load_cases", "score",
-           "rules_baseline", "random_baseline"]
+__all__ = ["generate_cases", "generate_cases_v2", "save_cases", "load_cases",
+           "score", "rules_baseline", "rules_v2_baseline", "random_baseline"]

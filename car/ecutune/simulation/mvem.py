@@ -39,6 +39,12 @@ class EngineParams:
                                      # Constant absolute — so its trim contribution SHRINKS as metered
                                      # airflow rises, unlike a %-type MAF/flow error. That signature
                                      # difference is what multi-point logging exploits.
+    latency_slope: float = 0.12      # ms of EXTRA true dead time per volt below v_ref — injectors
+                                     # open slower at low voltage (why ROMs carry a latency-vs-voltage
+                                     # table). A latency-belief error therefore CHANGES with battery
+                                     # voltage while a leak's trim is voltage-invariant: the v2 eval's
+                                     # discriminating signal (sim analog of the real-car voltage sweep).
+    v_ref: float = 14.0              # charging-system voltage the scalar latencies are quoted at
 
     @property
     def k(self) -> float:
@@ -58,29 +64,40 @@ def _scalar(tables: TableSet, table_id: str) -> float:
 
 
 def open_loop_fuel(tables: TableSet, params: EngineParams,
-                   air_scale: float = 1.0) -> tuple[float, float]:
+                   air_scale: float = 1.0, voltage: float | None = None) -> tuple[float, float]:
     """(delivered, required) fuel mass per event at `air_scale` x idle airflow.
 
     The MAF only sees METERED air; a leak adds unmetered air the ECU must fuel via trim. The
     burned charge is metered + leak, so `required` uses both while the ECU's open-loop target
     is computed from its (possibly mis-scaled) estimate of the metered flow alone.
+
+    `voltage` (default v_ref — exact v1 behavior): both the TRUE dead time and the ECU's
+    BELIEVED dead time grow as voltage drops. The believed curve scales with the believed
+    scalar (wrong injector data is wrong across the whole voltage table), so a latency-belief
+    error grows at low voltage; every other fault's voltage terms cancel exactly.
     """
     flow_b = _scalar(tables, FUEL_INJECTOR_FLOW)
     lat_b = _scalar(tables, FUEL_INJECTOR_LATENCY)
     maf_b = _scalar(tables, SENSOR_MAF_TRANSFER)
+    v = params.v_ref if voltage is None else voltage
+    dv = max(0.0, params.v_ref - v)
+    lat_true_eff = params.latency_true + params.latency_slope * dv
+    slope_b = params.latency_slope * (lat_b / params.latency_true if params.latency_true else 1.0)
+    lat_b_eff = lat_b + slope_b * dv
     a_metered = params.idle_air_g * air_scale
     a_burned = a_metered + params.leak_air_g
     a_est = a_metered * (maf_b / params.maf_scaling_true)
     m_target = a_est / params.afr_target
-    pw = m_target / (flow_b * params.k) + lat_b           # ms
-    delivered = max(0.0, pw - params.latency_true) * params.flow_true * params.k
+    pw = m_target / (flow_b * params.k) + lat_b_eff       # ms
+    delivered = max(0.0, pw - lat_true_eff) * params.flow_true * params.k
     required = a_burned / params.afr_target
     return delivered, required
 
 
-def steady_trim(tables: TableSet, params: EngineParams, air_scale: float = 1.0) -> float:
+def steady_trim(tables: TableSet, params: EngineParams, air_scale: float = 1.0,
+                voltage: float | None = None) -> float:
     """Steady-state closed-loop fuel trim (fraction). +ve = ECU adding fuel (base map lean)."""
-    delivered, required = open_loop_fuel(tables, params, air_scale)
+    delivered, required = open_loop_fuel(tables, params, air_scale, voltage)
     if delivered <= 0.0:
         return 1.0
     return required / delivered - 1.0

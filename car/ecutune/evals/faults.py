@@ -35,6 +35,13 @@ FAULTS: tuple[FaultSpec, ...] = (
 
 FAULT_IDS = tuple(f.fault_id for f in FAULTS)
 
+# v2 (sim_eval_v2): the case includes a low-battery-voltage probe point that separates
+# latency-belief errors from vacuum leaks (dead time is voltage-dependent; unmetered air is
+# not). The degeneracy is BROKEN, so the acceptable sets tighten to exact-only.
+FAULTS_V2: tuple[FaultSpec, ...] = tuple(
+    FaultSpec(f.fault_id, (f.fault_id,), f.magnitude_range) for f in FAULTS
+)
+
 _TRUE_FLOW = 500.0     # OEM 2005 FXT side-feed (build-sheet)
 _TRUE_LATENCY = 1.0
 _TRUE_MAF = 1.0

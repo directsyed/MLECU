@@ -76,10 +76,30 @@ def random_baseline(case: dict, rng: random.Random) -> str:
     return rng.choice(case["choices"])
 
 
+LOWV_TRIM_DELTA = 1.0      # % — trim rise at the low-voltage point that convicts dead time.
+                           # Latency faults shift +2.2..+5.4% (slope 0.12 ms/V * 2 V sag over
+                           # ~1.1 ms fuel pulse); a leak shifts ~0 +/- 0.3% noise. 1.0 splits it.
+
+
+def rules_v2_baseline(case: dict) -> str:
+    """Two-point signature logic PLUS the voltage sweep: among constant-absolute faults, a
+    trim that grows when battery voltage sags is dead time (injector latency); one that
+    doesn't is unmetered air (leak). This is the sim analog of the real-car voltage test."""
+    f = case["features"]
+    verdict = rules_baseline(case)
+    if verdict in ("vacuum_leak", "injector_latency_lean"):
+        if f["trim_idle_lowv_pct"] - f["trim_idle_pct"] > LOWV_TRIM_DELTA:
+            return "injector_latency_lean"
+        return "vacuum_leak"
+    return verdict
+
+
 def run_baseline(cases: list[dict], which: str, seed: int = 0) -> EvalReport:
     rng = random.Random(seed)
     if which == "rules":
         answers = {c["case_id"]: rules_baseline(c) for c in cases}
+    elif which == "rules_v2":
+        answers = {c["case_id"]: rules_v2_baseline(c) for c in cases}
     elif which == "random":
         answers = {c["case_id"]: random_baseline(c, rng) for c in cases}
     else:
