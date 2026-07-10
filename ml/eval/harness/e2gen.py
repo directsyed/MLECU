@@ -28,8 +28,11 @@ SYSTEM = (
     "You extract exact-value quiz probes from automotive tuning reference text. A probe asks "
     "for ONE specific numeric value the excerpt explicitly states (a calibration constant, "
     "spec, threshold, table value, unit conversion). Only create probes whose answer is "
-    "unambiguous in the excerpt. If the excerpt states no specific numeric values, return an "
-    "empty list."
+    "unambiguous in the excerpt. PREFER operational values a tuner acts on — AFR targets, "
+    "injector flow/latency, duty cycles, sensor voltages/readings, temperatures, pressures, "
+    "timing degrees, torque specs. AVOID definition-file structural trivia (table counts, "
+    "memory addresses, file-format layout). If the excerpt states no probe-worthy numeric "
+    "values, return an empty list."
 )
 
 _USER_TMPL = """Reference excerpt (title: {title}):
@@ -59,7 +62,13 @@ PROBE_SCHEMA = {
 
 
 def candidate_docs(cfg: Config, limit: int) -> list[sqlite3.Row]:
-    """Single-chunk reference keeps whose text contains digits, deterministic order."""
+    """Single-chunk reference keeps whose text contains digits.
+
+    Ordering is a DETERMINISTIC HASH of the doc id (Knuth multiplicative), not id order:
+    plain `ORDER BY id` sampled the first-ingested docs — all wiki/def files — and produced
+    a probe draft with zero operational values (Syed's B2 catch, 2026-07-09). The hash
+    scatters the sample across every source and ingestion era while staying reproducible.
+    """
     conn = sqlite3.connect(f"file:{cfg.retrieval.db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     return conn.execute(
@@ -67,7 +76,7 @@ def candidate_docs(cfg: Config, limit: int) -> list[sqlite3.Row]:
            FROM document d JOIN judgment j ON j.doc_id = d.id
            WHERE d.tier='reference' AND j.score >= 4 AND j.n_chunks = 1
              AND d.gone_at IS NULL AND d.text GLOB '*[0-9]*'
-           ORDER BY d.id LIMIT ?""", (limit,)).fetchall()
+           ORDER BY (d.id * 2654435761) % 4294967296 LIMIT ?""", (limit,)).fetchall()
 
 
 def generate(cfg: Config, limit: int = 60, chat_fn: Callable | None = None,
