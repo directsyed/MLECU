@@ -9,6 +9,25 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-07-10 — E2 FIRST READOUT: RAG doubles exact-value recall — and neither arm passes the hard gate
+
+Overnight autonomous run (69 Syed-spot-checked probes, ±1% tolerance, temp 0). **Arm A (base):
+14.5% match / 14.5% dangerous-fabrication / 71% honest decline. Arm B (+BM25 RAG): 34.8% match
+(2.4×) / 15.9% dangerous / 49% decline. BOTH FAIL the pre-committed hard gate** (any confident
+wrong calibration value = fail). Combined with E1 (2026-07-09) the doctrine now has its full
+empirical shape: retrieval costs 10 points on closed reasoning and buys 20 on exact values —
+but naive RAG does NOT cure fabrication. Sharpest finding: **5 retrieval-induced fabrications**
+— probes where the base model honestly declined but arm B, holding the RIGHT document, stated a
+nearby wrong number (e.g. 300°C where the passage says 250°C). Partial context breeds false
+confidence. Consequences, both pre-committed in ROADMAP now empirically mandated: (1) the
+system rule "calibration values are never stated from weights — cite the retrieved value or
+decline" is necessary, not optional; (2) retrieval quality is the match-rate ceiling (BM25
+top-3 often misses the answer-bearing chunk → embeddings upgrade + higher top-k for value
+queries). Also overnight: E1v2 built (voltage-sweep probe point breaks the leak/dead-time
+degeneracy; two-point rules 85.7 vs voltage-aware rules 100.0 on 147 new cases; Syed's 90/100
+bar pre-registered), E2 probe draft regenerated after Syed caught sampling skew, 69/93
+promoted after Claude editorial pass (new local-LLM-review rule).
+
 ## 2026-07-09 — FIRST EVAL READOUT: base model nearly matches the rules engine; RAG *hurts* closed reasoning
 
 The gate produced its first data. **Arm A (base Qwen3.6-27B, no retrieval): 84.3% top-1 /
@@ -375,3 +394,6 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-09 | E1 arm A (base 27B, no RAG) | 84.3% top1 / 98.6% acceptable | 70 sim cases ×2 runs, 70/70 deterministic; vs rules 85.7/100 — fails pre-registered floor by 1 case |
 | 2026-07-09 | E1 arm B (base + BM25 RAG) | 74.3% top1 / 88.6% acceptable | RAG −10 pts on closed reasoning; vacuum_leak 100→50% — snippets distract two-point logic |
 | 2026-07-09 | Pairgen source probe | wiki defs: 0 pairs/19 docs; manual text: 1.8 pairs/doc | supply ceiling ≈4.5k pairs from 2,536 book docs — filtering problem, not supply |
+| 2026-07-10 | E2 arm A (base, 69 probes) | 14.5% match / 14.5% dangerous / 71% decline | HARD GATE FAIL; tol ±1%, temp 0 |
+| 2026-07-10 | E2 arm B (base+RAG) | 34.8% match / 15.9% dangerous / 49% decline | 2.4× recall vs A; GATE FAIL; 5 retrieval-induced fabrications (right doc, wrong number) |
+| 2026-07-10 | E1v2 baselines (147 cases, voltage sweep) | rules 85.7/85.7, rules_v2 100/100, random 12.9 | degeneracy broken with complete info; Syed bar 90/100 pre-registered |
