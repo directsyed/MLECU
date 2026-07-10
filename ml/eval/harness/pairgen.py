@@ -36,7 +36,8 @@ _USER_TMPL = """Reference excerpt (title: {title}):
 ---
 Write 0 to 2 training pairs grounded ONLY in this excerpt. Prefer Subaru-specific framing
 when the excerpt supports it; otherwise stay platform-neutral. A pair without a concrete,
-excerpt-supported outcome is worthless — omit it."""
+excerpt-supported outcome is worthless — omit it. The outcome must state what CHANGED as a
+result of the change (a measurement, a behavior), never merely restate the action taken."""
 
 PAIR_SCHEMA = {
     "type": "object",
@@ -67,14 +68,21 @@ def candidate_docs(cfg: Config, limit: int) -> list[sqlite3.Row]:
            WHERE d.tier='reference' AND j.score >= 4 AND j.n_chunks = 1
              AND d.gone_at IS NULL AND d.text GLOB '*[0-9]*'
              AND length(d.text) >= 800
-           ORDER BY d.id LIMIT ?""", (limit,)).fetchall()
+           ORDER BY (d.id * 2654435761) % 4294967296 LIMIT ?""", (limit,)).fetchall()
+    # hash-scattered (same fix as e2gen — plain id order sampled only the earliest docs;
+    # batch-1 review 2026-07-10)
 
 
 def generate(cfg: Config, limit: int = 400, out: Path = OUT_DEFAULT,
+             exclude_from: Path | None = None,
              chat_fn: Callable | None = None, log=print) -> Path:
+    """exclude_from: an earlier draft JSONL — its source docs are skipped (batch increments)."""
     chat_fn = chat_fn or llm.chat
     out.parent.mkdir(parents=True, exist_ok=True)
-    docs = candidate_docs(cfg, limit)
+    used: set[int] = set()
+    if exclude_from and exclude_from.exists():
+        used = {json.loads(l)['source']['doc_id'] for l in exclude_from.open() if l.strip()}
+    docs = [d for d in candidate_docs(cfg, limit + len(used)) if d['id'] not in used][:limit]
     n_pairs = 0
     with out.open("w") as f:
         for i, d in enumerate(docs):
