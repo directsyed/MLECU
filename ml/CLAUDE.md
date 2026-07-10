@@ -26,5 +26,12 @@ This layer bridges the domains: **compute (infra) serves fine-tuning serves the 
 2. **Build the data scraper** — the next doable thing (wideband not acquired → car logging blocked).
 3. **LLM-judge curation engine.**
 
+## HARD RULE — local-LLM output review (Syed, 2026-07-09)
+**Everything a local LLM generates (judge verdicts aside — those have their own calibration
+protocol) gets a Claude review pass before it is promoted, trained on, or used as eval
+truth**: mechanical checks PLUS an editorial sample read. Systematic problems → fix the
+prompt and regenerate, never hand-patch output. Claude review supplements Syed's sign-off
+sampling; it never replaces it.
+
 ## Learning mode (root CLAUDE.md)
 The **LLM/ML work is learning-priority — TEACH it** (explain the why, let Syed drive, don't auto-complete). The **scraper/parsers are build-priority — you build, then explain the design + mechanics.**
