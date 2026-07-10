@@ -9,6 +9,27 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-07-09 — FIRST EVAL READOUT: base model nearly matches the rules engine; RAG *hurts* closed reasoning
+
+The gate produced its first data. **Arm A (base Qwen3.6-27B, no retrieval): 84.3% top-1 /
+98.6% acceptable** — one real miss from rules parity (85.7/100), same latency-lean degeneracy
+profile as the rules engine, 70/70 deterministic across duplicate temp-0 runs. **Arm B
+(base + BM25 RAG): 74.3% / 88.6%** — retrieval made diagnostic reasoning *10 points worse*,
+damage concentrated in vacuum_leak (100%→50%): E1 cases are self-contained, so generic book
+snippets act as pure distraction from the two-point signature logic. This is the ROADMAP
+hypothesis showing up in data — retrieval's value should be exact-number integrity (E2, runs
+next), not closed reasoning — and it hands the future fine-tune (arm C) a crisp target.
+Bars were pre-registered in DB meta before any arm ran (verdict vs floor: both arms fail as
+registered; A by one case). Overnight lesson bought cheap: thinking-budget starvation (4096)
+crashed the first attempt at case 43 — budget now 8192, and empty completions score as
+misses instead of killing the harness. **Pair synthesis unblocked by a 5-doc probe:** wiki-def
+pages yield 0 pairs (the "never invent" prompt correctly refuses); book/manual text yields
+1.8/doc → 2,536 candidate docs ≈ 4,500-pair supply ceiling. The pair problem is now
+quality-filtering, not supply. Syed also began hand-building the eval RAG (query_terms —
+his first working Python, acceptance-test green).
+
+---
+
 ## 2026-07-08 — CORPUS JUDGING COMPLETE; the 3090's derate stops holding — bracketed instead
 
 **The whole corpus is judged** under the certified rubric-r2: 5,691 docs / 5,796 scored chunks,
@@ -351,3 +372,6 @@ near the 2-fan airflow ceiling) and re-soaking; repad is the fallback. See `deci
 
 *Add rows as benchmarks/evals/training runs produce numbers — GPU thermals, inference
 throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop convergence.*
+| 2026-07-09 | E1 arm A (base 27B, no RAG) | 84.3% top1 / 98.6% acceptable | 70 sim cases ×2 runs, 70/70 deterministic; vs rules 85.7/100 — fails pre-registered floor by 1 case |
+| 2026-07-09 | E1 arm B (base + BM25 RAG) | 74.3% top1 / 88.6% acceptable | RAG −10 pts on closed reasoning; vacuum_leak 100→50% — snippets distract two-point logic |
+| 2026-07-09 | Pairgen source probe | wiki defs: 0 pairs/19 docs; manual text: 1.8 pairs/doc | supply ceiling ≈4.5k pairs from 2,536 book docs — filtering problem, not supply |

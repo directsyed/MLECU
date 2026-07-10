@@ -7,7 +7,9 @@ Description=MLECU corpus pipeline — daily ingestion pass
 # legacygt's WAF. Enough to passively accumulate while the 2nd GPU is being set up.
 OnCalendar=*-*-* 04:30:00
 RandomizedDelaySec=900
-Persistent=true                 # run a missed pass if the box was off at the scheduled time
+# run a missed pass if the box was off at the scheduled time (comment must be on its own
+# line: systemd does NOT support inline comments — an inline one voids the whole setting)
+Persistent=true
 Unit=mlecu-corpus.service
 
 [Install]
