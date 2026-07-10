@@ -45,6 +45,17 @@ late-night; **resume the scaffold+acceptance-test teaching pattern at retrieve()
 syed-rag-learning-progress). Morning queue: ratify A1 · E2 20-probe spot-check (B2) · pair
 sample (C3) · read E1 A-vs-B scores.
 
+## OVERNIGHT 2026-07-10 RESULTS (all committed; morning queue below)
+E2 v1 (69 probes, Syed-checked + Claude editorial): **A 14.5% match/14.5% dangerous; B 34.8%/
+15.9% — RAG 2.4x recall, BOTH FAIL hard gate; 5 retrieval-INDUCED fabrications** (right doc,
+adjacent wrong number) → never-from-weights rule empirically mandated; embeddings upgrade
+motivated. **E1v2 BUILT** (voltage-sweep breaks leak/dead-time degeneracy; 147 cases; rules
+85.7 vs rules_v2 100.0; Syed 90/100 bar pre-registered; v1 byte-identical test-locked).
+**Pairgen batch 1: 279 drafts, 91% grounded** — review: ml/curation/docs/pairgen-batch1-
+review-20260710.md (drop near-miss-identifier pairs; pairgen still has ORDER BY id skew →
+fix like e2gen + batch 2 over unsampled range). MORNING QUEUE: Syed C3 pass (28 pairs, use
+review) · E1v2 arm runs · pairgen hash-fix + batch 2 · RAG walkthrough owed (learning queue).
+
 ## Standing gotchas (carry forward)
 - Commands to Syed: full explanation, every new flag (HARD). Narrate ALL actions live (HARD,
   new 2026-07-08 — in memory/narrate-all-actions.md).
