@@ -30,3 +30,22 @@ Usable core is strong (AEM wideband procedures, Vizard intake/turbo scenarios, r
 diagnostic arcs). After C3 + dropping class-(b) and degenerate-outcome pairs, expect
 ~220-240 usable — combined with 82 organic ≈ 300+, still short of the ~400 pilot mix →
 run batch 2 with the hash-ordering fix over the unsampled doc range.
+
+---
+
+# Batch 2 review (2026-07-10, hash-scattered sampling + outcome rule)
+
+- **446 pairs from 400 docs (1.1/doc, +57% yield)** — the rich book ranges finally sampled
+  (Bosch 149, Heywood 107, Hartman 56, Pulkrabek 51). Zero doc overlap with batch 1
+  (exclusion worked). **Grounding-flagged: 4%** (vs 9% b1; ids in REVIEW-flagged-b2.txt).
+  **Degenerate outcomes ~3%** (13/446, vs a notable minority in b1) — the outcome prompt
+  rule worked.
+- **New systematic finding: academic drift.** Heywood/Pulkrabek pairs often dress textbook
+  derivations as tuning scenarios ("update the fuel representation $C_nH_mO_r$…") — a
+  researcher's arc, not a tuner's. Not fabricated, just off-register. Recommendation for
+  assembly (matches the standing 70/30 composition doctrine): **stratify by source** —
+  Hartman (engine-management tuning, likely the best set) and practical Bosch content
+  weighted up; pure-theory derivations capped, not banned.
+- **Combined supply: 725 synthetic drafts + 82 organic.** After C3 curation this clears the
+  ~400-pair pilot mix with room to be choosy. The pair problem is now fully a CURATION
+  problem — supply is solved.
