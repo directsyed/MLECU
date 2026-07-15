@@ -9,6 +9,21 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-07-15 — E1v2 FIRST READOUT: retrieval flips from liability to key; arm B misses Syed's bar by ONE case
+
+The harder exam (147 voltage-sweep cases, degeneracy broken, exact-only scoring) produced the
+project's cleanest mechanism result. **Arm A (base): 83.7%** — still reasons from two points;
+scores 14% on injector-latency faults, calling them all leaks. **Arm B (+RAG): 89.8%** — 57%
+on the same faults, because the corpus contains the dead-time-vs-voltage physics and retrieval
+supplies the fact that unlocks the third probe point. v1+v2 together explain retrieval's value:
+self-contained reasoning → RAG is distraction (−10 pts, v1); knowledge-gated reasoning → RAG is
+the key (+6.1 pts, v2). **Verdict vs the pre-registered bar (90% top-1): arm B FAILS by one
+case (132/147; needed 133).** No rounding, no post-hoc adjustment — the bar has teeth, and
+arms C/D inherit a precise target. Both runs 147/147 deterministic. (Bar wording wrinkle for
+Syed: the registered "100% acceptable" component used v1 semantics; on v2 acceptable≡exact —
+re-ratification of the v2 bar wording queued.) Also: 79 nightly-scraped docs judged (3 keeps);
+review rule hardened (structural quality × current-goal fit after the 725-pair census miss).
+
 ## 2026-07-10 — E2 FIRST READOUT: RAG doubles exact-value recall — and neither arm passes the hard gate
 
 Overnight autonomous run (69 Syed-spot-checked probes, ±1% tolerance, temp 0). **Arm A (base):
@@ -397,3 +412,5 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-10 | E2 arm A (base, 69 probes) | 14.5% match / 14.5% dangerous / 71% decline | HARD GATE FAIL; tol ±1%, temp 0 |
 | 2026-07-10 | E2 arm B (base+RAG) | 34.8% match / 15.9% dangerous / 49% decline | 2.4× recall vs A; GATE FAIL; 5 retrieval-induced fabrications (right doc, wrong number) |
 | 2026-07-10 | E1v2 baselines (147 cases, voltage sweep) | rules 85.7/85.7, rules_v2 100/100, random 12.9 | degeneracy broken with complete info; Syed bar 90/100 pre-registered |
+| 2026-07-15 | E1v2 arm A (base, 147 cases) | 83.7% top1, latency-fault 14% | two-point reasoning persists; 147/147 deterministic ×2 |
+| 2026-07-15 | E1v2 arm B (base+RAG) | 89.8% top1, latency-fault 57% | FAILS 90% bar by 1 case; retrieval supplies voltage physics (+6.1 vs A — reversal of v1) |
