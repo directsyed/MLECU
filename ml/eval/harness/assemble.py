@@ -21,10 +21,12 @@ from .config import MLECU
 
 PAIRS_DIR = MLECU / "ml/curation/data/pairs"
 DRAFTS = ("pairs-synthetic-draft.jsonl", "pairs-synthetic-draft-b2.jsonl",
-          "pairs-synthetic-draft-b3.jsonl")
-FLAGGED = ("REVIEW-flagged.txt", "REVIEW-flagged-b2.txt", "REVIEW-flagged-b3.txt")
+          "pairs-synthetic-draft-b3.jsonl", "pairs-synthetic-draft-b4.jsonl")
+FLAGGED = ("REVIEW-flagged.txt", "REVIEW-flagged-b2.txt", "REVIEW-flagged-b3.txt",
+           "REVIEW-flagged-b4.txt")
 ORGANIC = PAIRS_DIR / "pairs-rubric-r2.jsonl"
 CLASSIFIED = PAIRS_DIR / "pairs-classified.jsonl"
+CLASSIFIED_V2 = PAIRS_DIR / "pairs-classified-v2.jsonl"   # re-screen overlay (off_field aware)
 OUT = PAIRS_DIR / "pilot-mix-v1.jsonl"
 CAP = 400
 DEFICIT_TOPICS = {"maf", "idle", "ve_load", "injectors"}
@@ -42,16 +44,21 @@ def assemble(cap: int = CAP, log=print) -> Path:
         if fp.exists():
             flagged |= {l.strip() for l in fp.open() if l.strip()}
     cls = {json.loads(l)["pair_id"]: json.loads(l) for l in CLASSIFIED.open() if l.strip()}
+    if CLASSIFIED_V2.exists():                     # v2 re-screen verdicts override v1
+        cls.update({json.loads(l)["pair_id"]: json.loads(l)
+                    for l in CLASSIFIED_V2.open() if l.strip()})
 
     synth = []
     for f in DRAFTS:
+        if not (PAIRS_DIR / f).exists():
+            continue
         for l in (PAIRS_DIR / f).open():
             if l.strip():
                 synth.append(json.loads(l))
     n_raw = len(synth)
     synth = [p for p in synth if p["pair_id"] not in flagged]
     synth = [p for p in synth if p["pair_id"] in cls
-             and cls[p["pair_id"]]["relevance"] != "legacy_tech"
+             and cls[p["pair_id"]]["relevance"] in ("subaru", "modern_general")
              and cls[p["pair_id"]]["depth"] != "shallow"]
     log(f"synthetic: {n_raw} raw -> {len(synth)} after flag/relevance/depth filters")
 

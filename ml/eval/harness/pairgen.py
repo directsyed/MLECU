@@ -58,10 +58,21 @@ PAIR_SCHEMA = {
 OUT_DEFAULT = MLECU / "ml/curation/data/pairs/pairs-synthetic-draft.jsonl"
 
 
-def candidate_docs(cfg: Config, limit: int, topic_like: list[str] | None = None) -> list[sqlite3.Row]:
+def candidate_docs(cfg: Config, limit: int, topic_like: list[str] | None = None,
+                   community: bool = False) -> list[sqlite3.Row]:
     """keep>=4 single-chunk reference docs with digits and enough meat to ground a scenario."""
     conn = sqlite3.connect(f"file:{cfg.retrieval.db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
+    if community:
+        # community keep-threads: real tuning conversations. Gone-marked docs INCLUDED —
+        # the thread died on the live site; its judged text is still ours. Any keep chunk
+        # qualifies the doc (monster threads are multi-chunk; text is capped at generation).
+        return conn.execute(
+            """SELECT d.id, d.title, d.url, d.source, d.text, MAX(j.score) AS score
+               FROM document d JOIN judgment j ON j.doc_id = d.id
+               WHERE d.tier='community' AND j.score >= 4 AND length(d.text) >= 800
+               GROUP BY d.id
+               ORDER BY (d.id * 2654435761) % 4294967296 LIMIT ?""", (limit,)).fetchall()
     return conn.execute(
         """SELECT d.id, d.title, d.url, d.source, d.text, j.score
            FROM document d JOIN judgment j ON j.doc_id = d.id
@@ -79,7 +90,7 @@ def candidate_docs(cfg: Config, limit: int, topic_like: list[str] | None = None)
 
 def generate(cfg: Config, limit: int = 400, out: Path = OUT_DEFAULT,
              exclude_from: Path | tuple | list | None = None,
-             topic_like: list[str] | None = None,
+             topic_like: list[str] | None = None, community: bool = False,
              steer: str = "", chat_fn: Callable | None = None, log=print) -> Path:
     """exclude_from: an earlier draft JSONL — its source docs are skipped (batch increments)."""
     chat_fn = chat_fn or llm.chat
@@ -88,7 +99,7 @@ def generate(cfg: Config, limit: int = 400, out: Path = OUT_DEFAULT,
     for prior in ([exclude_from] if isinstance(exclude_from, Path) else (exclude_from or [])):
         if Path(prior).exists():
             used |= {json.loads(l)['source']['doc_id'] for l in Path(prior).open() if l.strip()}
-    docs = [d for d in candidate_docs(cfg, limit + len(used), topic_like)
+    docs = [d for d in candidate_docs(cfg, limit + len(used), topic_like, community)
             if d['id'] not in used][:limit]
     n_pairs = 0
     with out.open("w") as f:

@@ -19,8 +19,12 @@ SYSTEM = (
     "You grade training pairs for an ECU-tuning assistant. PROJECT CONTEXT: the current goal "
     "is making a modern MAF-metered, closed-loop Subaru idle and drive correctly — priority "
     "topics are MAF calibration, idle control, injector flow/latency, VE/load-model, fuel "
-    "trims/AFR; ignition and boost matter later; carburetors/distributors/vintage fitment are "
-    "out of scope. Grade BOTH axes independently and honestly."
+    "trims/AFR; ignition and boost matter later. OUT OF FIELD entirely (grade off_field): "
+    "diesel calibration/fuel delivery, engine CONSTRUCTION or fabrication (porting, machining, "
+    "part selection), combustion research and simulation mathematics (heat flux, radiation, "
+    "chemical kinetics), emissions-lab regulation work, and vintage tech (carburetors, points) "
+    "— anything a gasoline-ECU calibrator cannot act on with a laptop and a ROM editor. "
+    "Grade BOTH axes independently and honestly."
 )
 
 _USER_TMPL = """Training pair:
@@ -30,8 +34,10 @@ change: {change}
 outcome: {outcome}
 
 Grade it:
-- relevance: subaru (Subaru/EJ-FA specific), modern_general (transfers to any modern EFI
-  engine), legacy_tech (carburetors, points, vintage fitment — mechanisms modern ECUs lack)
+- relevance: subaru (Subaru/EJ-FA specific), modern_general (transfers to any modern
+  gasoline EFI engine AND is actionable via ECU calibration), legacy_tech (carburetors,
+  points, vintage fitment), off_field (diesel, engine construction/machining, combustion
+  research math, emissions-lab — not gasoline-ECU-calibration work)
 - depth: deep (diagnosis states the causal mechanism and excludes alternatives; change names
   a specific parameter with direction/magnitude), adequate (correct arc, thinner reasoning),
   shallow (label-matching, 'fix by applying fix', restated outcome)
@@ -40,7 +46,7 @@ Grade it:
 SCHEMA = {
     "type": "object",
     "properties": {
-        "relevance": {"type": "string", "enum": ["subaru", "modern_general", "legacy_tech"]},
+        "relevance": {"type": "string", "enum": ["subaru", "modern_general", "legacy_tech", "off_field"]},
         "depth": {"type": "string", "enum": ["deep", "adequate", "shallow"]},
         "topic": {"type": "string", "enum": [
             "afr_fueltrim", "ve_load", "ignition_knock", "maf", "injectors",
@@ -56,7 +62,7 @@ DRAFTS = (MLECU / "ml/curation/data/pairs/pairs-synthetic-draft.jsonl",
 OUT = MLECU / "ml/curation/data/pairs/pairs-classified.jsonl"
 
 
-def classify(cfg: Config, drafts=DRAFTS, out: Path = OUT,
+def classify(cfg: Config, drafts=DRAFTS, out: Path = OUT, only_ids=None,
              chat_fn: Callable | None = None, log=print) -> Path:
     chat_fn = chat_fn or llm.chat
     pairs = []
@@ -67,7 +73,7 @@ def classify(cfg: Config, drafts=DRAFTS, out: Path = OUT,
         done = {json.loads(l)["pair_id"] for l in out.open() if l.strip()}
     with out.open("a") as f:
         for i, p in enumerate(pairs):
-            if p["pair_id"] in done:
+            if p["pair_id"] in done or (only_ids is not None and p["pair_id"] not in only_ids):
                 continue
             try:
                 content, usage, latency = chat_fn(
