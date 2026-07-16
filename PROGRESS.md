@@ -9,6 +9,21 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-07-16 — PILOT TRAINING MIX v1 ASSEMBLED: 400 pairs, quality-first, composition honestly short
+
+The full curation machine ran end-to-end under the hardened review standard (quality ×
+current-goal fit): 841 synthetic drafts classified by the judge model (relevance/depth/topic;
+269 convicted shallow — 37%, far beyond keyword heuristics — and 101 legacy-tech), grounding
+flags applied, near-duplicates deduplicated keeping the deepest exemplar, topic-steered batch
+3 (116 pairs aimed at the MAF/idle/VE/injector deficit — steering verified: idle 40, VE 36,
+injectors 32, MAF 25). **Final mix: 400 = 82 organic + 318 synthetic, deficit topics
+recovered (ve_load 64, injectors 46, idle 25, maf 18). Honest shortfall, flagged not hidden:
+Subaru share 21% vs the 70% doctrine target** — the quality filter gutted shallow ROM-def
+Subaru clones, and quality won per Syed's directive. Cure path: Stage-C real-car arcs
+(wideband install imminent) + a community-thread synthesis batch. Awaiting Syed's final
+20-pair C3 sign-off (docs/pilot-mix-SAMPLE.md) → arms C/D become buildable (QLoRA session,
+Syed-driven). Also: watcher-regex gotcha logged (quoted pipe-escape = literal in pgrep ERE).
+
 ## 2026-07-15 — E1v2 FIRST READOUT: retrieval flips from liability to key; arm B misses Syed's bar by ONE case
 
 The harder exam (147 voltage-sweep cases, degeneracy broken, exact-only scoring) produced the
@@ -414,3 +429,5 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-10 | E1v2 baselines (147 cases, voltage sweep) | rules 85.7/85.7, rules_v2 100/100, random 12.9 | degeneracy broken with complete info; Syed bar 90/100 pre-registered |
 | 2026-07-15 | E1v2 arm A (base, 147 cases) | 83.7% top1, latency-fault 14% | two-point reasoning persists; 147/147 deterministic ×2 |
 | 2026-07-15 | E1v2 arm B (base+RAG) | 89.8% top1, latency-fault 57% | FAILS 90% bar by 1 case; retrieval supplies voltage physics (+6.1 vs A — reversal of v1) |
+| 2026-07-16 | Pilot mix v1 assembled | 400 pairs (82 organic + 318 synthetic) | 841 drafts -> filters/dedup; ve_load 64, injectors 46, idle 25, maf 18; Subaru 21% vs 70% target (flagged) |
+| 2026-07-16 | Classifier verdicts on 841 drafts | 37% shallow, 12% legacy-tech | hardened standard executed as code; deep survivors 146+ |
