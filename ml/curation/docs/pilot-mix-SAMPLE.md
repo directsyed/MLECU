@@ -1,177 +1,168 @@
-# Pilot mix v1 — 20-pair review sample (C3 final)
+# Pilot mix v2 — 20-pair review sample (C3 round 2)
 
-## 1. (synthetic | modern_general | deep | maf)
-**symptoms:** Airflow calculations for the turbocharger inlet show errors when applying high-temperature engine cycle properties to the intake tract.
+## 1. (synthetic | modern_general | deep | ignition_knock)
+**symptoms:** Engine knocks during VE table calibration; global spark advance map is plausibly conservative for the powerplant.
 
-**diagnosis:** Air flow before it enters the engine, including inlet flow in turbochargers, is closer to standard temperature and requires different air properties than the high-temperature engine cycle.
+**diagnosis:** Knock is detonation responsive to timing rather than preignition, which would require thermal intervention and would not be eliminated by retard; timing retard is required to kill knock and enable calibration with a homogenous air/fuel ratio.
 
-**change:** Apply standard air property values for inlet flow in turbochargers: specific heat ratio k = 1.4, cp = 1.005 kJ/kg-K, cv = 0.718 kJ/kg-K.
+**change:** Retard spark timing in increments of at least 2 or 3 degrees in speed-density breakpoints in the vicinity of the active VE cell(s).
 
-**outcome:** Air property values correctly reflect standard temperature conditions for pre-engine airflow, distinct from the engine cycle.
+**outcome:** Detonation disappears.
 
-## 2. (synthetic | modern_general | deep | injectors)
-**symptoms:** Inconsistent fuel delivery and air-fuel ratio fluctuations under varying intake manifold pressures.
+## 2. (synthetic | modern_general | deep | ve_load)
+**symptoms:** Persistent lean condition and unstable idle traced to an unmetered vacuum leak in the intake tract. MAF-based fueling continues to run lean despite trim limits being reached.
 
-**diagnosis:** The fuel pressure drop across the injectors is not remaining constant.
+**diagnosis:** The causal mechanism is that MAF sensors measure only the air passing through the sensor and cannot account for additional air entering downstream. Alternatives like velocity air meters are excluded because they restrict inlet airflow and create a pressure drop at the metering door. Speed-density measurement is selected because it deduces air mass from manifold pressure, engine speed, and ambient air temperature, and automatically compensates for inlet air losses or leaks.
 
-**change:** Configure the pressure regulator to maintain line pressure at a fixed value of 270 kN/m² (39 psi), referenced relative to manifold pressure.
+**change:** Switch air measurement strategy to speed-density and adjust the injection pulse width table for the current combination of engine speed and manifold pressure to reflect the corrected load model.
 
-**outcome:** The fuel pressure drop across the injectors remains constant despite manifold pressure variations.
+**outcome:** The ECU automatically compensates for the inlet air leak, stabilizing the air/fuel ratio and idle behavior without introducing the airflow restriction associated with velocity air meters.
 
-## 3. (synthetic | modern_general | deep | idle)
-**symptoms:** Momentary RPM drop when the air conditioning compressor engages at idle.
+## 3. (synthetic | modern_general | deep | fuel_type)
+**symptoms:** ECU calculates an incorrect AFR value when the analog input reads 3.00V from the X-Series gauge.
 
-**diagnosis:** The sudden mechanical load exceeds the response speed of the standard IAC stepper-motor logic, which cannot bypass air fast enough to maintain target idle speed. Relying solely on IAC correction is excluded because the excerpt states the IAC system 'may not be fast enough to deal with air conditioning–induced load changes at idle without a bothersome momentary drop in rpm.' The causal mechanism is insufficient proactive load compensation; the EMS must instead switch to a dedicated speed-loading cell optimized for AC engagement.
+**diagnosis:** ECU analog scaling formula is misconfigured relative to the gauge output.
 
-**change:** Configure user-defined nonlinear granularity to create RPM and loading breakpoints that are closer together around the idle range, and optimize the specific AC speed-loading cell by adding a little more timing or fuel.
+**change:** Update ECU scaling to use the formula AFR = (2.3750 * Volts) + 7.3125.
 
-**outcome:** The idle stabilizes almost instantly upon AC engagement, eliminating the momentary RPM drop as the EMS immediately applies the optimized cell parameters.
+**outcome:** ECU calculates 14.44 AFR at 3.00V, matching the value in the 0-5V Analog Output Scaling Table.
 
-## 4. (synthetic | modern_general | deep | fuel_type)
-**symptoms:** Elevated hydrocarbon emissions measured in the exhaust stream, with analysis indicating residual fuel originating from wall quenching regions.
+## 4. (synthetic | modern_general | deep | idle)
+**symptoms:** A 2-wire PWM idle air control valve only responds to duty cycles above 76%, reaching fully open at 83%. This leaves a negligible window for closed-loop idle management. Adjusting the PWM frequency (tested near 120 Hz) produces no change in valve behavior.
 
-**diagnosis:** Residual hydrocarbons left unburned come primarily from crevices in the vessel walls. The gap between the piston crown and cylinder liner forms a 'corner' geometry where the liner provides additional local flame cooling, likely increasing the quenching distance for this geometry above the typical two-wall quench distance value of 0.2 to 0.6 mm.
+**diagnosis:** The restricted low-end duty cycle response indicates inadequate flyback protection for the inductive valve coil. The forum identifies that relying solely on the ECU board's diode recirculation can be insufficient for this valve type, causing the driver to struggle with low-duty-cycle pulses.
 
-**change:** Reduced the crevice volume of the piston crown to liner gap to minimize the region where flame quenching prevents combustion.
+**change:** Installed a 1N4007 flyback diode directly across the IAC valve terminals.
 
-**outcome:** Hydrocarbon emissions decreased, consistent with the correlation that crevice volume impacts HC emissions, as reducing the quenching region limits the source of residual hydrocarbons that diffuse into burned gases and oxidize.
+**outcome:** The controllable duty cycle range expanded from >76% down to 20%–80%, restoring full authority for closed-loop idle control.
 
-## 5. (synthetic | modern_general | deep | sensors)
-**symptoms:** Tuner observes high computational load in the heat transfer model and questions whether gas radiation terms are necessary for cycle-integrated analysis of a spark-ignition engine.
+## 5. (synthetic | modern_general | deep | boost)
+**symptoms:** With a pure mechanical boost controller, boost engages unpredictably at partial throttle, creating a risk of stoichiometric boost and part-throttle fuel cut (PTFB) scenarios that degrade drivability and risk engine damage.
 
-**diagnosis:** Gas radiation is proportional to T_g^4 and falls off more rapidly than convective heat flux as gas temperatures fall; estimates for engine combustion gases at peak conditions indicate gas radiation is only ~5% of peak convective heat transfer.
+**diagnosis:** Pure MBC setups lack throttle-position-dependent mapping, causing boost to come on "when it wants to" rather than following a controlled, load-appropriate ramp.
 
-**change:** Removed gas radiation terms from the cycle-integrated heat transfer calculation.
+**change:** Configured the UTEC boost map to output 500 in the 100% TPS column and ramp down to 150 in the 60% TPS column, using those values to drive the GM 3-port solenoid in interruption mode for wastegate control.
 
-**outcome:** Cycle-integrated heat transfer estimates remained accurate, as gas radiation can be neglected when integrated over the cycle.
+**outcome:** Manifold pressure now ramps smoothly in direct proportion to throttle input, completely preventing PTFB conditions and improving partial-throttle drivability.
 
-## 6. (synthetic | modern_general | deep | injectors)
-**symptoms:** Medium-swirl DI diesel engine at 2600 rev/min with fuel delivery of 75 mm³/cycle exhibits high engine-out NOx emissions. Tuner notes that attempts to modify squish-swirl interactions have been inconclusive due to complexity.
+## 6. (synthetic | modern_general | deep | fuel_type)
+**symptoms:** Engine bogs down when stepping on the throttle on a gasoline engine.
 
-**diagnosis:** Injection timing controls the crank angle of combustion start. Retarded injection is the established mechanism to reduce NOx, as it shifts combustion phasing. Adjusting squish-swirl is excluded because unraveling the squish-swirl interaction is challenging. The current start-of-injection timing is too advanced relative to the retarded position required for NOx control.
+**diagnosis:** Rapid throttle movement increases intake manifold pressure, which reduces the air's capacity to hold evaporated fuel. Fuel deposits on the intake runner walls, creating a temporary lean condition that causes the bog.
 
-**change:** Retard the start-of-injection timing.
+**change:** Tuner adjusts the 'TPS/TPS acceleration extra fuel' table, where the X-Axis is the 'From' TPS and the Y-Axis is the 'To' TPS. The tuner sets the enrichment for a TPS change from 0% to 1% to add 10% fuel, and for a change from 0% to 3% to add 17% fuel, accounting for the non-linear behavior of the throttle body.
 
-**outcome:** Engine-out NOx emissions decreased substantially. Brake-specific fuel consumption (bsfc) increased with a modest penalty. Particulate mass emissions and smoke increased.
+**outcome:** The enrichment corrects the lean condition and keeps the engine from bogging down. The tuner verifies drivability, noting that the engine runs without noticeable bogging at AFRs between 9 and 16 (possibly 17), and stops tuning once no bogging is observed, as the goal is drivability rather than perfect AFRs during enrichment events.
 
-## 7. (synthetic | modern_general | deep | ve_load)
-**symptoms:** Vehicle enters limp mode under heavy load with throttle position limited to less than 20 percent; turbo or supercharger conversion installed.
+## 7. (synthetic | modern_general | deep | fuel_type)
+**symptoms:** After installing an additional injector controller (AIC) for a boosted application, the engine runs lean under load, and the tuner must establish a baseline fuel strategy before advancing timing.
 
-**diagnosis:** The turbo conversion increases engine airflow beyond the limits defined in the EMS safety model. The EMS uses feedback from MAF or MAP sensors to verify actual engine loading against predicted loading. When airflow exceeds the values in the maximum airflow table, the ECU concludes there is a serious problem with the ETC system and enters limp mode to prevent unintended acceleration. The excerpt notes that turbo conversions are nearly impossible on ETC engines without reprogramming this table, as the stock thresholds are too low for the increased flow.
+**diagnosis:** The lean condition occurs because the primary fuel map does not account for the increased air mass from forced induction. The excerpt states that a turbocharger adds approximately 10 percent torque per pound of boost, which directly necessitates a proportional fuel increase. Alternatives like advancing ignition timing first are excluded because the tuning protocol explicitly requires working from rich to lean before increasing timing advance to maintain safe combustion.
 
-**change:** Reprogram the maximum airflow table to allow higher flow rates under heavy load. Increase the table values to approximately 20 percent above the expected maximum flow for the specific combination of stock and modified parts and boost levels.
+**change:** Configure the AIC to deliver at least 10 percent extra fuel per-psi of boost, correcting for any differences in injector fuel-flow capacity. If the stock pulse width is unknown, measure it with a pulse width meter or estimate the additional horsepower per-psi and apply the fuel requirement formula for a 12.0–12.5 AFR target per cylinder.
 
-**outcome:** Limp mode is prevented under heavy load conditions; throttle control is restored, allowing the engine to utilize the increased airflow without triggering the fail-safe limit.
+**outcome:** The AFR under boost stabilizes within the 12.0–12.5 range, allowing the tuner to safely progress toward more timing advance without lean conditions.
 
-## 8. (synthetic | modern_general | deep | ve_load)
-**symptoms:** At low RPM and part-throttle cruise, the ECU logs high manifold pressure but the engine runs poorly with incorrect fueling and hesitation.
+## 8. (synthetic | subaru | deep | maf)
+**symptoms:** Intermittent hesitation and limp-mode behavior, secondary turbo boost spiking to 22 psi in 3rd gear then tapering (vs. 18 psi in 1st/2nd gear), and a stored code 23 for the MAF sensor without a CEL. Data logging showed the ECU hard-learning to add about 8-12% of fuel, indicating a lean condition.
 
-**diagnosis:** The long-duration cam profile causes late intake valve closing, allowing the intake mixture to pump back into the intake manifold at small throttle openings. This pump-back phenomenon raises manifold pressure (lowers vacuum) without increasing actual airflow. The ECU's load model misinterprets the high manifold pressure as heavy load, commanding incorrect fueling. MAF scaling or fuel trim adjustments are excluded because the manifold pressure sensor is reading accurately; the error stems from the VE/load model's assumption that high pressure equals high airflow, which is invalidated by valve overlap and reverse flow.
+**diagnosis:** The tuner had altered the MAF calibration despite the 2001 Subaru Legacy B4 retaining a stock MAF sensor and housing. Forum analysis confirmed that stock intakes do not require MAF calibration changes, and the modified calibration was likely causing the lean fuel trims and triggering the stored code.
 
-**change:** Reduce the volumetric efficiency (VE) values in the low-RPM, part-throttle cells of the load model table to compensate for the artificially high manifold pressure reading caused by pump-back.
+**change:** Reverted the MAF calibration to stock values in the Project Lambda tune.
 
-**outcome:** The ECU's fueling command aligns with actual airflow, correcting the air/fuel ratio to the target range and eliminating hesitation despite the persistently high manifold pressure.
+**outcome:** The hesitation, limp mode, and boost spike persisted, confirming the calibration adjustment was not the root cause. Post-revert logging revealed the MAF voltage dropping below 0.3V for a split second under load, shifting the diagnostic focus from a tuning error to a suspected physical wiring harness break or connector issue.
 
-## 9. (synthetic | modern_general | deep | ve_load)
-**symptoms:** Under progressive throttle application, the turbocharged engine exhibits hesitation, inconsistent torque delivery, and elevated exhaust gas temperatures, indicating improper fuel delivery across the operating range.
+## 9. (synthetic | modern_general | deep | ignition_knock)
+**symptoms:** A forced-induction engine running on street gasoline exhibits sub-optimal spark timing and flat torque output at mid-to-high load, with frequent knock sensor activity and no measurable gains from bolt-on breathing modifications.
 
-**diagnosis:** The DFI system calculates fueling using a 16x16 injection pulse width matrix indexed by MAP sensor load and crank trigger RPM, rather than a traditional volumetric efficiency (VE) table. Because the architecture explicitly lacks a VE table, the ECU cannot auto-scale fueling based on airflow models; it relies entirely on explicit pulse width values for each of the 256 load/speed combinations. Relying on VE-based scaling or closed-loop fuel trims is excluded because the DFI architecture requires manual cell-by-cell population via laptop, and uncalibrated cells risk dangerously lean mixtures under load. The root cause is an unpopulated injection pulse width matrix that fails to deliver the correct fuel mass as load and speed increase.
+**diagnosis:** The performance bottleneck is artificial boost-control and knock-limited spark timing designed to prevent detonation and protect engine components from severe mechanical or thermal loading. Alternatives such as MAF scaling, idle air control, injector dead-time adjustments, or VE/load model recalibration are excluded because the engine is not airflow- or fuel-delivery limited; at stock power levels, forced-induction engines are rarely constrained by volumetric efficiency. The EMS is actively retarding timing as a detonation-prevention strategy, not due to sub-optimal default tuning or sensor scaling errors.
 
-**change:** Connected a laptop to the DFI interface connector and used Calmap to populate the 16x16 injection pulse width matrix. Established a safe start-up map, then tuned zero-load pulse widths across all RPMs. Set light-load values, then gradually increased engine load at various speeds while monitoring air/fuel ratios, exhaust gas temperatures, and dyno power/torque. Adjusted pulse widths cell-by-cell to achieve lean best torque at heavier loads, enriching only where fuel cooling was required, while strictly avoiding dangerously lean mixtures in any cell.
+**change:** Switch to high-octane fuel to remove the detonation constraint. On a load-holding dynamometer, hold the engine at a specific RPM and first optimize the air/fuel ratio across the board with conservative ignition timing. Then, perform a spark hook test: advance spark timing incrementally at each breakpoint of engine loading available in the ECM’s timing table until the torque readout indicates maximum torque, at which point torque begins to drop or “hook.”
 
-**outcome:** The calibrated matrix delivered precise injection pulse widths across all 256 load/speed combinations, eliminating lean conditions and optimizing the air/fuel ratio for maximum torque without detonation risk.
+**outcome:** Torque output increases at each tested load breakpoint, and the EMS is able to advance spark timing past the previous knock-limited baseline without triggering detonation protection strategies. The engine successfully converts the higher octane fuel into measurable torque gains by eliminating the artificial timing retard.
 
-## 10. (synthetic | modern_general | deep | fuel_type)
-**symptoms:** Knock sensor triggers timing retard, exhaust gas temperatures exceed safe limits, and torque is capped at wide-open throttle.
+## 10. (synthetic | modern_general | deep | idle)
+**symptoms:** Engine idle speed drops below target and becomes unstable when the A/C compressor engages, risking a stall.
 
-**diagnosis:** EGR is active at high load, displacing fresh air and limiting maximum bmep, while the mixture is too lean for peak torque and knock prevention. Figure 7.1 and Table 7.1 show that WOT operation requires 0% EGR to maximize airflow and enrichment to 7.2% fuel mass to maximize torque, prevent knocking, and reduce exhaust temperature.
+**diagnosis:** The base idle control strategy lacks the transient response required for sudden parasitic loads. Adjusting fuel trims or volumetric efficiency tables is excluded because the air-fuel ratio remains correct; the deficiency is purely in idle airflow positioning. The excerpt confirms that `setIdleAdd(percent)` directly adds a percentage to idle (incl. open loop), providing the correct causal mechanism to compensate for load-induced airflow deficits without altering base calibration.
 
-**change:** Disable EGR flow at WOT and enrich the air/fuel ratio to target 7.2% fuel mass in the in-cylinder mixture per Table 7.1.
+**change:** Implement a Lua `onTick` function that calls `setIdleAdd(percent)` with a positive percentage value when an A/C request is detected, applying an additive offset to the idle target.
 
-**outcome:** Knock-induced timing retard ceased, exhaust gas temperatures decreased, and maximum torque increased, directly reflecting the excerpt's stated effects of high-load enrichment and EGR elimination.
+**outcome:** Idle RPM stabilizes at the target value during compressor engagement, eliminating hunting and stalling risk as the additive percentage directly increases idle airflow to match the new load condition.
 
-## 11. (synthetic | modern_general | adequate | fuel_type)
-**symptoms:** Tuner observes an AFR reading of 20.0 while the vehicle is decelerating in gear at high RPM with the throttle completely lifted.
+## 11. (synthetic | modern_general | adequate | ve_load)
+**symptoms:** Tuner observes an engine operating at part throttle and lower speeds with a stoichiometric mixture; the goal is to maximize fuel efficiency.
 
-**diagnosis:** The excerpt identifies this condition as fuel cutoff, which occurs when lifting off the throttle during deceleration in gear at high RPM. The chart lists the approximate AFR for fuel cutoff as 20.0, which is lean.
+**diagnosis:** At part throttle, the engine operates at lower volumetric efficiency. Real-world combustion conditions, including swirling air/fuel masses and rapid changes, cause imperfect mixing that risks blowing unburned fuel out the exhaust. Richening the mixture is excluded because adding extra fuel would result in wasted unburned hydrocarbons when the goal is efficiency, whereas the objective is to ensure every fuel molecule is burned.
 
-**change:** Tuner recognizes the reading as normal fuel cutoff behavior and excludes this region from fuel tuning adjustments.
+**change:** Lean out the mixture from the stoichiometric ratio (increase the ratio of oxygen to fuel) by adjusting the VE table values for part-throttle RPM and load breakpoints.
 
-**outcome:** Tuner avoids unnecessary fuel enrichment, confirming the lean reading of 20.0 is expected during fuel cutoff.
+**outcome:** The mixture adjustment improves the likelihood of making use of every last fuel molecule, resulting in maximum fuel efficiency.
 
 ## 12. (synthetic | modern_general | adequate | injectors)
-**symptoms:** Tuner attempts to configure the microRusEFI to batch fire eight injectors.
+**symptoms:** After converting a naturally aspirated engine to forced induction and installing larger injectors, the mixture is too rich in the light-load region.
 
-**diagnosis:** The microRusEFI is primarily a 4-cylinder ECU. Configuring two injectors per output will burn the ECU.
+**diagnosis:** The larger injectors fuel the top end effectively but cause over-fueling at light load.
 
-**change:** Abort the 8-injector batch fire configuration; do not wire two injectors per output.
+**change:** Modify the load reading using an overlay map in the piggyback calibrator by selecting cell values that subtract a precise amount from the load signal.
 
-**outcome:** ECU hardware is preserved; configuration remains within the safe limits of the 4-cylinder primary design.
+**outcome:** The ECM provides less fuel to the engine by shortening the injector pulse width.
 
-## 13. (synthetic | modern_general | adequate | injectors)
-**symptoms:** Excessive combustion noise and prolonged cranking during cold starts, with unstable RPM in the lower speed and load range.
+## 13. (synthetic | modern_general | adequate | ve_load)
+**symptoms:** The engine is not meeting the desired air/fuel target under relatively steady state conditions, with no acceleration enrichment or overrun fuel cut active.
 
-**diagnosis:** The ECU controls the solenoid valve energization timing to define the start of injection and injected fuel quantity. In the lower speed and load range, suboptimal timing causes uncontrolled pressure buildup before the nozzle-opening pressure is exceeded, increasing noise and degrading cold-start performance. Mechanical line-length mismatch is excluded because the high-pressure lines are specified as equal-length seamless steel tubes, and cam timing error is ruled out because start of injection is synchronized with piston position via the incremental trigger wheel. The causal mechanism is improper ECU calibration of injection timing and quantity for low-load operation.
+**diagnosis:** Dynamic airflow effects in the inlet are causing measurement errors; the VE Table is the correct mechanism to adjust for these effects and correct the measured airmass.
 
-**change:** Adjust the start-of-injection timing and injected fuel quantity parameters for the lower speed and load range, utilizing the BIP (beginning of injection period) signal to balance out tolerances in the overall system.
+**change:** Tune the VE Table to apply corrections to the fuel injection.
 
-**outcome:** Combustion noise is significantly reduced and cold-starting performance improves, with the integrated idle-speed governor maintaining stable RPM without surge.
+**outcome:** Corrections to the fuel injection are applied, allowing the engine to meet the desired air/fuel target.
 
-## 14. (synthetic | modern_general | adequate | injectors)
-**symptoms:** Significant fuel impingement is observed on the port walls, valve stem, and valve head, contributing to wall wetting.
+## 14. (synthetic | modern_general | adequate | fuel_type)
+**symptoms:** The tuner connects the USB cable to the rusEFI ECU while the car is off, then turns the ignition on. TunerStudio connects, but the SD card indicator shows 'SD card reading mode', and the tuner is unable to enable SD card logging.
 
-**diagnosis:** Injection timing is aligned such that fuel is injected toward a closed intake valve, which causes much of the fuel to impinge on these surfaces.
+**diagnosis:** The ECU determines SD card mode based on the power-up sequence. Because the ECU was first powered via USB, it entered SD card reading mode rather than logging mode.
 
-**change:** Adjust the injection timing relative to the intake valve-lift profile to avoid injecting toward a closed intake valve.
+**change:** The tuner disconnects the USB cable, powers the ECU via the car battery, and then reconnects the USB cable.
 
-**outcome:** Fuel impingement on the port walls, valve stem, and valve head is reduced.
+**outcome:** The TunerStudio indicator changes to 'SD card logging mode', allowing the tuner to enable logging to the SD card while connected to the PC.
 
-## 15. (synthetic | modern_general | adequate | boost)
-**symptoms:** Wideband sensor indicates a lean mixture under boost, risking lean-mixture damage.
+## 15. (synthetic | modern_general | adequate | sensors)
+**symptoms:** After increasing boost on the 2009 Subaru Impreza WRX (SADM, MT), the Check Engine Light illuminates with DTC P0108 during high-load pulls.
 
-**diagnosis:** The onset of boost increases cylinder density and power output, requiring additional fuel beyond the stock pulse width. Without compensation in the boosted speed-loading cells, the air/fuel ratio drops below safe limits.
+**diagnosis:** The manifold pressure sensor reading exceeds the threshold defined for the CEL, triggering the MAP sensor high input fault.
 
-**change:** Set the AIC to deliver at least 10 percent extra fuel per-psi boost in the fuel map pulse width for the target speed-loading cells that will be boosted.
+**change:** Tuner raises the threshold in the `Manifold Pressure Sensor Limits (CEL)` table.
 
-**outcome:** Air/fuel ratio stabilizes at 12.0–12.5, eliminating the lean condition and protecting the engine from lean-mixture damage.
+**outcome:** DTC P0108 and the associated CEL no longer set during high-load pulls at the new boost level.
 
 ## 16. (organic | subaru_ej)
-**symptoms:** Misfires on 1-2 cylinders at very light load, ~2600 RPM in 2nd/3rd gear, IPW @ 2.0ms.
+**symptoms:** Suspected excessive AVCS overlap (10*) with high-flow header causing fuel loss during overlap.
 
-**diagnosis:** Per-injector compensations adding too much fuel (10-16%) in low load zones causing misfire counts.
+**diagnosis:** Reducing overlap to 5* and adjusting timing should improve efficiency and smoothness.
 
-**change:** Reduced per-injector comps by 67%, then zeroed, then applied values from 2004 STI JDM ROM.
+**change:** Set AVCS to 5* at highway RPM/loads; increased timing by 2* to 40*; installed front lip.
 
-**outcome:** Seemed good on 30-minute test drive.
+**outcome:** 31.25 mpg on highway trip.
 
-## 17. (organic | general)
-**symptoms:** EGO corrections exceeding 3%, rich island at 10-18 TPS and 3500-4500 RPM, AFR variance across load/RPM cells
+## 17. (organic | subaru)
+**symptoms:** hesitation and goes into almost a limp mode intermittently; 18psi on secondary turbo in 1st and 2nd gear but in 3rd it spikes up to 22; stored code 23 for the MAF sensor; idle LTFT 8-12%; MAF voltage drops below 0.3V for a split second
 
-**diagnosis:** VE table requires cell-specific correction to stabilize EGO trims and eliminate rich/lean pockets
+**diagnosis:** MAF calibration has been changed when the car is hitting boost... could this possibly be the issue; later suspecting a wiring issue on the maf harness
 
-**change:** Applied VE correction pass focusing on rich cells, planning a final full sweep
+**change:** maf calibration set back to stock; tugging/wiggling the connector and harness
 
-**outcome:** EGO corrections reduced to ~3% across the table except the specified rich island
+**outcome:** Didn't help my issue unfortunately; didn't really notice any changes
 
-## 18. (organic | subaru_ej)
-**symptoms:** Mid-20s MPG baseline; 3psi manifold backpressure at 2900 RPM / ~10 in/hg load
+## 18. (organic | subaru)
+**symptoms:** Partial-throttle boost causing drivability issues; transient boost spikes reaching ~20psi with shift knock during flat-foot shifts; EBC trading response for stability.
 
-**diagnosis:** Exhaust restriction may be limiting efficiency; new exhaust may require different AVCS/timing calibration
+**diagnosis:** EBC cannot react fast enough to highly transient conditions; a mechanical boost controller provides a hard, unexceedable limit and faster response, while EBC handles part-throttle taper.
 
-**change:** Installed 3" turbo-back exhaust; tested AVCS 5°/40° ignition tune, then AVCS 10°/36° ignition tune
+**change:** Installed Hallman Evo RX MBC in parallel with a GM 3-port interruption solenoid controlled by UTEC; mapped UTEC boost table (500 at 100% TPS, 150 at 60% TPS); later removed MBC bleed hole and adjusted UTEC map to 78-100 duty cycle.
 
-**outcome:** Backpressure dropped to 2psi; MPG recorded at 29.72 and 29.50 respectively; concluded 'exhaust = no real gain'
+**outcome:** Boost spikes reduced from ~3psi to <1psi; PTFB completely eliminated; boost tapers to ~10psi at 60% TPS and ~17psi at 90% TPS; hard limit set at 19psi; system described as 'rock solid' and 'more stable'.
 
 ## 19. (organic | subaru_ej)
-**symptoms:** MPG dropped to 28.94 after installing a Big 16G turbo, down from a 30.0 baseline.
-
-**diagnosis:** The larger turbo produces a cooler, denser intake charge, increasing cylinder oxygen and requiring less ignition advance to prevent combustion before TDC.
-
-**change:** Reduced ignition timing from 45° to 40° at 2800-3200 RPM; later optimized to 38°.
-
-**outcome:** 30.98 MPG on the return leg; subsequent A-B-A tests confirmed 40° (29.88/28.19) outperformed 45° (29.45/27.15), and 38° yielded 30.85 MPG on a controlled A-B-A trip.
-
-## 20. (organic | subaru_ej)
 **symptoms:** city MPG suffers
 
 **diagnosis:** rubber bushings that expand over time and drag
@@ -179,3 +170,12 @@
 **change:** Regreasing all of the caliper pins and removing the rubber bushings
 
 **outcome:** ~1mpg gain city
+
+## 20. (organic | subaru_ej)
+**symptoms:** High knock sum (#4 double #2, 200+ and 100+), poor clutch modulation/lurching at low load
+
+**diagnosis:** Suboptimal AVCS advance mapping causing excessive knock and drivability issues
+
+**change:** Modified AVCS table: reduced advance in low load, ran 30 degrees below 1.00 load between 1600-2400 rpm
+
+**outcome:** Knock sums dropped to 38 (#2) and 36 (#4); smooth clutch engagement, no lurching

@@ -431,3 +431,6 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-15 | E1v2 arm B (base+RAG) | 89.8% top1, latency-fault 57% | FAILS 90% bar by 1 case; retrieval supplies voltage physics (+6.1 vs A — reversal of v1) |
 | 2026-07-16 | Pilot mix v1 assembled | 400 pairs (82 organic + 318 synthetic) | 841 drafts -> filters/dedup; ve_load 64, injectors 46, idle 25, maf 18; Subaru 21% vs 70% target (flagged) |
 | 2026-07-16 | Classifier verdicts on 841 drafts | 37% shallow, 12% legacy-tech | hardened standard executed as code; deep survivors 146+ |
+| 2026-07-16 | C3 remediation: off_field re-screen | 231/501 (46%) convicted off-field | Syed's 3-of-20 sample catches generalized; classifier now enforces "actionable via ROM editor" |
+| 2026-07-16 | Community batch 4 (28 keep-threads) | 36 pairs: 20 subaru, 25 deep | best quality-density of any batch; gone-marked threads mined |
+| 2026-07-16 | Pilot mix v2 | 330 pairs (82 organic + 248 synthetic), Subaru 27% | pool honestly exhausted below 400 cap; fresh sample staged |
