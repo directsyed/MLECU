@@ -1,0 +1,50 @@
+2	organic-idx-2	cold tire pressure drops in winter, hurting MPG
+6	organic-idx-6	MPG drops 3-4 mpg when ambient temps fall below 60F
+12	organic-idx-12	lost mpg on wider tires in cold ambient temps
+13	organic-idx-13	city MPG suffers
+28	organic-idx-28	Testing effect of lighter flywheel on highway MPG
+29	organic-idx-29	Testing new tire rolling resistance
+30	organic-idx-30	Header install showed no MPG gain; spark plug gap measured at 0.059" (
+36	organic-idx-36	Odd clicking noise from front left wheel; stagnant mid-20s MPG
+37	organic-idx-37	24.18 mpg city with BKR6E plugs
+40	organic-idx-40	
+41	organic-idx-41	
+42	organic-idx-42	
+91	syn-573-1	TCU fails to trigger low-speed brake logic and rejects MOTOR_2 (0x288)
+104	syn-2612-0	Tuner observes a large V8 SI four-stroke engine (4.6L displacement) op
+106	syn-2842-0	On a 2.4-liter supercharged SI engine with variable compression ratio,
+109	syn-5652-1	The turbo platform running a standalone DFI EMS shows fuel delivery li
+136	syn-6018-0	A 2-wire PWM idle air control valve only responds to duty cycles above
+139	syn-808-0	After wiring a VR sensor to a rusEFI ECU with MAX992x-based inputs and
+171	syn-908-0	The tuner has a fresh MegaSquirt installation with no existing fuel ma
+175	syn-701-1	Stepper IAC valve moves fully inward immediately upon engine startup.
+183	syn-611-0	During TPS calibration, pressing the 'auto calibrate ETB 1' button cau
+190	syn-4437-0	Vehicle exhibits higher-than-expected fuel consumption during overrun 
+204	syn-573-0	TCU communication drops and gear engagement is erratic because the tra
+206	syn-706-1	Ion Sense signal fails when attempting to use a generic smart coil; tu
+217	syn-810-0	Tuner has a 60/2 crank wheel and wants to enable fully sequential inje
+219	syn-4673-0	ECU reports persistent communication errors on a PSI5 sensor transmitt
+220	syn-828-0	Tuner installs a combined liquid pressure and temperature sensor (e.g.
+223	syn-2842-1	During calibration of a 2.4-liter supercharged SI engine with variable
+228	syn-2824-0	Tuner observes knock tendency or seeks to maximize fuel economy on a l
+230	syn-4662-0	Tuner attempts to read a specific parameter from a sensor module but o
+232	syn-616-0	Tuner encounters a 3-pin ignition coil and assumes it is a 'smart' coi
+236	syn-2856-1	ECU exhaust temperature data shows erratic cyclic spikes during steady
+262	syn-5317-0	After repairing a loose contact that triggered an OBD fault, the Malfu
+271	syn-661-0	Tuner is troubleshooting trigger and VVT issues during cranking but fi
+272	syn-718-1	The tuner connects the USB cable to the rusEFI ECU while the car is of
+273	syn-642-0	The ME2.1 ECU reports a fault or the cooling fan fails to respond corr
+274	syn-951-1	The adapter's Blue LED is fast blinking at a 25% duty cycle, and the t
+278	syn-718-0	The tuner is preparing for a track day with an 8 GB microSD card insta
+279	syn-674-1	Tuner wants to repurpose an existing car connector test point (E17/P17
+281	syn-5317-1	The workshop tester fails to establish communication with the ECU via 
+284	syn-866-0	Tuner observes frequent disconnections and data corruption during live
+295	syn-838-0	Tuner attempts to connect TunerStudio Commercial to the rusEFI Virtual
+303	syn-804-0	Tuner is troubleshooting a Coolant Liquid Temperature (CLT) or Intake 
+304	syn-811-0	TunerStudio displays the text `line:532:rusEfiVersion,20140822@4388 Fo
+310	syn-594-1	Tuner needs to verify crank signals in the sniffer tab but wants to av
+316	syn-951-0	Tuner attempts to connect TunerStudio Lite to the rusEFI CANbus to WiF
+319	syn-864-0	During bench testing of a rusEFI Wideband Controller, the sensor heate
+323	syn-866-1	Tuner attempts to connect TunerStudio directly to a CAN bus dongle but
+327	syn-811-1	Using a USB TTL cable to connect to the ECU, but no response is receiv
+328	syn-864-1	The rusEFI Wideband Controller is not providing data or functioning in
