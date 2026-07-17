@@ -8,8 +8,19 @@
 - **Service tag:** GLRCBM2. **BIOS: 2.5.4** (ancient — MUST be updated before any CPU generation change; see §4).
 - **Hostname:** `syedlab`. **Static IP `10.0.0.200`.** **iDRAC8 at `10.0.0.210`.**
 - **OS:** Ubuntu Server 24.04, cloned from the Z800 via Clonezilla, running on a 1TB SATA SSD. Boot mode = **BIOS/legacy** (MBR + legacy GRUB — NOT UEFI).
-- **CPU (current): ONE Intel Xeon E5-2630 v3** (8C/16T, 2.4GHz, AVX2 — modern ML frameworks run fine). **CPU2 socket empty; second heatsink missing.**
-- **RAM:** 32GB ECC DDR4 (1866MHz, the CPU's max). **12 of 24 DIMM slots active** with one CPU (the rest wake with CPU2). Pipeline is RAM-starved — more RAM is wanted.
+- **CPU (VERIFIED 2026-07-17 via lscpu): TWO Intel Xeon E5-2660 v4** (14C/28T each = 28C/56T
+  total, 2.0GHz base/3.2 turbo). The dual-CPU plan (§6) is DONE — BIOS was necessarily updated
+  first (v4 POSTs). Deduced earlier and confirmed: slot 7 (CPU2-gated) has hosted the 3090
+  since the 2026-07-06 slot-swap, so CPU2 was live by then. ALL PCIe slots and ALL 24 DIMM
+  slots active. Memory ceiling with v4: DDR4-2400 (2133 DIMMs run native at ≤2 DPC).
+- **RAM:** 32GB ECC DDR4-1866 (stale sticks; retire on upgrade). All 24 slots active (dual
+  CPU). **Incoming (Syed sourcing, 2026-07-17): 8×16GB 2Rx4 + 12×8GB 1Rx4 PC4-2133P RDIMM
+  (Micron/Samsung mix, x4 uniform) = 224GB.** Recommended fit: 16 DIMMs 2-per-channel
+  (8×16+8×8 = 192GB @ 2133, balanced across both CPUs/NUMA nodes) — bandwidth beats the
+  extra 32GB for CPU-offload LLM work; 3 DPC drops all channels to 1866. 4×8GB = cold spares.
+  Burn-in: POST/iDRAC training check + SEL correctable-ECC watch + Dell diags or memtest pass.
+  Same-brand within a channel. This fires the standing 'bigger judge/fine-tune model if RAM
+  grows' directive — re-verify model choices post-install.
 - **Chassis:** **16× 2.5" hot-swap backplane** (NOT 8×3.5" — older docs are wrong). 2× PSU bays. iDRAC8.
 - **Cooling / fans (corrected 2026-06-22):** currently **only 2 main fans on the shroud** (single-CPU config — additional/CPU2-zone fans are not populated; Syed is sourcing more). **NOT** the 6-fan layout assumed earlier. Implication: **limited airflow headroom** — under GPU load this is marginal for a 350W card, so manual-mode fan floors must be conservative (higher), the closed-loop curve matters more, and consider power-capping the GPU during stress soaks. Confirm what the iDRAC enumerates with `ipmitool sdr type fan` (and check for missing-fan / redundancy-lost events — a reduced fan count can itself drive the auto-mode 100% ramp, independent of the unrecognized GPU). Ties to the §6 "verify CPU2-zone cooling fan(s)" note.
 - **Storage controller:** **PERC H730 in slot 8** — supports HBA/passthrough. Plan: flip to **HBA mode for ZFS** (Configuration Management → Clear foreign config first → switch mode → reboot). Defer buying an LSI IT-mode card unless the H730 misbehaves.
@@ -29,7 +40,9 @@
 - **Provenance clean — NOT a mining card.** Bought new Jan 2026, ~2–3 weeks of use.
 - **Fully validated:** OCCT VRAM (2 clean hrs), memtest_vulkan (clean past 4,325+ iterations), FurMark, GPU-Z all passed.
 - **THERMAL FINDING: memory junction hit 106°C under memtest_vulkan** — this is a **thermal/pad-quality characteristic, NOT a defect** (zero errors at temp). Cause = OEM HP thermal pads + cramped Omen chassis. **REPAD DECISION DEFERRED until measured in the T630** (different thermal environment). Re-measure mem-junction in-server under load; repad (~$15–20 quality pads, mind the multi-thickness zone map) ONLY if still 105°C+ there.
-- **Currently: installed in T630 slot 3** (it physically fits where the 3090 Ti did not — see below), powered via the interposer/DRXPD chain, **booting / ready to boot.** Driver not yet installed (see §5).
+- **Current position (since 2026-07-06 slot-swap test): SLOT 7 (CPU2)** — where SEL convicted
+  it (crashes #9-11 'Slot 7'). Runs derated: 810MHz lock, ~15 layers, ~152W decode; stable
+  since 2026-07-08. Ti now in slot 3 (RAID pins cleared).
 
 ### (b) Zotac RTX 3090 Ti AMP Extreme Holo — INSTALLED + VALIDATED (2026-07-04)
 - Purchased $500; 16-pin adapter (3× 8-pin → 16-pin) in hand. **Now installed and LIVE:** enumerates as **GPU1 (PCI 83:00.0), 450W cap, driver reads it**; both cards run (GPU0 = 3090 @ 04:00.0). The prior blockers (3× 8-pin power + slot-3 SW-RAID-header clearance) are RESOLVED — **confirm the exact mount used (PCIe riser vs a CPU2 slot) and record it here.**
