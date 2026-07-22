@@ -382,3 +382,16 @@ HF repo frozen since Apr 24 (README-only last commit; weights untouched since Ap
 release). BF16 download == judge's source checkpoint == arms A/B model. MTP: speculative
 draft head, output-invariant (verify-every-token), part of same checkpoint; unaffected by
 LoRA targets; survives merge+requant (worst case: lower draft acceptance = speed only).
+
+### 2026-07-22 — dataset-format knobs ratified (Syed) + v3 blank-field catch (Syed's)
+
+Syed skim caught 10 organic pairs with blank symptoms/diagnosis (experiment-log genre from
+the Fuel Economy/AVCS threads — change->outcome facts with no symptom beat; organic rows
+were never field-completeness-screened). Rulings: (1) STRUCTURAL GATE — formatter excludes
+any pair whose user turn would be empty (blank input trains confident-output-from-nothing);
+gated pairs stay in the v3 archive as corpus facts. (2) User turn = datalog evidence +
+unpinnable observations, no question framing. (3) Assistant turn = explicit structure
+(Diagnosis/Change/Expected result) — proposal must be extractable (safety mirror).
+(4) Training SYSTEM = deployment assistant identity (drafted, pending Syed wording ratify);
+eval arms keep their frozen fixture prompt per single-variable protocol. (5) Holdout 10%
+stratified (organic | syn:topic), seeded. prepare.py is SYED'S BUILD (scaffold+tests laid).
