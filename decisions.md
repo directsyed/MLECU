@@ -336,3 +336,11 @@ power/ground wired, serial connections remain; Syed finishes computer side first
 **QLoRA plan change (supersedes 07-16 handoff):** NO autonomous prep. Syed runs every command
 end-to-end (dataset prep -> train -> merge -> eval C), Claude teaches. His words: the judge
 and RAG tests were agent-built; this one he needs to own. Memory: qlora-syed-drives.
+
+### 2026-07-22 — gone-sweep policy RATIFIED (Syed): NARROW
+
+Gone-ness (`gone_at` stamped when the live thread 404s) affects **scraping only** — never
+judging, retrieval, or pair-mining. Archived judged text remains first-class corpus material
+forever. Evidence: community batch 4 deliberately included gone-marked threads and produced
+the best pair density of the synthesis effort (forums prune old threads; old correlates with
+resolved). No cleanup pass may purge or exclude gone-marked docs from training/eval use.
