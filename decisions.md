@@ -364,3 +364,14 @@ appendix) -> **rejected_manual** (new explicit status; rubric_version=manual-sye
 subaru/tuning_signal/gone-marked) -> **re-queued pending**: its 07-05 "runaway deliberation"
 failure predates the 07-09 thinking-budget fix (8192); never actually judged bad. Rides the
 next routine judge batch (333 pending) AFTER tonight's training frees the Ti.
+
+### 2026-07-22 — arm C/D base model ratified (Syed): Qwen3.6-27B, 4-bit QLoRA on the Ti
+
+Re-verified at execution time per policy: Qwen3.6 family is 27B dense + 35B-A3B MoE only
+(no small siblings). Decisive argument = experimental design: arms A/B ran on Qwen3.6-27B,
+so arm C must be the same base or A-vs-C confounds base-change with fine-tuning. Costs
+accepted eyes-open: tight fit (~15-16GB 4-bit base on 24GB, batch 1 + grad checkpointing),
+C4 circularity at full strength, ~54GB BF16 download (weights needed for training + merge;
+4-bit is training scaffolding only — serving re-quantizes the merged model, Q8 available).
+Training single-card on the Ti ONLY (3090 convicted; training load sits above its 152-230W
+failure bracket; lockstep would throttle to 810MHz anyway).
