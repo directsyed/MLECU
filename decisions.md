@@ -375,3 +375,10 @@ C4 circularity at full strength, ~54GB BF16 download (weights needed for trainin
 4-bit is training scaffolding only — serving re-quantizes the merged model, Q8 available).
 Training single-card on the Ti ONLY (3090 convicted; training load sits above its 152-230W
 failure bracket; lockstep would throttle to 810MHz anyway).
+
+Addendum (same evening, Syed's version-identity challenge): checkpoint provenance VERIFIED —
+judge GGUF metadata says base=Qwen/Qwen3.6-27B (quantized_by=Unsloth, pulled Jul 4); official
+HF repo frozen since Apr 24 (README-only last commit; weights untouched since Apr 21-22
+release). BF16 download == judge's source checkpoint == arms A/B model. MTP: speculative
+draft head, output-invariant (verify-every-token), part of same checkpoint; unaffected by
+LoRA targets; survives merge+requant (worst case: lower draft acceptance = speed only).
