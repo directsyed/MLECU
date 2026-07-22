@@ -42,8 +42,9 @@ whole point. But flagging consciously: judge-drafted synthetic pairs + judge-fam
 model for the pilot means the fine-tune partly learns its own family's phrasing. Alternatives
 if this bothers you: draft pairs with Claude (different family, costs API money) or accept
 and note it. RECOMMEND: accept for the pilot, revisit if C/D results look suspicious.
-OPEN (2026-07-09): Syed asked whether his Claude subscription covers it (no — API is
-separate billing); choosing between Qwen-free / API-batch (~$8) / hybrid. See chat.
+RESOLVED (2026-07-15, recorded 2026-07-22): Qwen drafts the bulk (free, local); Claude does
+the in-session editorial full-read of everything training-bound (SHERIFF-NOT-DEPUTY rule).
+No API spend. This is how batches 1-4 and the v3 full-read actually ran.
 
 ## Already locked (no action — listed so the record is one page)
 - E1 scoring = ecutune scoring.py by file path (byte-identical to the 85.7% baseline).

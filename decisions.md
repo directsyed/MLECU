@@ -323,3 +323,16 @@ unchanged. UUID-targeted service (slot-proof after the index-swap incident). Bat
 via documented one-liner after each crash; DB snapshotted per stint; ~5-6h+ MTBF expected.
 Endgame: repad/inspect the 3090, re-test with the 1-minute provoked-crash diagnostic, then
 repair/retire/replace decision.
+
+### 2026-07-22 — pilot-mix-v3 SIGNED (training set of record) + QLoRA goes fully hands-on
+
+**Syed signed pilot-mix-v3** (280 pairs = 70 organic + 210 synthetic, 100% Claude-full-read,
+drop audit ml/curation/docs/pilot-mix-v3-drops.txt). It is THE arm-C training set. Reviewed
+via the new readable exports (claude.ai artifact viewer + pilot-mix-v3-readable.txt).
+Known shape, accepted: synthetic split 20 subaru / 190 modern_general — Subaru weight rides
+on the 70 organic + those 20; more pairs come post-wideband (Stage C gold). Wideband status:
+power/ground wired, serial connections remain; Syed finishes computer side first.
+
+**QLoRA plan change (supersedes 07-16 handoff):** NO autonomous prep. Syed runs every command
+end-to-end (dataset prep -> train -> merge -> eval C), Claude teaches. His words: the judge
+and RAG tests were agent-built; this one he needs to own. Memory: qlora-syed-drives.
