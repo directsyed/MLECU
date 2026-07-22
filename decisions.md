@@ -344,3 +344,14 @@ judging, retrieval, or pair-mining. Archived judged text remains first-class cor
 forever. Evidence: community batch 4 deliberately included gone-marked threads and produced
 the best pair density of the synthesis effort (forums prune old threads; old correlates with
 resolved). No cleanup pass may purge or exclude gone-marked docs from training/eval use.
+
+### 2026-07-22 — E1v2 bar re-ratified (Syed): 90% top-1 + zero dangerous misses
+
+Original A1 wording ("90% top-1 AND 100% acceptable") is degenerate on v2 where
+acceptable==exact. Syed asked the right question — could the allowed 10% hide catastrophic
+misses? Empirical audit of all 588 scored v2 cases: every miss was lean-family answered as a
+different lean-family fault; zero fault->healthy, zero lean<->rich flips, misses byte-stable
+across runs (temp-0 blind spot, concentrated on injector_latency_lean). New bar: **90% top-1
+AND zero dangerous misses** (dangerous = fault answered healthy, or cross-family lean/rich
+flip) — the E2-hard-gate analog for diagnosis. Doesn't change A/B verdicts; binds C/D.
+DB meta eval.e1v2.preregistration amended with full definition + provenance.
