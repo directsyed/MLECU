@@ -355,3 +355,12 @@ across runs (temp-0 blind spot, concentrated on injector_latency_lean). New bar:
 AND zero dangerous misses** (dangerous = fault answered healthy, or cross-family lean/rich
 flip) — the E2-hard-gate analog for diagnosis. Doesn't change A/B verdicts; binds C/D.
 DB meta eval.e1v2.preregistration amended with full definition + provenance.
+
+### 2026-07-22 — parked-doc queue cleared (Syed rulings)
+
+Docs 1194 (Vizard p57, SU-carburetor prose) + 5748 (Kirkpatrick ch26, Matlab combustion-sim
+appendix) -> **rejected_manual** (new explicit status; rubric_version=manual-syed-2026-07-22
+— kept out of judge stats, fully auditable). Doc 5781 (LGT self-tune mod thread, 300 posts,
+subaru/tuning_signal/gone-marked) -> **re-queued pending**: its 07-05 "runaway deliberation"
+failure predates the 07-09 thinking-budget fix (8192); never actually judged bad. Rides the
+next routine judge batch (333 pending) AFTER tonight's training frees the Ti.
