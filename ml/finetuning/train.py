@@ -64,6 +64,10 @@ def main() -> None:
 
     common = dict(
         output_dir=str(OUT), seed=0, bf16=True,
+        # 04:20 fix (attempt 3): trl's default "chunked_nll" loss upcasts the WHOLE lm_head
+        # weight to fp32 per chunk (vocab 124k x 5120 x 4B = the 2.37GiB OOM, independent of
+        # seq length). "nll" keeps the head in bf16; logits at our lengths are ~250MB peak.
+        loss_type="nll",
         per_device_train_batch_size=1, gradient_accumulation_steps=8,
         learning_rate=2e-4, lr_scheduler_type="cosine", warmup_ratio=0.1,
         optim="paged_adamw_8bit", logging_steps=5, report_to=[],

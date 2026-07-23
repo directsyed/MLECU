@@ -168,3 +168,14 @@ quarantined in results/aborted-20260723/ (README inside; never score them).
 hybrid-labeled without the index file (hard abort, no silent fallback) — both stage 3 and
 stage 4. Chain relaunched 04:08 as attempt 2; attempt-1 log kept as
 overnight-20260722-attempt1.log.
+
+## 9. RUNTIME POSTMORTEM #2 (04:10-04:12) — same OOM, real root cause, attempt 3
+
+max_length=512 changed nothing: the failing allocation was the SAME 2.37GiB — which proved
+it sequence-independent. Read trl's source: its default `chunked_nll` loss upcasts the
+ENTIRE lm_head weight matrix to fp32 on every 256-token chunk (`w.float()`: 124k vocab x
+5120 x 4B = 2.37GiB) — designed for GPUs with slack we don't have. Fix: `loss_type="nll"`
+(trl's own documented alternative) — LM head stays bf16, only the logits (~250MB at our
+lengths) upcast inside cross-entropy. Diagnosis method worth keeping: when an OOM number
+doesn't move after you shrink the data, the allocation isn't data-shaped — go read the
+library source. Chain attempt 3 launched 04:12; embed index build untouched and running.
