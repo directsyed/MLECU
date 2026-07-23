@@ -143,3 +143,28 @@ training curves, the gated-pairs list, judge batch outcome, and every deviation 
 See `ml/finetuning/logs/overnight-20260722.log` (chain events + eval summaries),
 `server-20260722.log` (llama-server), `embed-index.log`, `runs/qlora-v1/train_summary.json`
 (loss curves). All result JSONLs: `ml/eval/results/` with per-row model tags.
+
+---
+
+## 8. RUNTIME POSTMORTEM #1 (04:03-04:08) — two failures, both caught by the safety nets
+
+**Smoke OOM (the gate worked).** First training step died in trl's loss computation: it
+upcasts the hidden states and the 151K-vocab logits matmul to float32, asking for 2.37GiB
+with 1.61 free. Root cause: my max_length=1024 was a guess. Fix: MEASURED the dataset with
+the real tokenizer — longest transcript is 484 tokens — set max_length=512 (covers 100%,
+halves the loss-step memory) + PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+(defragmentation). Lesson recorded: derive sequence length from data, never assume.
+
+**The self-match bug, again (embarrassing, documented).** The embed-index watcher polled
+`pgrep -f "hf download BAAI/bge-m3"` — a pattern its OWN command line contained. It waited
+on itself forever; the download had long finished. This exact gotcha is in the 07-08
+handoff with the bracket-trick fix; I reproduced it anyway, and then reproduced it AGAIN
+one minute later when the cleanup pkill matched its own shell (exit 144). Both now fixed
+with bracket patterns. Consequence: the first chain started the B-v2 battery with no dense
+index — hybrid silently fell back to BM25, i.e. a MISLABELED cell. ~15 min of arm-B rows
+quarantined in results/aborted-20260723/ (README inside; never score them).
+
+**Chain hardening from the incident**: retrieval batteries now REFUSE to run
+hybrid-labeled without the index file (hard abort, no silent fallback) — both stage 3 and
+stage 4. Chain relaunched 04:08 as attempt 2; attempt-1 log kept as
+overnight-20260722-attempt1.log.

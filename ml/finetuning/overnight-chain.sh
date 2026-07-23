@@ -60,6 +60,7 @@ log "=========== CHAIN START ==========="
 # ---- STAGE 0: training (smoke gate, then the real run) — Ti ONLY ----
 log "=== STAGE 0: QLoRA training ==="
 cd "$M"
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True   # 04:30 fix: defragment the tight fit
 if CUDA_VISIBLE_DEVICES=0 "$V/python" ml/finetuning/train.py --smoke >> "$LOG" 2>&1; then
   log "smoke OK — full run starting"
   if CUDA_VISIBLE_DEVICES=0 "$V/python" ml/finetuning/train.py >> "$LOG" 2>&1; then
@@ -89,12 +90,15 @@ if [ "$TRAINED" = 1 ]; then
   if server_start ft --lora "$ADAPTER_GGUF"; then          # NO MTP with adapter (untested combo)
     battery C 6 6 2 "$FT_NAME"
     log "=== STAGE 3: arm D battery (fine-tune + hybrid retrieval @6) ==="
-    for _ in $(seq 1 60); do [ -f "$INDEX" ] && break; sleep 30; done
-    [ -f "$INDEX" ] || log "WARNING: dense index still absent — D degrades to BM25 fallback"
-    battery D 6 6 2 "$FT_NAME"
-    log "=== STAGE 6a: arm D top_k sweeps (runs=1, determinism proven 588/588x2) ==="
-    battery D 3 6 1 "$FT_NAME|e1k3-e2k6"
-    battery D 3 3 1 "$FT_NAME|k3-all"
+    for _ in $(seq 1 120); do [ -f "$INDEX" ] && break; sleep 30; done
+    if [ -f "$INDEX" ]; then
+      battery D 6 6 2 "$FT_NAME"
+      log "=== STAGE 6a: arm D top_k sweeps (runs=1, determinism proven 588/588x2) ==="
+      battery D 3 6 1 "$FT_NAME|e1k3-e2k6"
+      battery D 3 3 1 "$FT_NAME|k3-all"
+    else
+      log "dense index NEVER appeared — D batteries ABORTED (no mislabeled cells)"
+    fi
     server_stop
   else
     log "fine-tuned server failed — C/D skipped"
@@ -103,7 +107,13 @@ fi
 
 # ---- STAGE 4: base server (certified judge config, MTP on) -> B-v2 battery + sweeps ----
 log "=== STAGE 4: arm B-v2 battery (base + hybrid retrieval @6) ==="
-if server_start base --spec-type draft-mtp; then
+# 04:30 fix: HARD index requirement — first chain ran B-v2 on silent BM25 fallback
+# (mislabeled cell, quarantined in results/aborted-20260723). Retrieval batteries now
+# refuse to start hybrid-labeled without the dense index.
+for _ in $(seq 1 240); do [ -f "$INDEX" ] && break; sleep 30; done
+if [ ! -f "$INDEX" ]; then
+  log "dense index NEVER appeared — B-v2 battery ABORTED (no mislabeled cells)"
+elif server_start base --spec-type draft-mtp; then
   battery B 6 6 2 "$BASE_NAME"
   log "=== STAGE 6b: arm B-v2 top_k sweeps (runs=1) ==="
   battery B 3 6 1 "$BASE_NAME|e1k3-e2k6"

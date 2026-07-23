@@ -69,7 +69,9 @@ def main() -> None:
         optim="paged_adamw_8bit", logging_steps=5, report_to=[],
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
-        max_length=1024, packing=False,
+        max_length=512, packing=False,   # measured: longest transcript = 484 tokens (04:30
+                                         # fix — 1024 OOM'd the fp32 logits chunk in trl's
+                                         # loss: 2.37GiB ask vs 1.61 free on the Ti)
     )
     if args.smoke:
         sft = dict(common, max_steps=2, eval_strategy="no", save_strategy="no")
