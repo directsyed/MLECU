@@ -205,3 +205,18 @@ noted). Hybrid sanity PASS: paraphrase query "additive fuel correction rising at
 throttle" — BM25 returns only keyword-matched ECUFlash defs; hybrid surfaces
 "Acceleration Compensation" (semantic hit, no shared keywords) at rank 2. Arm C battery
 started 06:33 on the adapter server (healthy in 70s).
+
+## 12. ARM C VERDICT (battery 06:33-15:53) — the pilot fine-tune fails the bars, informatively
+
+**E1v2: 83.7% top-1 (123/147, both runs byte-identical) — equal to base arm A, and FAILS
+the ratified bar twice over**: below 90%, and TWO dangerous misses (cross-family flips:
+injector_flow_rich answered maf_low / injector_flow_lean — rich truth, lean answer). First
+dangerous misses of any arm. **E1v1: 74.3% vs A's 84.3** (−10, incl. one vacuum_leak ->
+healthy). **E2: hard-gate FAIL and the headline finding — honest declines collapsed 
+(8/69) while dangerous fabrications hit 45/69 (65%)** vs base ~15%; exact matches rose only
+14.5%->21.7%. Interpretation: 280 pairs taught the REGISTER (confident, numeric,
+domain-voiced answers) without the underlying values — integrity regressed exactly where
+the safety doctrine cares most. This is the pre-registration working: an unbarred demo
+would have called C "more knowledgeable-sounding" and shipped it. Open question now at arm
+D: does retrieval + the cite-or-decline rider discipline the fine-tune's new
+overconfidence? D battery started 15:53.
