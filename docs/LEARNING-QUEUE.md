@@ -24,6 +24,21 @@ memory: syed-rag-learning-progress). Check items off as they're actually walked 
   reasoning + answer share one token budget; tolerant-parse-as-miss semantics.
 - [ ] **QLoRA fine-tune (upcoming)** — when arms C/D train: what LoRA adapters are, why
   4-bit quantization, hyperparameters. LEARNING-PRIORITY: Syed drives this one live.
+- [ ] **Single-token roadmap through a transformer** (requested 2026-07-22, QLoRA night):
+  trace ONE token end-to-end — tokenizer ID -> embedding row lookup -> per-layer journey
+  (attention Q/K/V mixing vs per-token MLP, residual stream, dims expanding 4096->14336->4096)
+  -> final logits matrix -> softmax -> sampling -> KV cache role in the next pass. Builds on
+  the neurons/weights/matrix-shapes groundwork laid in the 07-22 session.
 - [ ] **E2 sampling-skew postmortem** — Syed's own catch (2026-07-09): ORDER BY id sampled
   first-ingested docs; deterministic-hash scattering; why probe MIX matters as much as
   probe accuracy.
+- [ ] **prepare.py walkthrough** (built by Claude on 07-22 delegation): the structural
+  gate, stratified split internals (dict grouping, seeded shuffle, per-stratum rounding),
+  chat-transcript format, why train-shape == serve-shape.
+- [ ] **Embeddings retrieval pipeline (retrieval-v2)**: BGE-M3, contrastive training,
+  cosine similarity as normalized dot product, the RRF fusion math, why the index is 23MB,
+  hybrid-vs-BM25 failure modes. Code: ml/eval/harness/embed_index.py + retrieval.py.
+- [ ] **QLoRA train.py line-by-line**: BitsAndBytesConfig knobs, LoraConfig targets,
+  gradient checkpointing, paged 8-bit Adam, the smoke gate, reading loss curves.
+- [ ] **DISCUSSION: on-vehicle context sizing** (Syed, 07-22): long raw context vs rolling
+  summarized session file for iteration memory; 68 KiB/token KV math; design at Stage C.

@@ -17,7 +17,14 @@ from .config import Config, EVAL_DIR
 def main() -> None:
     p = argparse.ArgumentParser("eval-harness")
     p.add_argument("--run-e1", action="store_true")
-    p.add_argument("--arm", default="B", help="A (base) or B (base+RAG)")
+    p.add_argument("--arm", default="B",
+                   help="A base / B base+RAG / C fine-tuned / D fine-tuned+RAG "
+                        "(C/D = server-side variable: adapter-loaded llama-server)")
+    p.add_argument("--top-k", type=int, default=None, help="retrieval snippets per prompt")
+    p.add_argument("--retrieval-mode", default=None, choices=("bm25", "hybrid"),
+                   help="bm25 = retrieval-v1 exact; hybrid = dense+BM25 RRF (default cfg)")
+    p.add_argument("--model-name", default=None,
+                   help="model tag recorded into result rows (e.g. qwen3.6-27b-q8+qlora-v1)")
     p.add_argument("--runs", type=int, default=2, help="repeat count (determinism check)")
     p.add_argument("--limit", type=int, default=None, help="first N cases only (smoke)")
     p.add_argument("--score", type=Path, default=None, help="score a results JSONL")
@@ -32,6 +39,15 @@ def main() -> None:
                    help="E1 cases JSONL override (e.g. data/sim_cases_v2.jsonl)")
     args = p.parse_args()
     cfg = Config(cases_path=args.cases) if args.cases else Config()
+    if args.top_k is not None or args.retrieval_mode is not None:
+        from dataclasses import replace
+        r = cfg.retrieval
+        r = replace(r, top_k=args.top_k) if args.top_k is not None else r
+        r = replace(r, mode=args.retrieval_mode) if args.retrieval_mode is not None else r
+        cfg = replace(cfg, retrieval=r)
+    if args.model_name:
+        from dataclasses import replace
+        cfg = replace(cfg, llm=replace(cfg.llm, model=args.model_name))
 
     if args.gen_pairs:
         llm.health_check(cfg.llm)
@@ -47,8 +63,10 @@ def main() -> None:
 
     if args.run_e2:
         llm.health_check(cfg.llm)
-        out = e2.run_arm(cfg, args.arm, args.probes, tolerance_pct=args.tolerance)
-        print(json.dumps(e2.score(out), indent=2))
+        for k in range(args.runs):        # e2 gains multi-run parity with e1 (2026-07-22)
+            out = e2.run_arm(cfg, args.arm, args.probes, run_idx=k + 1,
+                             tolerance_pct=args.tolerance)
+            print(json.dumps(e2.score(out), indent=2))
         return
 
     if args.baselines:

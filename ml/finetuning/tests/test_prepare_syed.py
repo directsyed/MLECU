@@ -98,3 +98,9 @@ def test_split_changes_with_seed():
 def test_tiny_stratum_rounds_to_zero_val():
     train, val = prepare.stratified_split(_items(2), val_frac=0.10, seed=0)
     assert len(val) == 0 and len(train) == 6            # round(0.2) == 0 per stratum
+
+
+def test_gate_blank_diagnosis_returns_none():
+    # gate extension (Claude 2026-07-22): all four fields required, not just symptoms
+    assert prepare.to_example(_pair(diagnosis="")) is None
+    assert prepare.to_example(_pair(diagnosis="  \n")) is None

@@ -1,0 +1,145 @@
+# 2026-07-22 Overnight — the ENTIRE process, decision by decision
+
+**Written for Syed's morning read, per directive: not "it's done" but HOW, WHY, and with
+what commands.** Plan of record: `~/.claude/plans/snug-shimmying-spring.md` (approved
+before sleep). Runtime events append to `ml/finetuning/logs/overnight-20260722.log`; this
+doc explains everything that log refers to. Results land in `ml/eval/results/` as usual.
+
+---
+
+## 0. What was already true when the night began
+
+v3 signed → 280 pairs → structural gate (your blank-field catch) → **242 train / 28 val**
+chat transcripts in `ml/finetuning/data/`. BF16 checkpoint verified == judge GGUF source,
+52G on disk. Training stack installed in `car/.venv`. Judge service stopped, both GPUs
+idle. Your ratifications: top_k 6 primary + exhaust the sweep matrix; keep `-c 16384`
+(inert allocation can't change scores); no KV-cache quantization anywhere; embeddings
+before showdown.
+
+## 1. The embedding pipeline (retrieval-v2) — what was actually done
+
+**Why**: BM25 matches words; E2 proved its ceiling (34.8% match, 5 fabrications where the
+RIGHT doc was found but the wrong number lifted). An embedding model maps whole passages to
+1024-dim vectors where same-meaning ⇒ nearby, so retrieval becomes geometry (cosine
+similarity = normalized dot product), immune to vocabulary mismatch.
+
+**Model choice** (re-verified live, not from memory): **BAAI/bge-m3** — MIT license, 568M
+params, the 2026 production default per current practitioner guides. Runs on **CPU** —
+zero VRAM taken from anything, ~2.3GB one-time download (no sudo: plain user-level HF pull,
+same mechanics as your 52GB one).
+
+**Commands that ran** (all detached with `setsid nohup`, logs in `ml/finetuning/logs/`):
+```
+car/.venv/bin/hf download BAAI/bge-m3                       # to the HF cache
+# then, automatically once that finished:
+cd ml/eval && car/.venv/bin/python -m harness.embed_index    # ~15-25 min on CPU
+```
+`embed_index.py` (new file, fully commented): reads all 5,608 `ref_fts` rows — the SAME
+text units BM25 ranks, so both rankers vote on identical candidates — encodes
+`title\ntext`, L2-normalizes, stores `ml/eval/data/ref_dense_v1.npz` (~23MB: one float32
+[5608×1024] matrix + rowids).
+
+**Query-time wiring** (`ml/eval/harness/retrieval.py` — your `query_terms` untouched):
+`retrieve()` now has two modes. `mode="bm25"` is retrieval-v1 byte-for-byte (kept forever
+for audit). `mode="hybrid"` (the new default): BM25 top-20 + dense top-20, fused by
+**Reciprocal Rank Fusion** — each doc scores Σ 1/(60+rank) across the two lists. RRF has
+no tuned weights (nothing to overfit), rewards docs both rankers like, and lets either
+ranker alone surface what the other missed. Top-k of the fused list emerges as the same
+`RefSnippet` objects arm B always consumed — the seam you built held, which is the whole
+point of seams. Dense-only hits get the chunk head as their snippet (FTS `snippet()`
+requires a keyword MATCH; a semantic hit may have none). If the index file is missing,
+hybrid silently degrades to pure BM25 and the chain logs a warning.
+
+**Cite-or-decline** (P2's second half, data-mirror of the safety doctrine): the retrieval
+block HEADER now ends: *"If asked for a specific calibration value, state it only if an
+excerpt contains it (cite its [REF id]); otherwise decline rather than estimate."* It
+rides inside the injected block — NOT in SYSTEM — so the arm protocol's "everything
+identical except the injected block" stays exactly true. E2's answer grammar already has
+the decline channel (`must_retrieve`/null): the rider tells the model to use it.
+
+## 2. Arms C and D — 10 honest lines
+
+`arms.build_user`: C behaves as A (case verbatim), D behaves as B (retrieval block). The
+fine-tune is a SERVER-side variable — C/D talk to an adapter-loaded llama-server, A/B to
+base — so the arm letter exists purely for honest labeling in results files/rows. CLI
+gained `--top-k`, `--retrieval-mode`, `--model-name` (sweep provenance goes in the model
+tag, e.g. `qwen3.6-27b-q8+qlora-v1|e1k3-e2k6`), and E2 got `--runs` parity with E1.
+Tests: 25 eval + 11 finetuning, all green pre-launch; v1 retrieval pinned under
+`mode="bm25"`; RRF fusion math unit-tested; "E" is still an unknown arm.
+
+## 3. QLoRA training — every choice in `ml/finetuning/train.py`
+
+- **NF4 4-bit frozen base** (~15-16GB of the Ti's 24): the only precision at which a 27B
+  fits ONE card with training overhead. Not the product — scaffolding (serving re-quants).
+- **`CUDA_VISIBLE_DEVICES=0`** + an assert that exactly 1 GPU is visible: the convicted
+  3090 is physically invisible to the training process. Training load sits above its
+  152-230W failure bracket; its crash kills the whole box; single-card was ratified.
+- **LoRA r=16, α=32, dropout 0.05** on q/k/v/o/gate/up/down projections — every attention
+  and MLP matrix gets the detect-16-patterns/apply-16-corrections bypass you were taught.
+- **242 examples × 3 epochs ÷ (batch 1 × grad-accum 8) ≈ 90 optimizer steps**, lr 2e-4
+  cosine with 10% warmup, paged 8-bit Adam (the optimizer's two per-weight running
+  averages, quantized, pageable — the memory bill shrinks again).
+- **Gradient checkpointing**: don't store forward activations; recompute them during the
+  backward pass. ~30% slower, massively lighter — the trade that makes 27B-on-24GB real.
+- **The 28-pair holdout drives early stopping**: eval each epoch, keep the checkpoint with
+  best val loss (`load_best_model_at_end`). With 27B params vs 242 examples, memorization
+  is expected — the question is when, and the val curve answers it. Full loss history
+  saved to `runs/qlora-v1/train_summary.json` for your morning read.
+- **assistant_only_loss**: loss masked to the assistant turns if this trl build supports it
+  (the reply is the lesson, not the question); the log states which branch ran.
+- **`--smoke` gate**: 2 optimizer steps + exit. The chain refuses to start the real run
+  (or anything downstream) if the smoke fails — no 3am surprises on the first-ever 27B
+  load through transformers on this box.
+
+## 4. Serving the fine-tune (arms C/D)
+
+```
+pip install gguf                                             # converter dependency
+convert_lora_to_gguf.py runs/qlora-v1/adapter --base <BF16> --outfile adapter.gguf --outtype f16
+llama-server -m Qwen3.6-27B-Q8_0.gguf --lora adapter.gguf \
+  -ngl 999 --split-mode layer --tensor-split 3.5,1 -c 16384 -np 1 --jinja  # port 8080
+```
+Same binary, same certified flags as the judge service (3.5:1 split keeps the 3090 in its
+8-day-proven inference envelope), with two deltas, both logged: `--lora` applies the
+adapter as separate matmuls over the Q8 base (measurement-grade; the production path —
+merge into BF16, requant fresh Q8 — wants the 224GB RAM kit and is queued); and **no
+`--spec-type draft-mtp`** for the adapter server ONLY (untested lora+MTP interaction;
+MTP is speed-only and output-invariant, so dropping it cannot move a score). The base
+server for B-v2 keeps MTP exactly as certified. No sudo: servers run as your user with the
+service file's flags; systemd wasn't needed.
+
+## 5. The chain (`ml/finetuning/overnight-chain.sh`) — order and reasoning
+
+0. **Train** (smoke → full) on the Ti. Embedding index builds on CPU in parallel.
+1. **Adapter → GGUF.**
+2. **Arm C battery** (fine-tune, no retrieval) — E1v2 first (your ratified bar), then E2
+   (hard gate), then E1v1. 2 runs each, per protocol.
+3. **Arm D battery** @6 (fine-tune + hybrid) — 2 runs. Then **D sweeps** (E1@3/E2@6,
+   then 3-all) at 1 run each — justified deviation: temp-0 determinism has been
+   byte-identical in every measurement to date (588/588, twice); flagged for your review.
+4. **Base server** → **arm B-v2 battery** @6 (2 runs) → B-v2 sweeps (1 run each).
+5. **Judge batch**: 333 pending docs incl. re-queued 5781, on the same base server (it IS
+   the certified judge config). Routine continuous ops, lowest priority, so it runs last.
+6. Every stage appends to the log; a failure aborts dependents only (bad training can't
+   stop B-v2; a bad server can't corrupt results — rows flush per-case, crash-safe).
+
+**Priority logic**: C lands first because "did fine-tuning work" is the gate question;
+D@6 second because fine-tune+RAG is the architecture bet; B-v2 third isolates the
+embeddings effect; sweeps fill the matrix; judging is interruptible any time.
+
+**Usage-limit resilience** (your question): the chain is one detached process tree owned
+by the OS, not by me. If my usage window closes, everything above keeps running and
+writing; I resume monitoring and write the final comparison the moment I'm back.
+
+## 6. What the morning report will contain
+
+Per-cell scores for A (recorded), B-v1 (recorded), B-v2@{6, 3/6, 3}, C, D@{6, 3/6, 3} on
+E1v1 / E1v2 / E2 — against the pre-registered bars (E1v2: 90% top-1 + zero dangerous
+misses; E2: any confident-wrong value = arm fails; E1v1: 85.7 rules reference). Plus
+training curves, the gated-pairs list, judge batch outcome, and every deviation flagged.
+
+## 7. Runtime appendix
+
+See `ml/finetuning/logs/overnight-20260722.log` (chain events + eval summaries),
+`server-20260722.log` (llama-server), `embed-index.log`, `runs/qlora-v1/train_summary.json`
+(loss curves). All result JSONLs: `ml/eval/results/` with per-row model tags.

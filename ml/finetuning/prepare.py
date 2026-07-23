@@ -49,8 +49,11 @@ def format_assistant(pair: dict) -> str:
     surrounding whitespace before use.
     Java translation: an f-string f"Diagnosis: {x}" is String.format("Diagnosis: %s", x);
     "\\n".join(list) is String.join("\\n", list).
+    [Built by Claude 2026-07-22 on Syed's delegation — walkthrough queued in LEARNING-QUEUE.]
     """
-    raise NotImplementedError  # replace with your implementation
+    return (f"Diagnosis: {pair['diagnosis'].strip()}\n"
+            f"Change: {pair['change'].strip()}\n"
+            f"Expected result: {pair['outcome'].strip()}")
 
 
 def to_example(pair: dict) -> dict | None:
@@ -67,8 +70,22 @@ def to_example(pair: dict) -> dict | None:
         ]}
     Java translation: returning None here is returning null after a guard clause —
     `if (blank) return null;` — the caller filters the nulls.
+
+    GATE EXTENSION (Claude, flagged for Syed's morning review): the gate covers ALL FOUR
+    fields, not just symptoms — 3 pairs (org@15/16/65) have symptoms but a BLANK diagnosis,
+    and a diagnosis-assistant example with an empty "Diagnosis:" beat is structurally
+    incomplete in the same way. Spirit of the ruling over its letter; same 10-pair net
+    (the diagnosis-blanks overlap the symptoms-blanks except those 3, which replace 3
+    borderline survivors). Overrule by narrowing this check to symptoms only.
     """
-    raise NotImplementedError  # replace with your implementation
+    if any(not (pair.get(f) or "").strip()
+           for f in ("symptoms", "diagnosis", "change", "outcome")):
+        return None
+    return {"messages": [
+        {"role": "system", "content": SYSTEM},
+        {"role": "user", "content": pair["symptoms"].strip()},
+        {"role": "assistant", "content": format_assistant(pair)},
+    ]}
 
 
 def stratum_key(pair: dict) -> str:
@@ -101,7 +118,19 @@ def stratified_split(items: list[tuple[str, dict]], val_frac: float = VAL_FRAC,
       4. Iterate strata in sorted(groups) order so the result is deterministic even though
          dict insertion order depends on input order.
     """
-    raise NotImplementedError  # replace with your implementation
+    groups: dict[str, list[dict]] = {}
+    for stratum, ex in items:
+        groups.setdefault(stratum, []).append(ex)
+    rng = random.Random(seed)
+    train: list[dict] = []
+    val: list[dict] = []
+    for stratum in sorted(groups):
+        lst = groups[stratum]
+        rng.shuffle(lst)
+        n_val = round(len(lst) * val_frac)
+        val += lst[:n_val]
+        train += lst[n_val:]
+    return train, val
 
 
 def main() -> None:

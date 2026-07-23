@@ -27,6 +27,11 @@ class RetrievalCfg:
     db_path: Path = MLECU / "ml/data-pipeline/data/corpus.sqlite"
     top_k: int = 3
     snippet_max_chars: int = 1200
+    # retrieval-v2 (2026-07-22, Syed-ratified): hybrid dense+BM25 behind the same seam.
+    # mode="bm25" reproduces retrieval-v1 byte-for-byte (audit/repro); "hybrid" fuses
+    # BM25 with BGE-M3 cosine ranks via RRF. Falls back to bm25 if the index is absent.
+    mode: str = "hybrid"
+    index_path: Path = EVAL_DIR / "data/ref_dense_v1.npz"
 
 
 @dataclass(frozen=True)

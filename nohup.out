@@ -1,0 +1,4 @@
+Fetching 29 files:   0%|          | 0/29 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 29 files:   3%|▎         | 1/29 [00:00<00:04,  5.75it/s]Fetching 29 files:  31%|███       | 9/29 [04:20<09:59, 29.97s/it]Fetching 29 files:  38%|███▊      | 11/29 [05:01<08:16, 27.56s/it]Fetching 29 files:  45%|████▍     | 13/29 [05:13<05:52, 22.00s/it]Fetching 29 files:  59%|█████▊    | 17/29 [05:36<03:00, 15.06s/it]Fetching 29 files:  62%|██████▏   | 18/29 [06:40<03:55, 21.45s/it]Fetching 29 files:  66%|██████▌   | 19/29 [06:52<03:20, 20.06s/it]Fetching 29 files:  69%|██████▉   | 20/29 [07:02<02:43, 18.20s/it]Fetching 29 files:  72%|███████▏  | 21/29 [07:12<02:12, 16.51s/it]Fetching 29 files: 100%|██████████| 29/29 [07:13<00:00, 14.93s/it]
+[32m✓ Downloaded[0m
+  path: /home/syed/Shared/Computing Projects/MLECU/ml/finetuning/models/Qwen3.6-27B

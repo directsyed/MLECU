@@ -35,8 +35,14 @@ def test_arm_a_is_verbatim():
 
 
 def test_unknown_arm_rejected():
+    # C/D became real arms 2026-07-22 (showdown night); E stays unknown
     with pytest.raises(ValueError):
-        arms.build_user("C", CFG, "x")
+        arms.build_user("E", CFG, "x")
+
+
+def test_arm_c_is_verbatim_like_a():
+    user, refs = arms.build_user("C", CFG, "case text")
+    assert user == "case text" and refs == []
 
 
 
