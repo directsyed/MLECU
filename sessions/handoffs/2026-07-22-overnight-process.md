@@ -192,3 +192,16 @@ kill bug bit a THIRD time (a pkill sharing a command line with the relaunch that
 same script); rule hardened — kills get their own command, always. Embedder confirmed
 healthy mid-crunch (2238% CPU, silent only because I disabled its progress bar —
 observability mistake, noted). Attempt 4 launched 04:53.
+
+## 11. TRAINING COMPLETE (06:32) — the holdout did its job
+
+Attempt 4 ran clean: 91 min, 90 optimizer steps, train loss 2.06 -> 1.34. The 28-pair
+holdout curve: eval_loss 1.772 (epoch 1) -> 1.824 (2) -> 1.927 (3) — **memorization began
+immediately after epoch 1**, exactly the failure mode the holdout was built to catch, and
+`load_best_model_at_end` silently saved the epoch-1 checkpoint as the adapter. What we
+serve/measure is that best checkpoint (runs/qlora-v1/checkpoint-31 -> adapter, 153MB GGUF).
+Embed index landed 06:19 (5608x1024, 2.2h on CPU — my 15-25min estimate was 5x optimistic;
+noted). Hybrid sanity PASS: paraphrase query "additive fuel correction rising at closed
+throttle" — BM25 returns only keyword-matched ECUFlash defs; hybrid surfaces
+"Acceleration Compensation" (semantic hit, no shared keywords) at rank 2. Arm C battery
+started 06:33 on the adapter server (healthy in 70s).
