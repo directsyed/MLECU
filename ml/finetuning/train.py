@@ -68,6 +68,10 @@ def main() -> None:
         # weight to fp32 per chunk (vocab 124k x 5120 x 4B = the 2.37GiB OOM, independent of
         # seq length). "nll" keeps the head in bf16; logits at our lengths are ~250MB peak.
         loss_type="nll",
+        # 04:55 fix (attempt 4): epoch-1 EVAL pass OOM'd (2.69GiB) — eval batch defaults
+        # to 8 and the eval loop accumulates logits on-GPU. We need only eval_loss.
+        per_device_eval_batch_size=1,
+        prediction_loss_only=True,
         per_device_train_batch_size=1, gradient_accumulation_steps=8,
         learning_rate=2e-4, lr_scheduler_type="cosine", warmup_ratio=0.1,
         optim="paged_adamw_8bit", logging_steps=5, report_to=[],

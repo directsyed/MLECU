@@ -179,3 +179,16 @@ ENTIRE lm_head weight matrix to fp32 on every 256-token chunk (`w.float()`: 124k
 lengths) upcast inside cross-entropy. Diagnosis method worth keeping: when an OOM number
 doesn't move after you shrink the data, the allocation isn't data-shaped — go read the
 library source. Chain attempt 3 launched 04:12; embed index build untouched and running.
+
+## 10. RUNTIME POSTMORTEM #3 (04:51-04:53) — eval-pass OOM; attempt 4
+
+Attempt 3's smoke PASSED (loss_type=nll was right) and training ran 35 min — then OOM'd at
+the EPOCH-1 VALIDATION pass: eval batch size defaults to 8 (vs training's 1) and the eval
+loop accumulates logits on-GPU. Fix: per_device_eval_batch_size=1 + prediction_loss_only
+(we need only eval_loss for early stopping). Meta-lesson now visible across all three
+failures: ONE memory budget, three different spenders (loss upcast, eval batching,
+allocator fragmentation) — each hides until the previous one is fixed. Also: the self-match
+kill bug bit a THIRD time (a pkill sharing a command line with the relaunch that names the
+same script); rule hardened — kills get their own command, always. Embedder confirmed
+healthy mid-crunch (2238% CPU, silent only because I disabled its progress bar —
+observability mistake, noted). Attempt 4 launched 04:53.
