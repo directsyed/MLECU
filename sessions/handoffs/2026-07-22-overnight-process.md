@@ -220,3 +220,26 @@ the safety doctrine cares most. This is the pre-registration working: an unbarre
 would have called C "more knowledgeable-sounding" and shipped it. Open question now at arm
 D: does retrieval + the cite-or-decline rider discipline the fine-tune's new
 overconfidence? D battery started 15:53.
+
+## 13. ARM D VERDICT (15:53-~11:20 next day, incl. sweeps) — grounding disciplines the fine-tune
+
+**E2 @6 (the headline): exact 29/69 = 42.0% — best any arm has scored — and dangerous
+fabrications cut 45 -> 15 (65% -> 21.7%) vs arm C, declines restored (8 -> 24).** The
+cite-or-decline rider + hybrid retrieval reclaimed most of the integrity the fine-tune
+destroyed, while the fine-tune's domain fluency pushed exact-match past B-v1's 34.8%
+ceiling. Still a hard-gate FAIL (15 confident wrong values > 0) — the gate remains
+unpassed by every arm, and that is the honest state of the system.
+
+**E1v2 @6: 78.2%, ZERO dangerous misses** (both runs identical). Retrieval remains a
+DISTRACTION on self-contained diagnosis (78.2 < C's 83.7) — consistent with the E1v1
+doctrine — but it eliminated C's two cross-family flips entirely. Sweeps: E1@3 74.1 /
+k3-all 76.2 on v2; E2 k3-all traded 4 exact for 3 fewer dangerous + 8 more declines
+(top_k 6 vs 3 is a real precision/recall dial on the integrity axis; full table for the
+writeup). E1v1 @6: 70.0.
+
+Emerging cross-arm picture: fine-tune alone = overconfidence without knowledge (C);
+retrieval alone = knowledge access without integrity guarantees (B-v1); TOGETHER they are
+complementary — D is simultaneously the most accurate on values AND the most disciplined
+fine-tune configuration. The bet behind arm D held qualitatively; the hard gate says it
+has not yet earned deployment. B-v2 battery running now — it isolates how much of D's E2
+gain is retrieval-v2 alone.
