@@ -243,3 +243,39 @@ complementary — D is simultaneously the most accurate on values AND the most d
 fine-tune configuration. The bet behind arm D held qualitatively; the hard gate says it
 has not yet earned deployment. B-v2 battery running now — it isolates how much of D's E2
 gain is retrieval-v2 alone.
+
+## 14. CHAIN COMPLETE (07-25 00:14) — the full nine-cell table
+
+E1v2 (bar: >=90% top-1 AND zero dangerous misses) / E2 (gate: zero confident-wrong values):
+
+| cell                        | E1v2 top1 | E1v2 dang | E2 exact | E2 dang | E2 decline | E1v1 |
+|-----------------------------|-----------|-----------|----------|---------|------------|------|
+| A base (recorded 07-15)     | 83.7%     | 0         | 14.5%    | 14.5%   | 71%        | 84.3 |
+| B-v1 bm25@3 (rec. 07-15)    | 89.8%     | 0         | 34.8%    | 15.9%   | 49%        | 74.3 |
+| B-v2 hybrid@6               | 83.7%     | 0         | 36.2%    | 2.9%    | 60.9%      | 78.6 |
+| **B-v2 hybrid, E1@3**       | **93.9%** | **0**     | (36.2%)  | (2.9%)  | (60.9%)    | 80.0 |
+| B-v2 hybrid k3-all          | 93.2%     | 0         | 27.5%    | 2.9%    | 69.6%      | 80.0 |
+| C fine-tune                 | 83.7%     | **2**     | 21.7%    | 65.2%   | 11.6%      | 74.3 |
+| D ft+hybrid@6               | 78.2%     | 0         | 42.0%    | 21.7%   | 34.8%      | 70.0 |
+| D ft+hybrid E1@3            | 74.1%     | 0         | (42.0%)  | (21.7%) | (34.8%)    | 72.9 |
+| D ft+hybrid k3-all          | 76.2%     | 0         | 36.2%    | 17.4%   | 46.4%      | 72.9 |
+
+(Parenthesized E2 cells share the @6 E2 config with the primary row. Primaries ran 2x,
+byte-identical — determinism 8/8 batteries; sweeps 1x, deviation logged §Stage 7.)
+
+**Verdicts vs pre-registration:** B-v2@E1-top3 = FIRST BAR PASS (93.9%, zero dangerous).
+E2 hard gate: unpassed by all nine cells; closest B-v2 (2 confident-wrongs, down from
+B-v1's 11 — the cite-or-decline rider works on the base model; the fine-tune fights it).
+ROADMAP gate rule ("pilot fine-tune must beat the RAG baseline"): **NOT MET** — C lost to
+B on every axis. No EPYC spend justified. Winning architecture today: base + hybrid@3 for
+diagnosis, retrieval-mandatory for values. Fine-tune cure: better pairs (Stage-C real-car
+arcs), not more epochs — the failure mode (register without knowledge) is a data-quality
+statement, consistent with the mix's known 27% Subaru share and synthetic dominance.
+
+**Loose ends for daytime:** (1) judge batch died instantly at 00:14 (exit non-zero in
+seconds; not diagnosed overnight — do NOT blind-retry; 394 docs now pending incl. 5781);
+(2) top_k interaction: E1 distraction is dose-dependent (hybrid@6 83.7 vs @3 93.9) —
+worth a line in decisions.md when ratifying the serving default; (3) the lora-on-Q8
+serving approximation stands until the RAM kit enables true merge+requant; (4) E1v1
+regression on every retrieval/ft cell vs base (84.3) — v1's self-contained-distraction
+doctrine held all night.

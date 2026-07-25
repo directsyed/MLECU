@@ -9,6 +9,32 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-07-25 — THE FOUR-ARM SHOWDOWN: first bar PASS in project history (B-v2 hybrid@3: 93.9%); pilot fine-tune fails informatively
+
+The delegated overnight pipeline (2026-07-22 → 07-25) ran the complete pre-registered
+showdown: QLoRA pilot trained (Qwen3.6-27B NF4, r=16, 242 pairs, 91 min on the 3090 Ti;
+holdout caught the epoch-1 overfit turn and early-stopping saved the right checkpoint),
+retrieval upgraded to v2 (BGE-M3 dense + BM25, RRF fusion, cite-or-decline rider), and
+nine cells measured across E1v1/E1v2/E2 — every primary cell run twice, byte-identical
+(temp-0 determinism now 8/8 batteries).
+
+**Headline: `base + hybrid retrieval, top_k 3` scored 93.9% top-1 on E1v2 (138/147) with
+zero dangerous misses — the FIRST configuration ever to pass the ratified bar (90% + zero
+veto).** Same cell cut base-model E2 fabrications 11 → 2 via the cite-or-decline rider.
+**The pilot fine-tune (arm C) failed informatively**: E1v2 83.7% = no gain over base, the
+project's first two dangerous cross-family flips, and an E2 fabrication explosion (honest
+declines 8/69, confident-wrong 45/69 = 65%) — 280 pairs taught the *register* of expertise,
+not the values. **Arm D (fine-tune + retrieval) showed the components are complementary**:
+best-ever E2 exact (42.0%) with fabrications disciplined back to 15 — but still behind
+B-v2 on integrity and behind everything on diagnosis (78.2%). **E2 hard gate: still
+unpassed by every arm** (best: B-v2's 2 confident-wrongs) — the cite-or-decline doctrine
+is working but not yet absolute. ROADMAP gate verdict per the pre-registered rule: the
+pilot fine-tune did NOT beat the RAG baseline — no EPYC-scale spend justified; the winning
+architecture today is base + hybrid retrieval@3, and the fine-tune's cure is better pairs
+(Stage-C real-car arcs), not more epochs. Judge batch failed at chain-tail (instant error,
+non-fatal, queued for daytime). Full night narrative incl. 3 OOM postmortems:
+sessions/handoffs/2026-07-22-overnight-process.md.
+
 ## 2026-07-16 — PILOT TRAINING MIX v1 ASSEMBLED: 400 pairs, quality-first, composition honestly short
 
 The full curation machine ran end-to-end under the hardened review standard (quality ×
@@ -434,3 +460,11 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-16 | C3 remediation: off_field re-screen | 231/501 (46%) convicted off-field | Syed's 3-of-20 sample catches generalized; classifier now enforces "actionable via ROM editor" |
 | 2026-07-16 | Community batch 4 (28 keep-threads) | 36 pairs: 20 subaru, 25 deep | best quality-density of any batch; gone-marked threads mined |
 | 2026-07-16 | Pilot mix v2 | 330 pairs (82 organic + 248 synthetic), Subaru 27% | pool honestly exhausted below 400 cap; fresh sample staged |
+| 2026-07-23 | QLoRA pilot training (arm C adapter) | 91 min, 90 steps, train 2.06→1.34, val best 1.772@ep1 | Qwen3.6-27B NF4 r=16 on Ti only; holdout caught epoch-2+ overfit; epoch-1 ckpt served |
+| 2026-07-23 | Retrieval-v2 index build | 5,608 chunks × 1024-dim, 23MB, 2.2h CPU | BGE-M3, L2-normalized, RRF-fused with BM25 behind unchanged retrieve() seam |
+| 2026-07-23 | E1v2 arm C (fine-tune) | 83.7% top1, 2 dangerous flips | FAILS bar (accuracy + veto); first dangerous misses of any arm; ×2 deterministic |
+| 2026-07-23 | E2 arm C (fine-tune) | 21.7% match / 65.2% dangerous / 11.6% decline | GATE FAIL; fine-tune collapsed declines 71%→12% — register without knowledge |
+| 2026-07-24 | E1v2 arm D (ft + hybrid@6) | 78.2% top1, 0 dangerous | retrieval distracts diagnosis but eliminated C's flips; ×2 deterministic |
+| 2026-07-24 | E2 arm D (ft + hybrid@6) | 42.0% match / 21.7% dangerous / 34.8% decline | best exact-match of any arm; GATE FAIL; fabrications 45→15 vs C |
+| 2026-07-24 | E1v2 arm B-v2 (base + hybrid@3) | **93.9% top1, 0 dangerous — FIRST BAR PASS** | hybrid ranking beats bm25's 89.8; @6 variant 83.7 (distraction confirmed dose-dependent) |
+| 2026-07-24 | E2 arm B-v2 (base + hybrid@6) | 36.2% match / 2.9% dangerous / 60.9% decline | GATE FAIL by 2 (closest ever); cite-or-decline rider cut base fabrications 11→2 |
