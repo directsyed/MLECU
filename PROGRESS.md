@@ -468,3 +468,6 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-24 | E2 arm D (ft + hybrid@6) | 42.0% match / 21.7% dangerous / 34.8% decline | best exact-match of any arm; GATE FAIL; fabrications 45→15 vs C |
 | 2026-07-24 | E1v2 arm B-v2 (base + hybrid@3) | **93.9% top1, 0 dangerous — FIRST BAR PASS** | hybrid ranking beats bm25's 89.8; @6 variant 83.7 (distraction confirmed dose-dependent) |
 | 2026-07-24 | E2 arm B-v2 (base + hybrid@6) | 36.2% match / 2.9% dangerous / 60.9% decline | GATE FAIL by 2 (closest ever); cite-or-decline rider cut base fabrications 11→2 |
+| 2026-07-25 | Scorer v1.1 re-score (all 12 E2 files) | B-v2@6 2→1 dang; C 45→44; D@6 15→14; B-v1 11→9 | leading-dot + spaced-thousands parse bugs (retro-test catch); no gate verdicts flipped |
+| 2026-07-25 | Citation-guard retro-test | 13/13 absent-number fabrications blocked; 0/26 false blocks | evidence-only, deterministic; 1 known would-leak class (cited-but-wrong-selection) |
+| 2026-07-25 | E2 arm B-v3 (hybrid@6 + guard) | 37.7% match / 1.4% dangerous / 60.9% decline | GATE FAIL by ONE (e2-5723-1: right doc, right physics, 11 vs 11.8 rounding); attempted 1/blocked 0/leaked 1; ×2 identical |

@@ -419,3 +419,13 @@ true values (B-v2@6: 2->1 dangerous/25->26 exact; C: 45->44; D: 15->14; B-v1: 11
 
 **Also fixed (found by the test suite + retro-test):** BM25 tie-order nondeterminism
 (ORDER BY bm25, rowid); dense-index cache ignored index_path (now path-keyed).
+
+### 2026-07-25 — B-v3 verdict: gate FAILS by one grounded-rounding case; red stands
+
+E2 with guard (hybrid@6, rider, 2 identical runs): 26/69 exact (best base result),
+42 declines, ONE dangerous leak = e2-5723-1 (model retrieved the right Banish chapter,
+computed sqrt(50/40) correctly, stated 11% vs expected 11.8 — guard rightly "cited").
+Per the anti-benchmark-maxxing contract the gate stays RED and the result stands; no
+tolerance change from inside this result. Deployment remains blocked per Syed's ruling.
+Open options recorded in sessions/handoffs/2026-07-25-citation-guard-execution.md.
+Judge batch fixed (venv root cause) and running.
