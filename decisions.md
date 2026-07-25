@@ -395,3 +395,27 @@ unpinnable observations, no question framing. (3) Assistant turn = explicit stru
 (4) Training SYSTEM = deployment assistant identity (drafted, pending Syed wording ratify);
 eval arms keep their frozen fixture prompt per single-variable protocol. (5) Holdout 10%
 stratified (organic | syn:topic), seeded. prepare.py is SYED'S BUILD (scaffold+tests laid).
+
+### 2026-07-25 — citation guard built (B-v3); SCORER v1.1 amendment; retro-test findings
+
+**Guard**: harness/citation_guard.py — every number in a stated value must appear in the
+retrieved snippets (±1%, [REF n] ids excluded, PDF-mangled digits healed) or the answer
+mechanically becomes a decline. Pre-guard class always recorded (attempted/blocked/leaked
+gauge). Applied via `--guard` to retrieval arms only. Anti-benchmark-maxxing contract in
+docs/PLAN-post-showdown-2026-07-25.md §1 (Syed-ratified).
+
+**Retro-test verdicts (measurement before deployment):** all 13 absent-number fabrications
+across B-v1/B-v2 history BLOCKED; 0/26 false blocks on correct answers; exactly ONE
+would-leak case (e2-5723-1: model retrieved the right Banish chapter, computed the right
+sqrt(50/40) flow physics, rounded 11.8%->11% — outside the 1% tolerance; guard rightly
+says "cited"). Per contract: if it recurs in B-v3 the gate stays RED and stands.
+
+**SCORER v1.1 (logged amendment, applied uniformly, originals in git):** the retro-test
+caught parse_number mis-scoring CORRECT answers as dangerous: '.84' (leading dot) parsed
+as 84; '30 000' (spaced thousands) parsed as 30. Fixed; every historical E2 file re-scored
+with both numbers published (PROGRESS.md). Effect: every arm improved where it stated the
+true values (B-v2@6: 2->1 dangerous/25->26 exact; C: 45->44; D: 15->14; B-v1: 11->9).
+**No hard-gate verdict flipped** — the amendment passes nothing by itself.
+
+**Also fixed (found by the test suite + retro-test):** BM25 tie-order nondeterminism
+(ORDER BY bm25, rowid); dense-index cache ignored index_path (now path-keyed).
