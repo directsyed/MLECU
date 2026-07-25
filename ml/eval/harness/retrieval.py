@@ -56,7 +56,8 @@ def _bm25_ranked(cfg: RetrievalCfg, text: str, limit: int) -> list[sqlite3.Row]:
         return conn.execute(
             """SELECT rowid, title,
                       snippet(ref_fts, 1, '', '', ' … ', 24) AS snip
-               FROM ref_fts WHERE ref_fts MATCH ? ORDER BY bm25(ref_fts) LIMIT ?""",
+               FROM ref_fts WHERE ref_fts MATCH ?
+               ORDER BY bm25(ref_fts), rowid LIMIT ?""",
             (match_query, limit),
         ).fetchall()
     finally:
@@ -71,16 +72,20 @@ _RRF_K = 60          # standard RRF damping constant
 
 
 def _dense_ranked(cfg: RetrievalCfg, text: str, limit: int) -> list[int]:
-    """rowids ranked by cosine similarity, best first. [] if index/model unavailable."""
-    if "idx" not in _DENSE:
+    """rowids ranked by cosine similarity, best first. [] if index/model unavailable.
+    Cache is keyed by index PATH (bug found 2026-07-25: an unkeyed cache served the
+    first-loaded index to every later config, ignoring index_path)."""
+    key = str(cfg.index_path)
+    if key not in _DENSE:
         if not cfg.index_path.exists():
             return []
         import numpy as np
-        from sentence_transformers import SentenceTransformer
         data = np.load(cfg.index_path)
-        _DENSE["idx"] = (data["vecs"], data["rowids"])
+        _DENSE[key] = (data["vecs"], data["rowids"])
+    if "model" not in _DENSE:
+        from sentence_transformers import SentenceTransformer
         _DENSE["model"] = SentenceTransformer("BAAI/bge-m3", device="cpu")
-    vecs, rowids = _DENSE["idx"]
+    vecs, rowids = _DENSE[key]
     q = _DENSE["model"].encode([text[:6000]], normalize_embeddings=True,
                                convert_to_numpy=True)[0]
     sims = vecs @ q                      # cosine similarity (both sides L2-normalized)

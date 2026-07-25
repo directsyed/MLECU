@@ -33,6 +33,9 @@ def main() -> None:
     p.add_argument("--gen-pairs", action="store_true",
                    help="draft synthetic training pairs from reference keeps")
     p.add_argument("--run-e2", action="store_true", help="run an arm over the E2 probe file")
+    p.add_argument("--guard", action="store_true",
+                   help="deterministic citation guard on retrieval arms (B-v3+): stated "
+                        "numbers must appear in retrieved snippets or become declines")
     p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_draft.jsonl")
     p.add_argument("--tolerance", type=float, default=1.0, help="E2 match tolerance in %%")
     p.add_argument("--cases", type=Path, default=None,
@@ -65,7 +68,7 @@ def main() -> None:
         llm.health_check(cfg.llm)
         for k in range(args.runs):        # e2 gains multi-run parity with e1 (2026-07-22)
             out = e2.run_arm(cfg, args.arm, args.probes, run_idx=k + 1,
-                             tolerance_pct=args.tolerance)
+                             tolerance_pct=args.tolerance, guard=args.guard)
             print(json.dumps(e2.score(out), indent=2))
         return
 
