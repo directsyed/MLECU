@@ -84,25 +84,73 @@ def gpu_mem_used(idx: int) -> int:
         return 0
 
 
-def clocks_locked() -> bool:
-    """The 3090's clock lock is its only protection. Verify, and self-heal if it drifted
-    (the NOPASSWD sudoers entry exists precisely for this)."""
-    try:
-        out = subprocess.run(["nvidia-smi", "--query-gpu=index,clocks.gr,clocks.max.gr",
-                              "--format=csv,noheader,nounits"],
-                             capture_output=True, text=True, timeout=15).stdout
-        # GPU1 = the convicted 3090; must be pinned at 800MHz
+# The authoritative lock state, mirroring gpu-powerlimit.service. GPU0 = Ti, GPU1 = the
+# convicted 3090. Clock reads land on the nearest supported step (800 -> 810), hence tol.
+LOCKS = {0: {"gr": 1500, "mem": 10251, "pl": 400.0},
+         1: {"gr": 800, "mem": 9501, "pl": 300.0}}
+CLOCK_TOL = 60
+
+
+def gpu_guard() -> bool:
+    """Verify AND restore the full lock state; return False only if restoration FAILED.
+
+    Learned the hard way 2026-07-29: gpu-powerlimit.service applied the locks correctly at
+    boot, but they had silently reverted by the time the driver started (3090 boosting at
+    1695MHz, both power limits back to stock). Cause: without persistence mode the driver
+    resets per-GPU settings whenever the last client detaches — i.e. every time a unit's
+    server exits, which in this pipeline is between EVERY unit. `nvidia-smi -pm 1` at boot
+    races nvidia-persistenced and doesn't reliably stick.
+
+    The old version re-applied and ignored the result. For a card whose failure mode is
+    killing the whole machine, an unverified lock is not a lock — so this re-reads after
+    writing and halts the pipeline if the 3090 cannot be confirmed pinned.
+    """
+    def read() -> dict:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index,persistence_mode,clocks.gr,clocks.mem,power.limit",
+             "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=20).stdout
+        st = {}
         for line in out.strip().splitlines():
-            idx, cur, _mx = [x.strip() for x in line.split(",")]
-            if idx == "1" and int(cur) > 900:
-                log(f"WARNING: 3090 clock drifted to {cur}MHz — re-applying lock")
-                subprocess.run(["sudo", "-n", "nvidia-smi", "-i", "1", "-lgc", "800,800"],
-                               capture_output=True, timeout=30)
-                return False
+            i, pm, gr, mem, pl = [x.strip() for x in line.split(",")]
+            st[int(i)] = {"pm": pm, "gr": int(gr), "mem": int(mem), "pl": float(pl)}
+        return st
+
+    def wrong(st: dict) -> list[int]:
+        bad = []
+        for idx, want in LOCKS.items():
+            cur = st.get(idx)
+            if not cur or cur["pm"] != "Enabled" \
+               or abs(cur["gr"] - want["gr"]) > CLOCK_TOL \
+               or abs(cur["mem"] - want["mem"]) > CLOCK_TOL \
+               or abs(cur["pl"] - want["pl"]) > 5:
+                bad.append(idx)
+        return bad
+
+    try:
+        bad = wrong(read())
+        if not bad:
+            return True
+        log(f"GPU lock state WRONG on {bad} — restoring (persistence + clocks + power limits)")
+        subprocess.run(["sudo", "-n", "nvidia-smi", "-pm", "1"], capture_output=True, timeout=60)
+        for idx in bad:
+            w = LOCKS[idx]
+            for flag, val in (("-lgc", f"{w['gr']},{w['gr']}"),
+                              ("-lmc", f"{w['mem']},{w['mem']}"),
+                              ("-pl", str(int(w["pl"])))):
+                subprocess.run(["sudo", "-n", "nvidia-smi", "-i", str(idx), flag, val],
+                               capture_output=True, timeout=60)
+        still_bad = wrong(read())                       # VERIFY the restore actually took
+        if 1 in still_bad:
+            log("FATAL: 3090 lock could NOT be restored — refusing to run it unprotected")
+            return False
+        if still_bad:
+            log(f"WARNING: Ti lock still off ({still_bad}) — continuing (healthy card)")
+        else:
+            log("GPU locks restored and verified")
         return True
     except Exception as e:
-        log(f"clock check failed: {e}")
-        return True          # don't halt the pipeline on a transient nvidia-smi hiccup
+        log(f"gpu_guard error: {e}")
+        return True          # a transient nvidia-smi hiccup must not halt a 4-day run
 
 
 def server_stop() -> None:
@@ -194,7 +242,8 @@ def preflight() -> tuple[bool, str]:
             f = mc / kind
             if f.exists() and int(f.read_text().strip() or 0) > 0:
                 return False, f"ECC {kind} nonzero on {mc.name} — halting for Syed"
-    clocks_locked()
+    if not gpu_guard():
+        return False, "3090 clock/power lock could not be restored — refusing to run"
     return True, "ok"
 
 

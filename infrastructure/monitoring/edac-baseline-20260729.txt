@@ -1,0 +1,8 @@
+/sys/devices/system/edac/mc/mc0/ce_count=0
+/sys/devices/system/edac/mc/mc1/ce_count=0
+/sys/devices/system/edac/mc/mc2/ce_count=0
+/sys/devices/system/edac/mc/mc3/ce_count=0
+/sys/devices/system/edac/mc/mc0/ue_count=0
+/sys/devices/system/edac/mc/mc1/ue_count=0
+/sys/devices/system/edac/mc/mc2/ue_count=0
+/sys/devices/system/edac/mc/mc3/ue_count=0
