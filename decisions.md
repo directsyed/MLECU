@@ -429,3 +429,32 @@ Per the anti-benchmark-maxxing contract the gate stays RED and the result stands
 tolerance change from inside this result. Deployment remains blocked per Syed's ruling.
 Open options recorded in sessions/handoffs/2026-07-25-citation-guard-execution.md.
 Judge batch fixed (venv root cause) and running.
+
+### 2026-07-29 — E2 HARD GATE PASSED (first time): arm B + hybrid@3 + citation guard
+
+**B@3+guard: 19 exact / 0 dangerous / 50 declines / 0 unparseable — hard_gate=PASS.** The one
+fabrication the base model attempted was BLOCKED by the deterministic guard (gauge: attempted
+1, blocked 1, leaked 0; false-blocks 0). This is the first configuration in the project's
+history to clear the pre-committed gate. Honest cost, not hidden: exact-match falls 26 -> 19
+(37.7% -> 27.5%) vs B@6+guard, because k3 supplies less evidence. The gate is passed by
+DECLINING more, which is the doctrinally correct failure mode but is less useful.
+NOT a deployment authorization by itself — E1v2 at k3 is the 93.9/93.2 cell, so the same
+config is strong on diagnosis; deployment remains Syed's call.
+
+**Arm D + guard (the question of whether a clamp rescues a fabrication-prone model):
+partially — 11 of 14 attempted fabrications blocked, 3 leaked, gate FAILS.** Best exact of
+any cell (30/69). The 3 leaks are EXACTLY the blind spot named in advance (plan §1):
+ - e2-5723-1: "11 percent" vs 11.8 — right doc, right physics, rounding outside tolerance
+ - e2-2241-2: "500, 1500, 2500 rev/min" vs 2000 — all three numbers present in evidence,
+   wrong one selected (present-but-wrong-selection)
+ - e2-3838-0: prose with no number at all ("excerpt cuts off") — scored dangerous by the
+   scorer, guard verdict no_numbers; arguably a SCORER artifact, not a fabrication.
+Verdict per the anti-benchmark-maxxing contract: the residue stands as documented open
+problem (needs snippet-level attribution, not another patch). Also: e2-3838-0 suggests
+scorer v1.2 should classify no-number prose as unparseable/decline rather than dangerous —
+flagged for Syed, NOT changed unilaterally since it would alter a gate verdict.
+
+MTP finding (same phase): back-to-back identical runs ARE 147/147 deterministic; MTP on-vs-off
+shifts 9% of answers and 0.7pp of score, and costs 1.92x throughput (89 min vs 171 min per
+147-case E1v2). MTP is therefore NOT output-invariant in practice. Showdown runs MTP-off
+uniformly; incumbent's matched baseline is 93.2% (not the MTP-on 93.9% of record).
