@@ -1,0 +1,489 @@
+# dmidecode 3.5
+Getting SMBIOS data from sysfs.
+SMBIOS 2.8 present.
+
+Handle 0x1000, DMI type 16, 23 bytes
+Physical Memory Array
+	Location: System Board Or Motherboard
+	Use: System Memory
+	Error Correction Type: Multi-bit ECC
+	Maximum Capacity: 3 TB
+	Error Information Handle: Not Provided
+	Number Of Devices: 24
+
+Handle 0x1100, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 16 GB
+	Form Factor: DIMM
+	Set: 1
+	Locator: A1
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 002C00B3002C
+	Serial Number: 12755851
+	Asset Tag: 00161730
+	Part Number: 36ASF2G72PZ-2G1B1 
+	Rank: 2
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1101, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 16 GB
+	Form Factor: DIMM
+	Set: 1
+	Locator: A2
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 002C00B3002C
+	Serial Number: 127558EF
+	Asset Tag: 00161730
+	Part Number: 36ASF2G72PZ-2G1B1 
+	Rank: 2
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1102, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 16 GB
+	Form Factor: DIMM
+	Set: 1
+	Locator: A3
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 002C00B3002C
+	Serial Number: 127557D0
+	Asset Tag: 00161730
+	Part Number: 36ASF2G72PZ-2G1B1 
+	Rank: 2
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1103, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 16 GB
+	Form Factor: DIMM
+	Set: 1
+	Locator: A4
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 002C00B3002C
+	Serial Number: 127557E0
+	Asset Tag: 00161730
+	Part Number: 36ASF2G72PZ-2G1B1 
+	Rank: 2
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1104, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: DIMM
+	Set: 2
+	Locator: A5
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 00CE04B300CE
+	Serial Number: 33E57198
+	Asset Tag: 00164401
+	Part Number: M393A1G40EB1-CPB  
+	Rank: 1
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1105, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: DIMM
+	Set: 2
+	Locator: A6
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 00CE04B300CE
+	Serial Number: 33E571DF
+	Asset Tag: 00164401
+	Part Number: M393A1G40EB1-CPB  
+	Rank: 1
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1106, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: DIMM
+	Set: 2
+	Locator: A7
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 00CE04B300CE
+	Serial Number: 33E571E0
+	Asset Tag: 00164401
+	Part Number: M393A1G40EB1-CPB  
+	Rank: 1
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1107, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: DIMM
+	Set: 2
+	Locator: A8
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 00CE04B300CE
+	Serial Number: 33E571E7
+	Asset Tag: 00164401
+	Part Number: M393A1G40EB1-CPB  
+	Rank: 1
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1108, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 3
+	Locator: A9
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x1109, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 3
+	Locator: A10
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x110A, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 3
+	Locator: A11
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x110B, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 3
+	Locator: A12
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x110C, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 16 GB
+	Form Factor: DIMM
+	Set: 4
+	Locator: B1
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 002C00B3002C
+	Serial Number: 12755912
+	Asset Tag: 00161730
+	Part Number: 36ASF2G72PZ-2G1B1 
+	Rank: 2
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x110D, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 16 GB
+	Form Factor: DIMM
+	Set: 4
+	Locator: B2
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 002C00B3002C
+	Serial Number: 12755825
+	Asset Tag: 00161730
+	Part Number: 36ASF2G72PZ-2G1B1 
+	Rank: 2
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x110E, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 16 GB
+	Form Factor: DIMM
+	Set: 4
+	Locator: B3
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 002C00B3002C
+	Serial Number: 127557CE
+	Asset Tag: 00161730
+	Part Number: 36ASF2G72PZ-2G1B1 
+	Rank: 2
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x110F, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 4
+	Locator: B4
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x1110, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: DIMM
+	Set: 5
+	Locator: B5
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 00CE04B300CE
+	Serial Number: 33E5721C
+	Asset Tag: 00164401
+	Part Number: M393A1G40EB1-CPB  
+	Rank: 1
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1111, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: DIMM
+	Set: 5
+	Locator: B6
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 00CE04B300CE
+	Serial Number: 33E57270
+	Asset Tag: 00164401
+	Part Number: M393A1G40EB1-CPB  
+	Rank: 1
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1112, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: 72 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: DIMM
+	Set: 5
+	Locator: B7
+	Bank Locator: Not Specified
+	Type: DDR4
+	Type Detail: Synchronous Registered (Buffered)
+	Speed: 2133 MT/s
+	Manufacturer: 00CE04B300CE
+	Serial Number: 33E5726E
+	Asset Tag: 00164401
+	Part Number: M393A1G40EB1-CPB  
+	Rank: 1
+	Configured Memory Speed: 2133 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x1113, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 5
+	Locator: B8
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x1114, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 6
+	Locator: B9
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x1115, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 6
+	Locator: B10
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x1116, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 6
+	Locator: B11
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+
+Handle 0x1117, DMI type 17, 40 bytes
+Memory Device
+	Array Handle: 0x1000
+	Error Information Handle: Not Provided
+	Total Width: Unknown
+	Data Width: Unknown
+	Size: No Module Installed
+	Form Factor: Unknown
+	Set: 6
+	Locator: B12
+	Bank Locator: Not Specified
+	Type: Unknown
+	Type Detail: None
+

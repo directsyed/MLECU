@@ -1,0 +1,167 @@
+   1 | 12/19/2017 | 12:25:22 PM UTC | Event Logging Disabled SEL | Log area reset/cleared | Asserted
+   2 | 12/29/2017 | 09:57:26 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+   3 | 12/29/2017 | 09:57:31 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+   4 | 12/29/2017 | 09:57:36 AM UTC | Power Supply PS Redundancy | Redundancy Lost | Asserted
+   5 | 12/29/2017 | 09:57:40 AM UTC | Power Supply Status | Power Supply AC lost | Asserted
+   6 | 12/29/2017 | 10:30:08 AM UTC | Power Supply Status | Power Supply AC lost | Deasserted
+   7 | 12/29/2017 | 10:30:18 AM UTC | Power Supply PS Redundancy | Fully Redundant | Asserted
+   8 | 12/29/2017 | 10:33:20 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+   9 | 12/29/2017 | 10:33:45 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+   a | 12/14/2018 | 04:40:02 PM UTC | Battery ROMB Battery | Low | Asserted
+   b | 12/14/2018 | 04:57:22 PM UTC | Battery ROMB Battery | Low | Deasserted
+   c | 03/14/2019 | 07:18:53 PM UTC | Battery ROMB Battery | Low | Asserted
+   d | 03/14/2019 | 07:33:04 PM UTC | Battery ROMB Battery | Low | Deasserted
+   e | 06/12/2019 | 09:56:43 PM UTC | Battery ROMB Battery | Low | Asserted
+   f | 06/12/2019 | 10:05:23 PM UTC | Battery ROMB Battery | Low | Deasserted
+  10 | 04/24/2022 | 03:51:15 PM UTC | Drive Slot / Bay #0xa1 | Drive Fault () | Asserted
+  11 | 06/13/2022 | 06:00:28 PM UTC | Drive Slot / Bay #0xa1 | Drive Fault () | Asserted
+  12 | 09/20/2022 | 07:32:19 AM UTC | Drive Slot / Bay #0xa1 | Drive Fault () | Asserted
+  13 | 09/30/2022 | 09:59:08 AM UTC | Drive Slot / Bay #0xa1 | Drive Fault () | Asserted
+  14 | 10/02/2022 | 03:30:36 AM UTC | Drive Slot / Bay #0xa1 | Drive Fault () | Asserted
+  15 | 10/07/2022 | 10:59:20 AM UTC | Drive Slot / Bay #0xa1 | Drive Fault () | Asserted
+  16 | 10/13/2022 | 11:39:48 AM UTC | Drive Slot / Bay #0xa1 | Drive Present () | Deasserted
+  17 | 10/13/2022 | 11:39:49 AM UTC | Drive Slot / Bay #0xa1 | Drive Fault () | Deasserted
+  18 | 10/13/2022 | 11:41:34 AM UTC | Drive Slot / Bay #0xa1 | Drive Present () | Asserted
+  19 | 11/23/2024 | 01:04:20 AM UTC | Temperature Inlet Temp | Lower Non-critical going low  | Asserted | Reading -2 < Threshold 3 degrees C
+  1a | 11/23/2024 | 01:04:37 AM UTC | Temperature Inlet Temp | Lower Non-critical going low  | Deasserted | Reading 19 > Threshold 3 degrees C
+  1b | 06/03/2026 | 07:26:21 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  1c | 06/03/2026 | 07:26:26 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  1d | 06/03/2026 | 07:26:50 AM UTC | Unknown SD1 |  | Deasserted
+  1e | 06/03/2026 | 07:26:50 AM UTC | Unknown SD2 |  | Deasserted
+  1f | 06/03/2026 | 07:26:51 AM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  20 | 06/03/2026 | 07:35:58 AM UTC | Unknown SD1 |  | Deasserted
+  21 | 06/03/2026 | 07:35:58 AM UTC | Unknown SD2 |  | Deasserted
+  22 | 06/03/2026 | 07:35:59 AM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  23 | 06/03/2026 | 07:41:43 AM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  24 | 06/03/2026 | 07:46:23 AM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  25 | 06/12/2026 | 07:52:44 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  26 | 06/12/2026 | 07:52:49 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  27 | 06/12/2026 | 07:54:14 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  28 | 06/12/2026 | 08:02:05 PM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  29 | 06/12/2026 | 08:02:05 PM UTC | Unknown SD1 |  | Deasserted
+  2a | 06/12/2026 | 08:02:05 PM UTC | Unknown SD2 |  | Deasserted
+  2b | 06/12/2026 | 08:02:05 PM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  2c | 06/12/2026 | 08:26:50 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  2d | 06/12/2026 | 08:43:31 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  2e | 06/13/2026 | 01:54:12 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  2f | 06/13/2026 | 01:54:17 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  30 | 06/13/2026 | 01:54:37 AM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  31 | 06/13/2026 | 01:54:41 AM UTC | Unknown SD1 |  | Deasserted
+  32 | 06/13/2026 | 01:54:42 AM UTC | Unknown SD2 |  | Deasserted
+  33 | 06/13/2026 | 01:54:42 AM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  34 | 06/13/2026 | 11:06:25 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  35 | 06/13/2026 | 11:21:18 PM UTC | Drive Slot / Bay #0xa1 | Drive Present () | Deasserted
+  36 | 06/16/2026 | 05:48:52 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  37 | 06/17/2026 | 12:52:16 AM UTC | Unknown SD1 |  | Deasserted
+  38 | 06/17/2026 | 12:52:17 AM UTC | Unknown SD2 |  | Deasserted
+  39 | 06/17/2026 | 12:52:17 AM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  3a | 06/17/2026 | 12:52:20 AM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  3b | 06/17/2026 | 02:55:45 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  3c | 06/17/2026 | 03:03:37 PM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  3d | 06/17/2026 | 03:03:38 PM UTC | Unknown SD1 |  | Deasserted
+  3e | 06/17/2026 | 03:03:38 PM UTC | Unknown SD2 |  | Deasserted
+  3f | 06/17/2026 | 03:03:39 PM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  40 | 06/17/2026 | 03:33:43 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  41 | 06/17/2026 | 03:42:11 PM UTC | Unknown SD1 |  | Deasserted
+  42 | 06/17/2026 | 03:42:11 PM UTC | Unknown SD2 |  | Deasserted
+  43 | 06/17/2026 | 03:42:11 PM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  44 | 06/17/2026 | 03:42:14 PM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  45 | 06/17/2026 | 04:49:19 PM UTC | Unknown SD1 |  | Deasserted
+  46 | 06/17/2026 | 04:49:20 PM UTC | Unknown SD2 |  | Deasserted
+  47 | 06/17/2026 | 04:49:20 PM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  48 | 06/17/2026 | 04:49:23 PM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  49 | 06/19/2026 | 12:33:15 AM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  4a | 06/19/2026 | 01:48:39 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  4b | 06/19/2026 | 01:48:40 AM UTC | Unknown SD1 |  | Deasserted
+  4c | 06/19/2026 | 01:48:40 AM UTC | Unknown SD2 |  | Deasserted
+  4d | 06/19/2026 | 01:48:41 AM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  4e | 06/19/2026 | 01:48:44 AM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  4f | 06/19/2026 | 02:42:10 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  50 | 07/04/2026 | 05:13:22 AM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  51 | 07/04/2026 | 06:06:00 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  52 | 07/04/2026 | 06:06:02 AM UTC | Unknown SD1 |  | Deasserted
+  53 | 07/04/2026 | 06:06:02 AM UTC | Unknown SD2 |  | Deasserted
+  54 | 07/04/2026 | 06:06:03 AM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  55 | 07/04/2026 | 06:06:06 AM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  56 | 07/04/2026 | 06:55:48 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  57 | 07/04/2026 | 06:55:58 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  58 | 07/04/2026 | 07:13:11 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  59 | 07/04/2026 | 05:34:21 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  5a | 07/04/2026 | 05:40:17 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  5b | 07/04/2026 | 05:40:22 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  5c | 07/04/2026 | 05:40:27 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  5d | 07/04/2026 | 08:47:45 PM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 3) | Asserted
+  5e | 07/04/2026 | 08:47:46 PM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  5f | 07/04/2026 | 08:47:46 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  60 | 07/04/2026 | 08:47:46 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  61 | 07/04/2026 | 08:51:56 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  62 | 07/04/2026 | 10:04:18 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  63 | 07/04/2026 | 10:09:00 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  64 | 07/04/2026 | 10:09:01 PM UTC | Unknown SD1 |  | Deasserted
+  65 | 07/04/2026 | 10:09:02 PM UTC | Unknown SD2 |  | Deasserted
+  66 | 07/04/2026 | 10:09:02 PM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  67 | 07/04/2026 | 10:09:05 PM UTC | Power Supply Status | Power Supply AC lost | Asserted
+  68 | 07/04/2026 | 10:09:07 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Deasserted
+  69 | 07/04/2026 | 10:16:28 PM UTC | Power Supply Status | Power Supply AC lost | Deasserted
+  6a | 07/04/2026 | 10:22:51 PM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 3) | Asserted
+  6b | 07/04/2026 | 10:22:51 PM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  6c | 07/04/2026 | 10:22:51 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  6d | 07/04/2026 | 10:58:47 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  6e | 07/04/2026 | 11:26:08 PM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 3) | Asserted
+  6f | 07/04/2026 | 11:26:08 PM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  70 | 07/04/2026 | 11:26:08 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  71 | 07/04/2026 | 11:26:08 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  72 | 07/04/2026 | 11:28:35 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  73 | 07/04/2026 | 11:35:22 PM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  74 | 07/04/2026 | 11:35:23 PM UTC | Unknown SD1 |  | Deasserted
+  75 | 07/04/2026 | 11:35:24 PM UTC | Unknown SD2 |  | Deasserted
+  76 | 07/04/2026 | 11:35:24 PM UTC | Unknown Redundancy | Redundancy Lost | Asserted
+  77 | 07/04/2026 | 11:52:49 PM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 3) | Asserted
+  78 | 07/04/2026 | 11:52:49 PM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  79 | 07/04/2026 | 11:52:49 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  7a | 07/04/2026 | 11:55:31 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  7b | 07/05/2026 | 12:20:02 AM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 3) | Asserted
+  7c | 07/05/2026 | 12:20:02 AM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  7d | 07/05/2026 | 12:20:02 AM UTC | Unknown Err Reg Pointer |  | Asserted
+  7e | 07/05/2026 | 12:20:02 AM UTC | Unknown Err Reg Pointer |  | Asserted
+  7f | 07/05/2026 | 12:24:28 AM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  80 | 07/05/2026 | 09:36:16 AM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 3) | Asserted
+  81 | 07/05/2026 | 09:36:17 AM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  82 | 07/05/2026 | 09:36:17 AM UTC | Unknown Err Reg Pointer |  | Asserted
+  83 | 07/05/2026 | 09:36:17 AM UTC | Unknown Err Reg Pointer |  | Asserted
+  84 | 07/05/2026 | 05:53:35 PM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  85 | 07/06/2026 | 12:34:17 AM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 3) | Asserted
+  86 | 07/06/2026 | 12:34:17 AM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  87 | 07/06/2026 | 12:34:17 AM UTC | Unknown Err Reg Pointer |  | Asserted
+  88 | 07/06/2026 | 12:36:45 AM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  89 | 07/06/2026 | 12:55:14 AM UTC | Unknown Redundancy | Non-Redundant: Sufficient from Redundant | Asserted
+  8a | 07/06/2026 | 01:08:53 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  8b | 07/06/2026 | 01:30:07 AM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 7) | Asserted
+  8c | 07/06/2026 | 01:30:07 AM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  8d | 07/06/2026 | 01:30:07 AM UTC | Unknown Err Reg Pointer |  | Asserted
+  8e | 07/06/2026 | 01:30:07 AM UTC | Unknown Err Reg Pointer |  | Asserted
+  8f | 07/08/2026 | 02:06:21 PM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 7) | Asserted
+  90 | 07/08/2026 | 02:06:21 PM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  91 | 07/08/2026 | 02:06:21 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  92 | 07/08/2026 | 02:06:21 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  93 | 07/08/2026 | 03:02:52 PM UTC | Critical Interrupt PCIE Fatal Err | Bus Fatal Error ( Slot 7) | Asserted
+  94 | 07/08/2026 | 03:02:52 PM UTC | Critical Interrupt Fatal PCIeErr |  | Asserted
+  95 | 07/08/2026 | 03:02:53 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  96 | 07/08/2026 | 03:02:53 PM UTC | Unknown Err Reg Pointer |  | Asserted
+  97 | 07/29/2026 | 02:24:00 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  98 | 07/29/2026 | 02:25:07 AM UTC | Unknown Additional Info |  | Asserted
+  99 | 07/29/2026 | 02:25:07 AM UTC | Memory ECC Uncorr Err | Uncorrectable ECC (UnCorrectable ECC |  DIMMB4) | Asserted
+  9a | 07/29/2026 | 02:25:07 AM UTC | Unknown Additional Info |  | Asserted
+  9b | 07/29/2026 | 02:25:07 AM UTC | Memory ECC Uncorr Err | Uncorrectable ECC (UnCorrectable ECC |  DIMMB4) | Asserted
+  9c | 07/29/2026 | 03:19:04 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
+  9d | 07/29/2026 | 03:19:49 AM UTC | Unknown Additional Info |  | Asserted
+  9e | 07/29/2026 | 03:19:49 AM UTC | Memory ECC Uncorr Err | Uncorrectable ECC (UnCorrectable ECC |  DIMMB4) | Asserted
+  9f | 07/29/2026 | 03:19:49 AM UTC | Unknown Additional Info |  | Asserted
+  a0 | 07/29/2026 | 03:19:49 AM UTC | Memory ECC Uncorr Err | Uncorrectable ECC (UnCorrectable ECC |  DIMMB4) | Asserted
+  a1 | 07/29/2026 | 03:23:35 AM UTC | Cable / Interconnect Intrusion Cable | Config Error | Asserted
+  a2 | 07/29/2026 | 03:25:15 AM UTC | Cable / Interconnect Intrusion Cable | Config Error | Deasserted
+  a3 | 07/29/2026 | 03:26:52 AM UTC | Unknown Additional Info |  | Asserted
+  a4 | 07/29/2026 | 03:26:52 AM UTC | Memory ECC Uncorr Err | Uncorrectable ECC (UnCorrectable ECC |  DIMMB4) | Asserted
+  a5 | 07/29/2026 | 03:26:52 AM UTC | Unknown Additional Info |  | Asserted
+  a6 | 07/29/2026 | 03:26:52 AM UTC | Memory ECC Uncorr Err | Uncorrectable ECC (UnCorrectable ECC |  DIMMB4) | Asserted
+  a7 | 07/29/2026 | 03:33:36 AM UTC | Physical Security Intrusion | General Chassis intrusion () | Asserted
