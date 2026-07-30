@@ -49,6 +49,11 @@ CREATE INDEX IF NOT EXISTS unit_ready ON unit(state, phase, seq);
 
 TERMINAL = ("done", "skipped")
 
+# Floor for "the model actually reasoned". Observed medians: Qwen3.6-35B ~1750-2010,
+# gpt-oss (harmony analysis channel) ~208, Qwen3-Next-Instruct 8 (non-thinking = invalid).
+# 40 sits well below any genuine reasoner and well above a bare grammar-constrained answer.
+MIN_MEDIAN_TOKENS = 40
+
 
 @contextmanager
 def connect(path: Path | None = None):
@@ -213,7 +218,20 @@ def validate_output(path: Path, model_tag: str, n_expected: int, arm: str,
     answered = sum(1 for r in rows if _has_answer(r))
     if answered < min_answer_frac * len(rows):
         return False, f"only {answered}/{len(rows)} rows carry an answer"
-    return True, f"ok ({len(rows)} rows, {answered} answered)"
+    # "answered" is not "engaged" — the 2026-07-30 lesson. The Qwen3-Next Instruct variant
+    # returned a valid grammar-constrained answer on every row in ~8 tokens, i.e. no
+    # reasoning at all, and passed every other check. A thinking model that suddenly emits
+    # near-zero tokens is either the wrong variant or has reasoning disabled, and its scores
+    # are not a capability measurement. Flag it rather than silently banking the cell.
+    # A MISSING field means the harness didn't record token counts — not evidence about the
+    # model. Only judge when the field is actually present.
+    toks = sorted(r["completion_tokens"] for r in rows
+                  if r.get("completion_tokens") is not None)
+    median = toks[len(toks) // 2] if toks else None
+    if median is not None and median < MIN_MEDIAN_TOKENS:
+        return False, (f"median completion_tokens {median} < {MIN_MEDIAN_TOKENS}: model is "
+                       f"answering without reasoning (wrong variant / thinking disabled?)")
+    return True, f"ok ({len(rows)} rows, {answered} answered, median {median} tok)"
 
 
 def _has_answer(row: dict) -> bool:

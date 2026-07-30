@@ -145,3 +145,19 @@ def test_validate_e2_all_null_answers_fails(tmp_path):
     p = _write(tmp_path / "r.jsonl", rows)
     ok, msg = ledger.validate_output(p, "m1", 3, "A")
     assert not ok and "carry an answer" in msg
+
+
+def test_validate_rejects_unreasoned_output(tmp_path):
+    # 2026-07-30: the 80B Instruct variant answered every row in ~8 tokens with no reasoning
+    # and passed every other check. "Answered" is not "engaged".
+    rows = [dict(_e1row(), completion_tokens=8) for _ in range(3)]
+    p = _write(tmp_path / "r.jsonl", rows)
+    ok, msg = ledger.validate_output(p, "m1", 3, "B")
+    assert not ok and "without reasoning" in msg
+
+
+def test_validate_accepts_genuine_reasoning(tmp_path):
+    rows = [dict(_e1row(), completion_tokens=1750) for _ in range(3)]
+    p = _write(tmp_path / "r.jsonl", rows)
+    ok, msg = ledger.validate_output(p, "m1", 3, "B")
+    assert ok and "median 1750" in msg
