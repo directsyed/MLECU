@@ -504,3 +504,35 @@ the reasoning PATH (float reduction order differs by device) but not the conclus
 unlike MTP, which shifted ~9% of answers and would likely have shown a disagreement in a
 12-case sample. The 35B's two conservative-config E1v2 cells therefore stand as comparable
 to the optimized matrix. Caveat recorded: 12 cases is not proof of 147.
+
+### 2026-07-30 — REASONING-MODE CONFOUND FOUND: the 80B cells were invalid
+
+**What happened:** the Qwen3-Next-80B cells completed suspiciously fast (4 cells in 35 min;
+calibration probe 2.4 s/case vs the 35B's 11.9). Inspection of completion_tokens exposed why:
+
+| model | median completion tokens | E1v2 arm A |
+|---|---|---|
+| Qwen3.6-35B-A3B | **1,750-2,010** | 90.5% |
+| gpt-oss-120b (harmony analysis channel) | 208 | running |
+| Qwen3-Next-80B-A3B-**Instruct** | **8** | 55.8% |
+
+The 80B was answering in 7-8 tokens — emitting the grammar-constrained JSON with NO reasoning
+at all. Root cause: I downloaded the **Instruct** variant, which is the family's NON-thinking
+member; a separate **-Thinking** variant exists. So those cells measured "a model that does
+not reason" against "models that do" — not capability. They are marked `skipped` with the
+reason (files retained for the record), NOT deleted.
+
+**This also destroyed the controlled experiment**: the 80B existed to hold active parameters
+constant (3B, same as the 35B) while varying total capacity 2.3x. A thinking/non-thinking
+mismatch confounds exactly that comparison. Re-queued on Qwen3-Next-80B-A3B-Thinking-Q6_K
+(65.5 GB, downloading) at the END of the queue so the download has time.
+
+**Protocol consequence — reasoning depth must be normalised, not assumed.** Each family ships
+different reasoning defaults. Per Syed's max-capability directive, gpt-oss was requeued with
+`--chat-template-kwargs '{"reasoning_effort":"high"}'` (it was reasoning at its default ~208
+tokens; it supports low/medium/high). The 35B already runs at its own maximum (thinking on by
+default). Mistral's reasoning toggle to be verified when its calibration runs.
+
+**My validation predicate did NOT catch this** — it checks that >=80% of rows carry an answer,
+and they did; the answers were just unreasoned. Lesson recorded: "answered" is not "engaged".
+A future predicate should compare median completion_tokens against a per-model floor.
