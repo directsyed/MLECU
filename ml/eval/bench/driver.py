@@ -190,7 +190,12 @@ def server_start(profile: dict) -> bool:
     if profile.get("ti_only"):
         cmd += ["--split-mode", "none", "--main-gpu", "0"]
     else:
-        cmd += ["--split-mode", "layer", "--tensor-split", "3.5,1"]
+        # tensor_split is per-profile (Syed 2026-07-30). Default 3.5,1 = the historical
+        # duty-derating for DENSE models. Calibrated MoE profiles use "1,0" instead: send
+        # everything to the healthy Ti and let -ot place ONLY the overflow on the convicted
+        # 3090, so its share is the minimum the model requires rather than a fixed fraction.
+        cmd += ["--split-mode", "layer",
+                "--tensor-split", profile.get("tensor_split", "3.5,1")]
     cmd += profile.get("extra", [])
     SRVLOG.parent.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
@@ -253,6 +258,17 @@ def run_unit(unit) -> None:
     argv = json.loads(unit["argv_json"])
     kind = unit["kind"]
     log(f"UNIT {unit['id']} [{unit['phase']}/{unit['label']}] kind={kind}")
+
+    if kind == "calib":
+        # Syed 2026-07-30: run every model to the max the underpowered card allows. Sweeps
+        # expert placement onto the 3090's otherwise-idle VRAM and rewrites this model's
+        # PENDING units with the most aggressive config that stays in the safe power band.
+        from .calibrate import calibrate
+        server_stop()
+        res = calibrate(unit["model_key"])
+        ledger.mark_done(unit["id"], note=(json.dumps(res["metrics"]) if res
+                                           else "no config adopted; original kept"))
+        return
 
     if kind == "shell":
         rc, note = _run_shell(argv, unit)

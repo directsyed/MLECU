@@ -458,3 +458,42 @@ MTP finding (same phase): back-to-back identical runs ARE 147/147 deterministic;
 shifts 9% of answers and 0.7pp of score, and costs 1.92x throughput (89 min vs 171 min per
 147-case E1v2). MTP is therefore NOT output-invariant in practice. Showdown runs MTP-off
 uniformly; incumbent's matched baseline is 93.2% (not the MTP-on 93.9% of record).
+
+### 2026-07-30 — Ti-first offload policy (Syed): fill the healthy card, spill only the remainder
+
+Syed: "load the 3090 Ti with everything it can handle, put the rest onto the 3090" — and
+"run all models to their max capability with the underpowered card."
+
+**The flaw he caught:** `--tensor-split 3.5,1` allocates LAYERS proportionally, so on the 35B
+MoE it left 16.9 GiB of 3090 VRAM idle while 8.4 GiB of experts streamed from RAM at ~8x
+lower bandwidth. My first fix optimized the wrong objective (maximize the idle card's use
+within a power budget) and produced a BACKWARDS allocation: 3090 21.7 GiB vs Ti 15.0 — the
+convicted card carrying the larger share. Syed's rule is the correct objective: MINIMIZE the
+convicted card's share subject to fitting the model.
+
+**Implementation:** `tensor_split` is now per-profile. Calibrated MoE profiles use "1,0"
+(everything to the Ti) plus `--override-tensor` pinning only the overflow band of expert
+tensors (`blk.N.ffn_*_exps.weight`, 0.80 GiB/layer on this model) to CUDA1. The sweep now
+starts at the MINIMUM viable 3090 band and steps up only on OOM, instead of starting maximal.
+Also fixed: -ncmoe and -ot are competing placement policies; keeping both left 8 GiB on CPU
+while the -ot band moved to the 3090, leaving total VRAM residency unchanged. -ncmoe is now
+stripped when -ot is used.
+
+**Measured (35B-A3B, 41 expert layers):**
+| config | 3090 share | 3090 power | 6-case probe |
+|---|---|---|---|
+| conservative 3.5,1 + ncmoe12 | 7.6 GiB (22%), 8.4 GiB in RAM | 117 W | 49.3 s/case |
+| proportional -ot17 | 21.7 GiB (59%) | 143 W mean | 14.6 s/case |
+| **Ti-first -ot18 (ADOPTED)** | **14.3 GiB (41%)** | **120 W mean / 123 peak** | **11.9 s/case** |
+Ti-first is faster AND 23 W cooler than proportional, and 32 W below the 152 W proven-safe
+operating point, with the entire 35.2 GiB model resident in VRAM (zero RAM streaming).
+
+**Scope note:** full VRAM residency is specific to the 35B. The 80B (65 GB), gpt-oss (63 GB)
+and Mistral (72 GB) exceed the 48 GiB combined VRAM, so for those the Ti fills, the 3090
+takes what the power budget allows, and the genuine remainder spills to RAM. Each gets its
+own calibration unit; measured power reported per model rather than assumed.
+
+**Cell provenance (Syed's ruling, no restart):** the 35B's two E1v2 cells stand as measured
+on the conservative config; both E2 cells re-run optimized. A 12-case numerical-equivalence
+check between the two configs determines whether the E1 cells remain comparable to the rest
+of the matrix; result recorded separately.
