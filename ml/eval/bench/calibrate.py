@@ -39,16 +39,37 @@ SAMPLE_S = 2
 PROBE_CASES = 6          # enough sustained decode to load the card honestly
 
 
+def shard_files(gguf: Path) -> list[Path]:
+    """All shards of a split GGUF, or just the file itself.
+
+    Bug this fixes (found by dry-run 2026-07-30): globbing the parent directory for *.gguf
+    summed UNRELATED models that share a directory (the 35B read as 83.6 GiB because the
+    27B Q6 and Q8 sit beside it), and reading only shard 1 undercounted expert tensors on
+    split models (Mistral reported zero expert layers -> divide-by-zero)."""
+    m = re.match(r"(.*)-(\d{5})-of-(\d{5})\.gguf$", gguf.name)
+    if m:
+        return sorted(gguf.parent.glob(f"{m.group(1)}-*-of-{m.group(3)}.gguf"))
+    return [gguf]
+
+
+def model_size_gib(gguf: Path) -> float:
+    return sum(f.stat().st_size for f in shard_files(gguf)) / 2**30
+
+
 def expert_layers(gguf: Path) -> tuple[int, float]:
-    """(n_layers_with_experts, GiB per layer) read from the GGUF itself."""
+    """(n_layers_with_experts, GiB per layer), summed across ALL shards."""
     from gguf import GGUFReader
-    r = GGUFReader(str(gguf))
-    per = {}
-    for t in r.tensors:
-        if "exps" in t.name:
-            m = re.match(r"blk\.(\d+)\.", t.name)
-            if m:
-                per[int(m.group(1))] = per.get(int(m.group(1)), 0) + t.n_bytes
+    per: dict[int, int] = {}
+    for shard in shard_files(gguf):
+        try:
+            r = GGUFReader(str(shard))
+        except Exception:
+            continue
+        for t in r.tensors:
+            if "exps" in t.name:
+                m = re.match(r"blk\.(\d+)\.", t.name)
+                if m:
+                    per[int(m.group(1))] = per.get(int(m.group(1)), 0) + t.n_bytes
     if not per:
         return 0, 0.0
     return len(per), (sum(per.values()) / len(per)) / 2**30
@@ -118,17 +139,35 @@ def calibrate(model_key: str) -> dict | None:
     log(f"CALIB {model_key}: {n_layers} expert layers x {gib:.2f} GiB; "
         f"3090 could host up to {max_layers}")
 
-    # POLICY (Syed 2026-07-30): fill the HEALTHY Ti first, spill only the remainder onto the
-    # convicted 3090. The first calibration did the opposite — proportional splitting left
-    # the 3090 holding 21.7 GiB against the Ti's 15.0, i.e. the failure-prone card carrying
-    # the larger share. Now tensor_split="1,0" sends everything to the Ti and -ot moves the
-    # minimum number of expert layers needed to make it fit.
-    model_gib = gguf.stat().st_size / 2**30
+    # POLICY (Syed 2026-07-30): fill the HEALTHY Ti first; the convicted 3090 takes only what
+    # it must. TWO REGIMES, because a single rule breaks on oversized models (found live:
+    # the 80B is 61 GiB, so tensor_split="1,0" demanded 41 GiB from a 24.5 GiB Ti and every
+    # candidate config failed to load):
+    #   FITS   (model + KV <= combined VRAM): MINIMISE the 3090 band — the Ti absorbs the
+    #           rest for free, so less on the convicted card costs nothing.
+    #   OVERSIZED: the remainder must go to RAM regardless, so MAXIMISE the 3090 band within
+    #           the power budget — every GiB there is a GiB not streaming at 8x lower
+    #           bandwidth. Ti still fills first; RAM takes only the genuine overflow.
+    # Sharded GGUFs: size is the sum of all shards, not just shard 1.
+    model_gib = model_size_gib(gguf)
     TI_USABLE = 21.0            # 24.5 minus KV cache + compute buffers
-    n_min = max(0, int((model_gib - TI_USABLE) / gib) + 1)
-    ladder = [n for n in (n_min, n_min + 3, n_min + 6, max_layers) if 0 < n <= max_layers]
-    log(f"CALIB: Ti-first policy — minimum 3090 band = {n_min} layers "
-        f"({n_min*gib:.1f} GiB of a {model_gib:.1f} GiB model)")
+    non_expert = max(0.0, model_gib - n_layers * gib)
+    ti_expert_layers = max(0, int((TI_USABLE - non_expert) / gib))
+    fits = model_gib + 3.0 <= 45.0
+
+    if fits:
+        n_min = max(0, int((model_gib - TI_USABLE) / gib) + 1)
+        ladder = [n for n in (n_min, n_min + 3, n_min + 6, max_layers) if 0 < n <= max_layers]
+        cpu_from = None
+        log(f"CALIB: FITS regime — minimise 3090; min band {n_min} layers "
+            f"({n_min*gib:.1f} GiB of {model_gib:.1f} GiB)")
+    else:
+        ladder = [n for n in (max_layers, int(max_layers * 0.7), int(max_layers * 0.45))
+                  if n > 0]
+        cpu_from = ti_expert_layers        # set per-candidate below
+        log(f"CALIB: OVERSIZED regime — {model_gib:.1f} GiB > VRAM. non-expert "
+            f"{non_expert:.1f} GiB; Ti takes {ti_expert_layers} expert layers; "
+            f"maximise 3090 band then RAM takes the rest")
 
     best = None
     for n in ladder:
@@ -151,6 +190,16 @@ def calibrate(model_key: str) -> dict | None:
             keep.append(tok)
         prof["extra"] = keep + ot_flag(0, n - 1)
         prof["tensor_split"] = "1,0"      # everything to the Ti; -ot places the overflow
+        if not fits:
+            # three-way: [0,n) -> 3090, [n, n+ti_expert_layers) -> Ti via the 1,0 split,
+            # everything above that -> CPU. Without the explicit CPU band the Ti OOMs.
+            cpu_start = n + ti_expert_layers
+            if cpu_start < n_layers:
+                prof["extra"] = prof["extra"] + ot_flag(cpu_start, n_layers - 1, "CPU")
+                log(f"    layout: 3090 layers 0-{n-1} ({n*gib:.1f} GiB) | "
+                    f"Ti {ti_expert_layers} layers + {non_expert:.1f} GiB non-expert | "
+                    f"CPU layers {cpu_start}-{n_layers-1} "
+                    f"({(n_layers-cpu_start)*gib:.1f} GiB)")
         log(f"CALIB: trying {n} layers of experts on the 3090 ({n*gib:.1f} GiB)")
         m = measure(prof)
         _cleanup_calib_results()
