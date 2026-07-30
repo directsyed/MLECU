@@ -497,3 +497,10 @@ own calibration unit; measured power reported per model rather than assumed.
 on the conservative config; both E2 cells re-run optimized. A 12-case numerical-equivalence
 check between the two configs determines whether the E1 cells remain comparable to the rest
 of the matrix; result recorded separately.
+
+**Equivalence result (2026-07-30):** conservative-v1 vs optimized-ot18 on 12 identical E1v2
+cases: **answers 12/12 identical**, completion_tokens 0/12 identical. Tensor placement changes
+the reasoning PATH (float reduction order differs by device) but not the conclusions —
+unlike MTP, which shifted ~9% of answers and would likely have shown a disagreement in a
+12-case sample. The 35B's two conservative-config E1v2 cells therefore stand as comparable
+to the optimized matrix. Caveat recorded: 12 cases is not proof of 147.
