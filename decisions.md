@@ -536,3 +536,16 @@ default). Mistral's reasoning toggle to be verified when its calibration runs.
 **My validation predicate did NOT catch this** — it checks that >=80% of rows carry an answer,
 and they did; the answers were just unreasoned. Lesson recorded: "answered" is not "engaged".
 A future predicate should compare median completion_tokens against a per-model floor.
+
+**Mistral Small 4 — same confound, caught automatically (2026-07-30).** The new reasoning-floor
+predicate FAILED its first E1v2 cell at median 16 tokens instead of banking it. Its chat
+template: `reasoning_effort` accepts only 'none' or 'high' and **defaults to 'none'**.
+Requeued with `--chat-template-kwargs '{"reasoning_effort":"high"}'` (same flag gpt-oss uses).
+gpt-oss at high effort confirmed working: median 1,949 tok on E1v2 (vs 208 at its default).
+
+Reasoning-mode status across the ladder, all now verified rather than assumed:
+ - Qwen3.6-27B dense (incumbent): thinking by default
+ - Qwen3.6-35B-A3B: thinking by default (median ~1,750-2,010)
+ - gpt-oss-120b: reasoning_effort=high (median ~1,949; default medium was ~208)
+ - Mistral Small 4: reasoning_effort=high (default 'none' = 16 tokens, invalid)
+ - Qwen3-Next-80B: MUST use the -Thinking variant, not -Instruct
