@@ -122,7 +122,13 @@ def _cleanup_calib_results() -> None:
 def calibrate(model_key: str) -> dict | None:
     """Sweep expert-band sizes from conservative to aggressive; keep the best safe one."""
     with ledger.connect() as c:
-        row = c.execute("SELECT server_profile FROM unit WHERE model_key=? LIMIT 1",
+        # MUST filter to a harness unit with a real profile: the calib unit itself has an
+        # EMPTY server_profile, and an unfiltered LIMIT 1 returns whichever row sorts first.
+        # Earlier models only worked by accident of insertion order; the 80B-Thinking's calib
+        # unit was inserted first and json.loads('') threw, so the driver ran its cells
+        # UNCALIBRATED (2026-07-31).
+        row = c.execute("SELECT server_profile FROM unit WHERE model_key=? AND kind='harness' "
+                        "AND server_profile IS NOT NULL AND server_profile != '' LIMIT 1",
                         (model_key,)).fetchone()
     if not row:
         log(f"CALIB: no units for {model_key}")
