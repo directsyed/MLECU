@@ -185,7 +185,12 @@ def server_start(profile: dict) -> bool:
     if not gguf.exists():
         log(f"server_start: GGUF missing {gguf}")
         return False
-    cmd = [str(LLS), "-m", str(gguf), "-ngl", "999", "-c", "16384", "-np", "1",
+    # ctx is per-profile (2026-07-31): prompt and completion share the window, so a 16384
+    # completion budget needs more than 16384 total. Largest E1v2 prompt measured = 643 tok,
+    # so 24576 leaves ~7.5k of headroom. Previously -c was inert (completions capped at
+    # 8192); with the raised budget it is load-bearing.
+    cmd = [str(LLS), "-m", str(gguf), "-ngl", "999",
+           "-c", str(profile.get("ctx", 16384)), "-np", "1",
            "--host", "127.0.0.1", "--port", "8080", "--jinja"]
     if profile.get("ti_only"):
         cmd += ["--split-mode", "none", "--main-gpu", "0"]

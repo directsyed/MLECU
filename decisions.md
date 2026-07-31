@@ -549,3 +549,38 @@ Reasoning-mode status across the ladder, all now verified rather than assumed:
  - gpt-oss-120b: reasoning_effort=high (median ~1,949; default medium was ~208)
  - Mistral Small 4: reasoning_effort=high (default 'none' = 16 tokens, invalid)
  - Qwen3-Next-80B: MUST use the -Thinking variant, not -Instruct
+
+### 2026-07-31 — SHOWDOWN COMPLETE + a measurement defect found in the results
+
+**Raw matrix (E1v2 top-1 / dangerous; E2 exact of 69):**
+| model | E1v2 A | d | E1v2 B@3 | d | E2 A | E2 B+guard | gate |
+|---|---|---|---|---|---|---|---|
+| Qwen3.6-27B dense (incumbent) | 83.7 | 0 | 93.2 | 0 | 10 | 19 | PASS |
+| Qwen3.6-35B-A3B | **90.5** | 0 | 83.7 | 3 | 10 | 25 | FAIL(2) |
+| Qwen3-Next-80B Thinking | 66.7 | 0 | 68.0 | 0 | 8 | 25 | FAIL(2) |
+| gpt-oss-120b | 81.0 | 0 | 78.2 | 0 | 5 | **26** | **PASS** |
+| Mistral Small 4 (MXFP4_MOE) | 29.3 | **30** | 44.9 | 22 | 7 | 14 | FAIL(2) |
+
+**gpt-oss-120b PASSED the E2 hard gate** with the best exact-match ever recorded (26/69, zero
+dangerous). Second gate pass in project history (after B@3+guard on the incumbent).
+
+**DEFECT 1 — token-ceiling truncation, same class as the 2026-07-09 starvation.** Every blank
+answer in the run hit the 8192 max_completion_tokens ceiling mid-reasoning and scored as a
+miss: 35B 0/147, gpt-oss 13/147, 80B-Thinking **26/147** (its median trace is 5,572 tokens).
+Excluding truncated cases: gpt-oss 81.0 -> 88.8, 80B 66.7 -> 81.0. That exclusion is itself
+selection-biased (it drops the hardest cases), so the honest fix is a re-run: four E1v2 cells
+at `--max-tokens 16384` in a `-c 24576` window (largest measured prompt = 643 tok, so ~7.5k
+headroom). NOTE: -c was previously inert; with the raised budget it is load-bearing. Queued
+at seq 400-430; identical offload profiles so the delta isolates the defect.
+
+**DEFECT 2 — Mistral is uninterpretable, and MY quant deviation is the prime suspect.** Not
+truncation (9 blanks). Its answer distribution never once returns `healthy` despite 21 healthy
+cases, and skews rich on lean truths -> 30 dangerous misses, the worst of any arm ever. I chose
+MXFP4_MOE over the Q6 floor because Q6_K (99 GB) would have been unmeasurably slow; I flagged
+the risk then and it appears to have materialised. Cannot separate 4-bit damage from model
+unsuitability with this data: recorded as INCONCLUSIVE, not as a loss.
+
+**Also standing:** quant level is a confound across the ladder (Qwen models 6-8 bit, the two
+100B-class models 4-bit). The core hypothesis pair — 35B (Q8) vs 80B (Q6), matched 3B active —
+is unaffected, both above the 4-bit line. Infra: 3090 never exceeded ~120 W across 4 days and
+5 models; zero box deaths, zero ECC errors, zero SEL events.

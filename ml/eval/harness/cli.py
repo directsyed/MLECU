@@ -25,6 +25,10 @@ def main() -> None:
                    help="bm25 = retrieval-v1 exact; hybrid = dense+BM25 RRF (default cfg)")
     p.add_argument("--model-name", default=None,
                    help="model tag recorded into result rows (e.g. qwen3.6-27b-q8+qlora-v1)")
+    p.add_argument("--max-tokens", type=int, default=None,
+                   help="max_completion_tokens (reasoning + answer share ONE budget). 8192 "
+                        "truncated Thinking-class models mid-trace on 2026-07-31 — their "
+                        "blanks scored as misses and understated them by up to 14pp.")
     p.add_argument("--runs", type=int, default=2, help="repeat count (determinism check)")
     p.add_argument("--limit", type=int, default=None, help="first N cases only (smoke)")
     p.add_argument("--score", type=Path, default=None, help="score a results JSONL")
@@ -51,6 +55,9 @@ def main() -> None:
     if args.model_name:
         from dataclasses import replace
         cfg = replace(cfg, llm=replace(cfg.llm, model=args.model_name))
+    if args.max_tokens:
+        from dataclasses import replace
+        cfg = replace(cfg, llm=replace(cfg.llm, max_completion_tokens=args.max_tokens))
 
     if args.gen_pairs:
         llm.health_check(cfg.llm)
