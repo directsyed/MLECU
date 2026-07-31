@@ -14,9 +14,11 @@ and A2WC412D), 4EAT. Do every step in order; the "validate before trust" steps a
 
 ## 0. What you have / need
 - **Openport 2.0 (Rev-E clone) — ACQUIRED.** Flashes + logs (J2534). Validate it (§4) before trust.
-- **KKL "VAG-COM 409.1 USB" cable — GENUINE FTDI FT232RL only.** Reject CH340/PL2303 and any
-  ELM327/OBDLink (protocol interpreters cannot speak raw SSM2). ~$20. Independent read path +
-  logging fallback. *Confirm you have this; if not, order the FTDI one.*
+- **KKL cable — NOT USED (Syed 2026-07-31: does not have one, judged unnecessary).** The
+  identity cross-check it enabled is replaced by the read-stability check in §4.2, which is
+  the stronger of the two anyway (it proves the clone reads deterministically, not merely
+  that two tools agree on an id).
+- **USB-to-serial adapter** for the wideband's BLUE serial-out wire — see §6.
 - Windows laptop (ECUFlash/RomRaider are Windows-first; RomRaider is Java, runs anywhere, but
   ECUFlash is the flash tool and is Windows). AC power. A USB-A port or a known-good hub.
 
@@ -25,9 +27,6 @@ and A2WC412D), 4EAT. Do every step in order; the "validate before trust" steps a
 2. **RomRaider** (romraider.com) — the logger + table editor (Java; install a JRE if prompted).
 3. **Tactrix Openport 2.0 drivers** — from tactrix.com; the clone uses the same J2534 driver.
    After install, Windows Device Manager should show the Openport under Ports or a Tactrix node.
-4. **FreeSSM** (optional but recommended) — dead-simple SSM2 sanity tool for the KKL path; reads
-   the ECU ID and live params with zero configuration. Great first-contact test.
-5. **FTDI VCP driver** for the KKL cable (ftdichip.com) — only if Windows doesn't auto-install it.
 
 ## 2. Definitions — point the tools at OUR verified defs
 The repo already holds the full SubaruDefs tree used to decode this exact ROM:
@@ -41,21 +40,16 @@ The repo already holds the full SubaruDefs tree used to decode this exact ROM:
 > speak the identical table vocabulary — no drift between what you edit and what our tools read.
 
 ## 3. First contact — READ THE ECU ID (no flashing yet)
-Two independent paths; do BOTH and compare (this is §4's validation, done as first contact).
-1. **KKL + FreeSSM:** cable to OBD-II + laptop, key ON engine OFF, FreeSSM → Engine → it prints
-   the ECU ID. Expect a **3B12504206-family** id. Note it exactly.
-2. **Openport + RomRaider Logger:** Logger → select the Openport → connect. Bottom of the window
-   shows CAL ID / ECU ID. Note it.
-- **They must match.** Matching ids across two independent cables/tools = both are talking to the
-  ECU honestly, and confirms our A2WC411D assumption. Mismatch = stop, diagnose (wrong def,
-  flaky clone, cable chip) before trusting anything.
+Openport + RomRaider Logger: Logger -> select the Openport -> connect. The bottom of the window
+shows CAL ID / ECU ID. Expect a **3B12504206-family** id; note it exactly. This confirms the
+A2WC411D assumption the whole toolchain is built on.
+(The former KKL cross-check is dropped — see §0. Trust now rests on §4.2's read-stability
+proof, which catches the failure that actually matters: a clone that corrupts what it reads.)
 
 ## 4. Validate the Openport clone BEFORE trusting it to flash
-The KKL path validates identity and live data only — **it cannot dump ROMs** (FreeSSM reads
-live parameters, not flash). So the split is:
-1. **Identity cross-check (KKL vs Openport):** ECU ID from FreeSSM/KKL must equal the ID
-   RomRaider/Openport reports (§3). Two independent cables agreeing = both honest.
-2. **Read-stability check (Openport against itself):** read the ROM TWICE with ECUFlash,
+Only one cable is in play, so trust rests entirely on the clone proving itself:
+1. **Read-stability check (Openport against itself) — THE trust test:** read the ROM TWICE
+   with ECUFlash,
    save both, then on the T630:
    ```
    .venv/bin/python -m ecutune.cli --rom-diff read1.bin read2.bin
@@ -63,7 +57,7 @@ live parameters, not flash). So the split is:
    `IDENTICAL` = the clone reads deterministically; that image is trustworthy. Any difference
    between two back-to-back reads = the clone is corrupting data — stop, do not trust it, and
    nothing gets flashed with it ever.
-3. Flash trust is exercised much later (Phase C), still behind the sacred-backup ritual.
+2. Flash trust is exercised much later (Phase C), still behind the sacred-backup ritual.
 
 > ⚠ **EXPECT "Unknown ROM Image" in ECUFlash — and do NOT "fix" it.** If this ECU is the
 > A2WC411D revision (likely: same family as the harvested ROM), ECUFlash will show *Unknown
@@ -106,13 +100,46 @@ live parameters, not flash). So the split is:
      far better to know now than to discover it mid-tune. Exit code 2 means "they differ" (so
      it's scriptable).
 
-## 6. Logging setup (once wideband is installed)
-- RomRaider Logger, Openport (or KKL) connected, the logger def loaded (§2).
-- Log the idle channel set (from car/CLAUDE.md): RPM, MAF g/s, AF correction, AF learning,
-  injector duty/pulsewidth, timing, knock/fine-knock, coolant, IAT, battery voltage, wideband
-  AFR (the AEM analog input — wire per corpus doc 5774's rear-O2-tap pattern; TGV Left/Right or
-  rear-O2 wire → AEM 0-5V, scaled in the logger def).
-- Save logs as CSV → they feed `ecutune`'s logparse directly (same format the sim emits).
+## 6. Wideband bring-up + the first idle log
+
+**Spec (AEM X-Series manual, corpus doc 1069 p11 — quoted, not recalled):** BLUE WIRE = serial
+out; "the format is simply the value followed by a carriage return and line feed, e.g.
+`14.7\r\n`"; **9600 baud, 8 data bits, no parity, 1 stop bit**. Critically: *"the currently
+selected display mode (lambda or AFR) will dictate what is output via serial."*
+
+### 6.1 Set the gauge to AFR mode (do this first)
+The serial stream is a bare number with no unit tag. RomRaider's AEM plugin labels whatever
+arrives as AFR — so if the gauge is in **lambda** mode it streams `1.00` and the log records
+"AFR 1.00", which is silently wrong. **Set the gauge to AFR.** It also matches the rest of the
+toolchain (sim, scorer, corpus all speak AFR).
+
+### 6.2 Prove the serial link BEFORE involving RomRaider
+Terminal program (PuTTY / Tera Term), the adapter's COM port, **9600 8N1**. Engine off, key on.
+You should see a number streaming per line. If you see nothing, or mojibake, the problem is the
+data path (wrong COM port, wrong baud, or an RS-232-vs-TTL level mismatch on the blue wire) —
+diagnose it HERE, where there is exactly one variable, not inside the logger.
+
+### 6.3 Wire it into RomRaider Logger
+RomRaider's external-sensor plugins are configured by `plugins.properties` in the RomRaider
+settings folder (it is created on first Logger run and lists every detected plugin key). Set
+the AEM plugin's port to your adapter's COM port, restart the Logger, and the wideband appears
+as a selectable channel alongside the SSM2 ones.
+
+### 6.4 Functional verification — three tests, in order
+1. **Free air / key-on:** sensor heats (~30 s), then reads pegged lean. Proves the sensor lives.
+2. **Warm closed-loop idle:** the ECU targets stoich, so the wideband should sit near **14.7**.
+   This is the real test — an independent sensor agreeing with the ECU's own control target.
+   Persistent deviation means a wiring/scaling problem, not a fuelling discovery.
+3. **Snap throttle then decel:** must swing rich then lean and RETURN. A reading that never
+   moves is a stuck/dead channel; catching that now prevents a whole tuning session built on
+   a flat line.
+
+### 6.5 The log itself
+Channels (car/CLAUDE.md idle set): RPM, MAF g/s, AF correction, AF learning, injector duty +
+pulsewidth, timing advance, knock + fine knock, coolant, IAT, battery voltage, wideband AFR.
+Save as **CSV** -> feeds `ecutune`'s logparse directly (same format the sim emits).
+Drop logs in `car/dataset/` and the ROM in `car/ecu/rom-archive/` — both are watched, and a
+drop hard-preempts the benchmark pipeline so car work takes priority.
 
 ## 7. What NOT to do (hard rules, principles.md)
 - No flash until: stock ROM archived (×3), battery charger on, hours of stable logging done.
