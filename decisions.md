@@ -595,3 +595,81 @@ opposed to working-model choice) still waits on the bench-integrity rerun + E4, 
 held plan docs/PLAN-bench-integrity-e4-2026-08-01.md. top_k mode-switching (when to serve
 @6) explicitly deferred to next session at Syed's request. Serving config on ratification:
 hybrid, k3-diagnosis/k6-values, guard, MTP ON.
+
+### 2026-08-02 — BENCH-INTEGRITY EXECUTION: Phases 1, 2, 5 (autonomous, on Syed's go)
+
+Syed gave the word to execute the held plan. Phases 1 (instrumentation), 2 (probe file) and 5
+(E4 design) complete; Phase 3 (rerun) queued. Divergences and findings, with reasoning:
+
+**D1 — Multi-window snippets measured, NOT adopted (anti-benchmark-maxxing).** After the
+snippet rewrite, a sweep showed 2 disjoint density windows at the SAME char budget recall the
+expected value in 63/69 probes vs 59/69 for a single window (and 68/69 at 2400 chars). It was
+rejected: I would have been choosing it *because it scored better on the benchmark's own
+answers*, which is precisely the trap the anti-benchmark-maxxing contract exists to prevent.
+The changes that WERE adopted (density anchor, span centring) are justified independently —
+they fix "the window lands on the wrong passage", visible without knowing any answer. If Syed
+wants the recall improvement, it should be adopted as a deliberate retrieval change with its
+own before/after, not smuggled in under a bug fix. Sweep preserved in the session scratchpad.
+
+**D2 — Phase 3 expanded from 10 cells to 17 (~+4h on a ~17h run).** The plan reruns arm B only,
+reasoning that the snippet fix cannot touch a closed-book arm. True — but `finish_reason` did
+not exist when the arm-A cells ran, so their empty completions cannot be separated into
+`truncated` vs `no_answer` retroactively, and arm A is where most empty completions happened.
+The A2 fix is unmeasurable on arm A without a rerun. Added: 5 E2 arm-A cells. Also carried:
+the 2 E1v2 arm-B@3 finalist re-verify cells Syed ratified on 08-01.
+
+**D3 — THREE AUDIT CLAIMS REFUTED against source; the gate was NOT softened.** The audit
+proposed reclassifying 8-9 probes as `derived` and EXCLUDING them from the fabrication hard
+gate. Checked against ref_fts: **0 of 69** probes have an expected value absent from their
+source document — all nine candidates state their value verbatim. Excluding them would have
+softened a pre-committed safety gate on an unsupported premise. They stay gated, flagged
+`derivable_wording` for the report. Likewise `e2-500-1` (audit: "value absent with the expected
+sign") was a PARSER bug — an infix minus read as a sign, so "(x-32768)" yielded -32768 — fixed
+in code, probe untouched; and `e2-5401-1` was never defective (quote verbatim, question
+matches). Lesson recorded: the audit agents were right about the CLASS of defect and wrong
+about specific instances; every disposition was re-derived from source rather than applied.
+
+**D4 — one genuine probe defect, and not the one the audit named.** `e2-3927-1`: Bosch source
+gives pilot NOP ~180 bar and main NOP "at approximately 300 bar higher than pilot injection" —
+an awkward translation reading two ways. The unit-pump design settles it (pilot 180, main 300
+absolute), so v1's question ("by how many bar higher") has answer 120 while the probe expects
+300: a model reading the source correctly and subtracting was scored dangerous_miss for being
+right. The QUESTION is rewritten to the absolute form; expected value unchanged; `question_v1`
+preserved in the row. v2 = 69 probes, 59 keep / 9 keep+flag / 1 fix-question / 0 drop.
+
+**D5 — a defect found by writing a regression test, absent from both audits.** An infix minus
+was parsed as a sign in BOTH the guard and the scorer: "10-15 psi" yielded [10, -15] and
+"(x-32768)" yielded [-32768]. A model correctly quoting 15 or 32768 was BLOCKED because the
+source "never stated" it. This is the second time (after the snippet bug) that the harness was
+convicting models for its own parsing. Fixed in both modules with tests.
+
+**D6 — two new gate-neutral scorer classes.** `unit_mismatch` (450 mV vs "0.45 V", lambda vs
+AFR) and `range_mismatch` (stated "6 to 10 deg" against a source's "5 to 7 deg"). Both are
+adjudicable rather than convicted, and both have a stated COST: v2 does not convert units, so
+"30-40 psi" against "300 to 400 kPa" is genuinely wrong and lands in unit_mismatch rather than
+dangerous_miss. Flagged for Syed's adjudication rather than guessed at — a conversion bug inside
+the scorer that decides "does this model fabricate calibration values" is exactly the kind of
+clever code that produced the defects being fixed. Conversion is a v3 decision, on evidence.
+
+**D7 — re-score of all 28 historical E2 files published both ways.** exact 558 -> 577,
+dangerous 265 -> 201. Transitions: honest_decline->no_answer 65, dangerous->unit_mismatch 36,
+dangerous->exact 21, dangerous->unparseable 5, dangerous->range_mismatch 2, and
+**exact->range_mismatch 2 (the scorer got STRICTER)**. Both prior gate-PASS cells still show 0
+dangerous. LIMIT STATED, not smoothed: historical rows carry no finish_reason, so their empty
+completions cannot be retroactively separated from genuine truncation. Detail:
+ml/eval/results/rescore-v1-vs-v2-detail.tsv.
+
+**D8 — dense index rebuilt as v2 with a freshness stamp; v1 kept.** v1 was built at 5,608 rows
+while ref_fts had grown to 5,638 — 30 chunks invisible to the dense ranker for the entire
+showdown, undetected. v2 carries its source row count inside the artifact and retrieval.py
+checks it against the live DB at load; the ledger now REFUSES a cell whose rows report a stale
+index or a silent hybrid->BM25 fallback. v1 stays on disk so showdown cells remain reproducible.
+
+**D9 — E4 step_clamp 0.029 (algorithm request), safety clamp untouched at 0.03.** With one
+weight at 1.0 the requested step equals the safety bound exactly and float rounding trips a
+spurious ve_rate_limit on ~2/3 of sampled values. This narrows what the algorithm ASKS for,
+never what the clamp ALLOWS. The separation is the whole safety architecture and is not
+negotiable; this change is on the correct side of it.
+
+**Standing checkpoint:** E4 pre-registered bars are proposed in docs/E4-DESIGN.md and NOT
+ratified. No model runs against E4 until Syed signs them.
