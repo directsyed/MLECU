@@ -305,7 +305,15 @@ def score(results_path: Path, n_expected: int | None = None) -> dict:
     (recorded per row, so a truncated file still carries it) or from the caller, and an
     incomplete file can never read "pass".
     """
-    rows = [json.loads(l) for l in results_path.read_text().splitlines() if l.strip()]
+    return score_rows([json.loads(l) for l in results_path.read_text().splitlines() if l.strip()],
+                      n_expected)
+
+
+def score_rows(rows: list[dict], n_expected: int | None = None) -> dict:
+    """score() over already-loaded rows, so a caller can RE-CLASSIFY historical rows with the
+    current scorer before scoring them (the rundown does exactly this: files written before
+    2026-08-02 carry v1 classes in their `class` field, and scoring the stored class would
+    report v1 verdicts under a v2 heading)."""
     n = len(rows)
     if n_expected is None:
         stated = {r.get("n_expected") for r in rows if r.get("n_expected")}
