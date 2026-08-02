@@ -16,6 +16,20 @@ echo "== PLAN: docs/PLAN-bench-integrity-e4-2026-08-01.md =="
 [ -f "$STATUS" ] && sed -n '1,18p' "$STATUS"
 
 echo
+echo "== e2v2 progress =="
+sqlite3 "$DB" "
+  SELECT printf('%-42s %-8s %5s', label, state,
+                CASE WHEN started_at IS NULL THEN ''
+                     ELSE ROUND((julianday(COALESCE(ended_at,'now'))-julianday(started_at))*1440,0)||'m' END)
+  FROM unit WHERE phase='e2v2' AND state!='pending' ORDER BY seq;" 2>/dev/null
+DONE=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE phase='e2v2' AND state='done';" 2>/dev/null)
+LEFT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE phase='e2v2' AND state='pending';" 2>/dev/null)
+AVG=$(sqlite3 "$DB" "SELECT ROUND(AVG((julianday(ended_at)-julianday(started_at))*1440),0)
+                     FROM unit WHERE phase='e2v2' AND state='done';" 2>/dev/null)
+[ -n "${AVG:-}" ] && [ "${LEFT:-0}" -gt 0 ] && \
+  echo "done=$DONE  left=$LEFT  mean=${AVG}m/cell  -> ETA ~$(( LEFT * ${AVG%.*} / 60 ))h remaining"
+
+echo
 echo "== ledger =="
 RUNNING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE state='running';" 2>/dev/null)
 PENDING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE state='pending';" 2>/dev/null)
