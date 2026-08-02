@@ -25,6 +25,10 @@ def main() -> None:
                    help="bm25 = retrieval-v1 exact; hybrid = dense+BM25 RRF (default cfg)")
     p.add_argument("--model-name", default=None,
                    help="model tag recorded into result rows (e.g. qwen3.6-27b-q8+qlora-v1)")
+    p.add_argument("--timeout", type=int, default=None,
+                   help="per-request client timeout (s). 600 was too short once --max-tokens "
+                        "rose to 16384: gpt-oss at 23 t/s needs ~700s for a full-budget "
+                        "completion, so the request died mid-cell (2026-08-01).")
     p.add_argument("--max-tokens", type=int, default=None,
                    help="max_completion_tokens (reasoning + answer share ONE budget). 8192 "
                         "truncated Thinking-class models mid-trace on 2026-07-31 — their "
@@ -58,6 +62,9 @@ def main() -> None:
     if args.max_tokens:
         from dataclasses import replace
         cfg = replace(cfg, llm=replace(cfg.llm, max_completion_tokens=args.max_tokens))
+    if args.timeout:
+        from dataclasses import replace
+        cfg = replace(cfg, llm=replace(cfg.llm, request_timeout_s=args.timeout))
 
     if args.gen_pairs:
         llm.health_check(cfg.llm)

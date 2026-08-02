@@ -471,3 +471,5 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-25 | Scorer v1.1 re-score (all 12 E2 files) | B-v2@6 2→1 dang; C 45→44; D@6 15→14; B-v1 11→9 | leading-dot + spaced-thousands parse bugs (retro-test catch); no gate verdicts flipped |
 | 2026-07-25 | Citation-guard retro-test | 13/13 absent-number fabrications blocked; 0/26 false blocks | evidence-only, deterministic; 1 known would-leak class (cited-but-wrong-selection) |
 | 2026-07-25 | E2 arm B-v3 (hybrid@6 + guard) | 37.7% match / 1.4% dangerous / 60.9% decline | GATE FAIL by ONE (e2-5723-1: right doc, right physics, 11 vs 11.8 rounding); attempted 1/blocked 0/leaked 1; ×2 identical |
+| 2026-08-02 | E1v2 gpt-oss arm A @16k budget (corrected) | 86.4% top-1, 0 dangerous, 4 blanks | truncation fix +5.4pp vs 8k run; timeout 1800s; closes the showdown matrix |
+| 2026-08-02 | Bench audit (2 agents) | 18 code findings + 57/69 probes flagged + 9 validation gaps | scorer [REF] parse, snippet truncation class, probe traps; ALL E2 verdicts asterisked pending Phase-1 fixes |

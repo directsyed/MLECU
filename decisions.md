@@ -584,3 +584,14 @@ unsuitability with this data: recorded as INCONCLUSIVE, not as a loss.
 100B-class models 4-bit). The core hypothesis pair — 35B (Q8) vs 80B (Q6), matched 3B active —
 is unaffected, both above the 4-bit line. Infra: 3090 never exceeded ~120 W across 4 days and
 5 models; zero box deaths, zero ECC errors, zero SEL events.
+
+### 2026-08-02 — SESSION CLOSE: 27B dense ratified as WORKING MODEL; bench-integrity plan held
+
+Syed: "We will be using the 27B" — ratified on the corrected record: wins the deployed
+config (E1v2 arm B@3: 93.2 vs 83.7 for both finalists), gate-clean, fastest, VRAM-resident.
+gpt-oss corrected arm A = 86.4 (best closed-book of the finalists, zero dangerous anywhere)
+— remains the E4 challenger. Claude raised no objection. Deployment RATIFICATION (as
+opposed to working-model choice) still waits on the bench-integrity rerun + E4, per the
+held plan docs/PLAN-bench-integrity-e4-2026-08-01.md. top_k mode-switching (when to serve
+@6) explicitly deferred to next session at Syed's request. Serving config on ratification:
+hybrid, k3-diagnosis/k6-values, guard, MTP ON.
