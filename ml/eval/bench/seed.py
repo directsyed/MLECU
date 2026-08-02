@@ -174,10 +174,100 @@ def seed_showdown() -> None:
             seq += 1
 
 
+# ------------------------------------------------------------------ phase 4 (2026-08-02)
+
+PROBES_V2 = "data/e2_probes_v2.jsonl"
+
+# The CALIBRATED profiles the showdown actually adopted, read back out of the ledger and
+# cleaned up (the calibrator appended its -ot flags twice on two models — harmless but
+# confusing, and llama.cpp takes the last one anyway). Every profile carries ctx 24576:
+# prompt and completion share the window, so a 16384 completion budget cannot live in a
+# 16384 context. That was the 2026-08-01 truncation defect and it is not repeatable here.
+FT_MODELS = MLECU / "ml/finetuning/models"
+_HI = ["--chat-template-kwargs", '{"reasoning_effort":"high"}']
+_OT = lambda lo, hi, dev: ["-ot", r"blk\.(" + "|".join(str(i) for i in range(lo, hi + 1))
+                           + r")\.ffn_.*_exps\.weight=" + dev]
+
+E2V2_MODELS = [
+    # (model_key, profile dict, include_e1v2_armB_reverify)
+    ("qwen27b-dense", {"key": "base-nomtp-ctx24k", "gguf": BASE_GGUF, "extra": [],
+                       "ti_only": False, "ctx": 24576}, True),
+    ("gpt-oss-120b", {"key": "gpt-oss-120b-ot13-ctx24k",
+                      "gguf": str(FT_MODELS / "gpt-oss-120b/gpt-oss-120b-MXFP4.gguf"),
+                      "extra": _OT(0, 12, "CUDA1") + _OT(24, 35, "CPU") + _HI,
+                      "ti_only": False, "tensor_split": "1,0", "ctx": 24576}, True),
+    ("qwen35-moe", {"key": "qwen35-moe-ot18-ctx24k", "gguf": MOE35_GGUF,
+                    "extra": _OT(0, 17, "CUDA1"),
+                    "ti_only": False, "tensor_split": "1,0", "ctx": 24576}, False),
+    ("qwen-next-80b-think",
+     {"key": "qwen-next-80b-think-ot17-ctx24k",
+      "gguf": str(FT_MODELS / "qwen-next-80b-thinking/Q6_K/"
+                  "Qwen3-Next-80B-A3B-Thinking-Q6_K-00001-of-00002.gguf"),
+      "extra": _OT(0, 16, "CUDA1") + _OT(32, 47, "CPU"),
+      "ti_only": False, "tensor_split": "1,0", "ctx": 24576}, False),
+    ("mistral-small-4",
+     {"key": "mistral-small-4-ot11-ctx24k",
+      "gguf": str(FT_MODELS / "mistral-small-4/MXFP4_MOE/"
+                  "Mistral-Small-4-119B-2603-MXFP4_MOE-00001-of-00003.gguf"),
+      "extra": _OT(0, 10, "CUDA1") + _OT(21, 35, "CPU") + _HI,
+      "ti_only": False, "tensor_split": "1,0", "ctx": 24576}, False),
+]
+
+# Uniform across every cell — these are the comparability contract, not tuning knobs.
+E2V2_COMMON = ["--max-tokens", "16384", "--timeout", "1800", "--retrieval-mode", "hybrid"]
+
+
+def seed_e2v2() -> None:
+    """The bench-integrity rerun: E2 re-derived on fixed instrumentation + probes v2.
+
+    MTP is OFF everywhere. MTP is NOT output-invariant (measured 2026-07-31: 91.2% answer
+    agreement on-vs-off), so it is a variable, and a comparison matrix may hold only one
+    value of a variable. The deployed 27B still serves MTP-on — that is a serving decision,
+    not a measurement one.
+
+    DELIBERATE EXPANSION of the plan's 10 cells to 15, logged in decisions.md: the plan
+    reruns arm B only, on the reasoning that the snippet fix cannot touch a closed-book arm.
+    True — but `finish_reason` did not exist when the arm-A cells were run, so their empty
+    completions cannot be separated into truncated vs no_answer retroactively, and arm A is
+    where most empty completions happened. The A2 fix is unmeasurable on arm A without a
+    rerun. ~4h added to a ~17h run to close a gap the plan itself opens.
+
+    Ordering is by model (one server load each, and loads cost 5-20 min) with the two
+    FINALISTS first, so the cells that decide deployment land in the first ~12 hours.
+    """
+    seq = 0
+    for model_key, profile, reverify in E2V2_MODELS:
+        p = json.dumps(profile)
+        cells = [
+            ("e2", "A", ["--run-e2", "--arm", "A", "--runs", "1",
+                         "--probes", PROBES_V2], N_E2, "e2v2-armA"),
+            ("e2", "B", ["--run-e2", "--arm", "B", "--runs", "1", "--guard",
+                         "--probes", PROBES_V2, "--top-k", "3"], N_E2, "e2v2-armB-k3-guard"),
+            ("e2", "B", ["--run-e2", "--arm", "B", "--runs", "1", "--guard",
+                         "--probes", PROBES_V2, "--top-k", "6"], N_E2, "e2v2-armB-k6-guard"),
+        ]
+        if reverify:
+            # Syed ratified 2026-08-01: finalists only. The arm-B E1 prompts also consumed
+            # truncated snippets, and "the enum answers make it plausibly small" is not a
+            # measurement.
+            cells.append(("e1v2", "B", ["--run-e1", "--arm", "B", "--runs", "1",
+                                        "--cases", E1V2, "--top-k", "3"],
+                          N_E1V2, "e1v2-armB-k3-reverify"))
+        for suite, arm, argv, nrows, tag in cells:
+            name = f"{model_key}|{tag}"
+            ledger.add_unit(phase="e2v2", seq=seq, model_key=model_key,
+                            label=f"e2v2-{model_key}-{tag}", kind="harness",
+                            server_profile=p, arm=arm, suite=suite, model_tag=name,
+                            n_rows_expected=nrows,
+                            argv_json=json.dumps(argv + E2V2_COMMON
+                                                 + ["--model-name", name]))
+            seq += 1
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--phase", default="all",
-                    choices=("burnin", "guard", "showdown", "all"))
+                    choices=("burnin", "guard", "showdown", "e2v2", "all"))
     args = ap.parse_args()
     ledger.init()
     if args.phase in ("burnin", "all"):
@@ -186,6 +276,8 @@ def main() -> None:
         seed_guard()
     if args.phase in ("showdown", "all"):
         seed_showdown()
+    if args.phase == "e2v2":            # NOT part of "all": the showdown phases are history
+        seed_e2v2()
     print(json.dumps(ledger.status(), indent=2))
 
 
