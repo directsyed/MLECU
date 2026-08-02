@@ -31,7 +31,15 @@ class RetrievalCfg:
     # mode="bm25" reproduces retrieval-v1 byte-for-byte (audit/repro); "hybrid" fuses
     # BM25 with BGE-M3 cosine ranks via RRF. Falls back to bm25 if the index is absent.
     mode: str = "hybrid"
-    index_path: Path = EVAL_DIR / "data/ref_dense_v1.npz"
+    # v2 (2026-08-02, audit A10): v1 was built at 5,608 rows and ref_fts grew to 5,638 — 30
+    # chunks were invisible to the dense ranker for the entire showdown, undetected. v2 is a
+    # full rebuild carrying an n_rows stamp that retrieval.py checks against the live DB at
+    # load. v1 stays on disk (stale, do not use) so showdown cells remain reproducible.
+    index_path: Path = EVAL_DIR / "data/ref_dense_v2.npz"
+    # Snippet extraction (2026-08-02): unified char-window for every hit in hybrid mode.
+    # snippet_max_chars is a target — the window may overshoot by up to one token plus
+    # NUM_RUN_MAX_EXTEND chars when the boundary would otherwise cut a number in half.
+    snippet_window_lead_frac: float = 0.25   # share of the window placed BEFORE the match
 
 
 @dataclass(frozen=True)

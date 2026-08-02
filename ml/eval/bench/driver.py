@@ -30,7 +30,7 @@ JUDGE_VENV = MLECU / "ml/curation/.venv/bin/python"
 LLS = Path("/home/syed/tools/llama.cpp/build/bin/llama-server")
 LOG = MLECU / "ml/finetuning/logs/bench-driver.log"
 SRVLOG = MLECU / "ml/finetuning/logs/bench-server.log"
-INDEX = EVAL_DIR / "data/ref_dense_v1.npz"
+INDEX = EVAL_DIR / "data/ref_dense_v2.npz"
 
 # --- 3090 duty guard -------------------------------------------------------
 # CALIBRATED against the real envelope, not guessed (smoke test 2026-07-29):

@@ -13,7 +13,8 @@ vote on the same candidates and RefSnippet provenance is unchanged.
 Runs on CPU only — zero VRAM, safe alongside training/serving. ~15-25 min for 5,608 rows.
 
 Run: car/.venv/bin/python -m harness.embed_index      (cwd: ml/eval)
-Output: ml/eval/data/ref_dense_v1.npz  (~23 MB: 'vecs' [N,1024] f32, 'rowids' [N] i64)
+Output: ml/eval/data/ref_dense_v2.npz  (~23 MB: 'vecs' [N,1024] f32, 'rowids' [N] i64,
+'n_rows' i64 freshness stamp, 'built_at' str)
 """
 from __future__ import annotations
 
@@ -46,9 +47,15 @@ def build(cfg: RetrievalCfg | None = None, log=print) -> None:
                         show_progress_bar=False, convert_to_numpy=True)
     rowids = np.array([r[0] for r in rows], dtype=np.int64)
     cfg.index_path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez(cfg.index_path, vecs=vecs.astype(np.float32), rowids=rowids)
+    # FRESHNESS STAMP (2026-08-02, audit finding A10): the index silently drifted 30 rows
+    # behind ref_fts (5,608 vs 5,638) and nothing noticed, so those chunks were invisible to
+    # the dense ranker for every hybrid cell of the showdown. Recording the source row count
+    # IN the artifact lets retrieval.py compare against the live DB at load and shout.
+    np.savez(cfg.index_path, vecs=vecs.astype(np.float32), rowids=rowids,
+             n_rows=np.int64(len(rows)), built_at=np.str_(time.strftime("%F %T")))
     log(f"index -> {cfg.index_path} ({vecs.shape[0]}x{vecs.shape[1]}, "
-        f"{cfg.index_path.stat().st_size/1e6:.1f} MB, {time.time()-t0:.0f}s)")
+        f"{cfg.index_path.stat().st_size/1e6:.1f} MB, {time.time()-t0:.0f}s, "
+        f"n_rows stamp {len(rows)})")
 
 
 if __name__ == "__main__":
