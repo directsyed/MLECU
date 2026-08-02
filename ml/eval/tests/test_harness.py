@@ -30,7 +30,7 @@ def test_answer_schema_pins_choices():
 
 
 def test_arm_a_is_verbatim():
-    user, refs = arms.build_user("A", CFG, "case text")
+    user, refs, _ = arms.build_user("A", CFG, "case text")
     assert user == "case text" and refs == []
 
 
@@ -41,7 +41,7 @@ def test_unknown_arm_rejected():
 
 
 def test_arm_c_is_verbatim_like_a():
-    user, refs = arms.build_user("C", CFG, "case text")
+    user, refs, _ = arms.build_user("C", CFG, "case text")
     assert user == "case text" and refs == []
 
 

@@ -44,7 +44,13 @@ def main() -> None:
     p.add_argument("--guard", action="store_true",
                    help="deterministic citation guard on retrieval arms (B-v3+): stated "
                         "numbers must appear in retrieved snippets or become declines")
-    p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_draft.jsonl")
+    # C4 (2026-08-02): this defaulted to the 93-row DRAFT file — the one whose own header says
+    # "DRAFT ONLY — Syed spot-check required before any arm runs against it". Any E2 invocation
+    # that forgot --probes silently benchmarked against unratified probes.
+    p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_v1.jsonl",
+                   help="ratified probe file (never the draft)")
+    p.add_argument("--score-e2", type=Path, default=None,
+                   help="score an E2 results JSONL with scorer v2")
     p.add_argument("--tolerance", type=float, default=1.0, help="E2 match tolerance in %%")
     p.add_argument("--cases", type=Path, default=None,
                    help="E1 cases JSONL override (e.g. data/sim_cases_v2.jsonl)")
@@ -78,12 +84,20 @@ def main() -> None:
         print("DRAFT ONLY — Syed spot-check required before any arm runs against it.")
         return
 
+    if args.score_e2:
+        print(json.dumps(e2.score(args.score_e2), indent=2))
+        return
+
     if args.run_e2:
-        llm.health_check(cfg.llm)
+        served = llm.health_check(cfg.llm)
+        print(f"llama-server up, serving {served}")
+        n_probes = len(e2.load_probes(args.probes))
+        print(f"E2: {n_probes} probes from {args.probes.name}, arm {args.arm}, "
+              f"guard={args.guard}, top_k={cfg.retrieval.top_k}")
         for k in range(args.runs):        # e2 gains multi-run parity with e1 (2026-07-22)
             out = e2.run_arm(cfg, args.arm, args.probes, run_idx=k + 1,
                              tolerance_pct=args.tolerance, guard=args.guard)
-            print(json.dumps(e2.score(out), indent=2))
+            print(json.dumps(e2.score(out, n_expected=n_probes), indent=2))
         return
 
     if args.baselines:

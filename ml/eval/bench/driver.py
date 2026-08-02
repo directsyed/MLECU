@@ -219,15 +219,37 @@ def server_start(profile: dict) -> bool:
             return False
         try:
             r = subprocess.run(["curl", "-sf", "http://127.0.0.1:8080/v1/models"],
-                               capture_output=True, timeout=10)
+                               capture_output=True, timeout=10, text=True)
             if r.returncode == 0:
-                log(f"server[{profile['key']}] healthy")
+                if not _serving_expected_model(r.stdout, gguf):
+                    log(f"server[{profile['key']}] SERVING THE WRONG MODEL — refusing")
+                    server_stop()
+                    return False
+                log(f"server[{profile['key']}] healthy, serving {gguf.name}")
                 return True
         except Exception:
             pass
     log(f"server[{profile['key']}] health TIMEOUT")
     server_stop()
     return False
+
+
+def _serving_expected_model(models_json: str, gguf: Path) -> bool:
+    """C3 — verify the server is actually serving the GGUF this unit asked for.
+
+    Nothing checked this before 2026-08-02, and the showdown paid for it twice: the 80B cells
+    ran the non-thinking Instruct variant while the ledger labelled them Thinking, and the
+    result rows carried whatever `model` tag the CLI was told to write. The tag was an
+    assertion by the caller, never an observation of the server. Here we observe.
+    """
+    try:
+        ids = [d.get("id", "") for d in (json.loads(models_json).get("data") or [])]
+    except (json.JSONDecodeError, AttributeError):
+        return True          # unparseable /v1/models is not evidence of a wrong model
+    if not ids:
+        return True
+    stem = gguf.name.rsplit(".gguf", 1)[0].rsplit("-00001-of-", 1)[0]
+    return any(gguf.name in i or stem in i or Path(i).name == gguf.name for i in ids)
 
 
 # ---------------------------------------------------------------- preemption

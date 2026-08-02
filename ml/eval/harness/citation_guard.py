@@ -25,9 +25,18 @@ import re
 
 # leading-dot form included ('.84') — the 2026-07-25 retro-test caught probe e2-466-0's
 # correct answer being mis-parsed for lack of it (same fix in e2.parse_number, scorer v1.1)
-_NUM = re.compile(r"-?(?:\d+(?:[.,]\d+)?|[.]\d+)")
+# A minus is a SIGN only when nothing numeric/word-like precedes it. Without the
+# lookbehind, "10-15 psi" yields [10, -15] and "(x-32768)" yields [-32768] — so a model
+# correctly quoting 15 or 32768 was BLOCKED, because the source "never stated" it.
+# Found 2026-08-02 while writing the A9 regression test.
+_NUM = re.compile(r"(?:(?<![\w.)])-)?(?:\d+(?:[.,]\d+)?|[.]\d+)")
 _REF_MARK = re.compile(r"\[REF\s+\d+\]")         # citation ids are not calibration values
-_SPLIT_DIGITS = re.compile(r"(?<=\d)[  ­​\-](?=\d)")
+# A9 (2026-08-02): the literal hyphen was REMOVED from this class. "10-15 psi" healed to
+# 1015, which then sat in the evidence pool as a number the source never states — and every
+# healing error runs in the PERMISSIVE direction, i.e. it grounds fabrications. Spaces, soft
+# hyphens and zero-widths are genuine PDF-extraction damage; a hyphen between two digits is
+# a range, and joining a range is inventing evidence.
+_SPLIT_DIGITS = re.compile(r"(?<=\d)[  ­​](?=\d)")
 
 
 def numbers_in(text: str | None) -> list[float]:
@@ -62,22 +71,37 @@ def verify(value: str | None, snippet_texts: list[str], rel_tol: float = 0.01) -
     """Verdict for a stated value against the evidence actually shown to the model.
 
     verdicts: declined (nothing stated — guard is a no-op), no_numbers (qualitative
-    answer, passes), cited (every number grounded), blocked (>=1 unverified number).
+    answer, passes), cited (every number grounded), blocked (>=1 unverified number),
+    no_evidence (nothing was retrieved — the guard has no standing to judge).
+
+    A3 (2026-08-02): an EMPTY evidence pool used to block every number, including a correct
+    parametric answer the model knew without retrieval. That is not cite-or-decline, it is
+    "the retriever missed, so you are guilty" — it convicted the model for the retriever's
+    failure. With no evidence the guard now abstains and the answer is scored on its merits.
     """
     if value in (None, ""):
         return {"verdict": "declined", "unverified": []}
     stated = numbers_in(value)
     if not stated:
         return {"verdict": "no_numbers", "unverified": []}
-    pool = evidence_numbers(snippet_texts)
+    texts = [t for t in (snippet_texts or []) if t and t.strip()]
+    if not texts:
+        return {"verdict": "no_evidence", "unverified": []}
+    pool = evidence_numbers(texts)
     unverified = [n for n in stated if not _matches(n, pool, rel_tol)]
     return {"verdict": "blocked" if unverified else "cited", "unverified": unverified}
 
 
 def apply(answer: dict, snippet_texts: list[str], rel_tol: float = 0.01) -> tuple[dict, dict]:
-    """(guarded_answer, guard_record). Blocked answers become mechanical declines; the
-    original answer is preserved in the record for the attempted/blocked/leaked gauge."""
+    """(guarded_answer, guard_record). Blocked answers become mechanical declines.
+
+    A8 (2026-08-02): the record now PRESERVES the original stated value. The module docstring
+    always promised the pre-guard behaviour stays visible, but `apply` returned only the
+    verdict — so once an answer was blocked, what the model had actually said was gone and
+    the block was unauditable. `original_value` closes that.
+    """
     rec = verify(answer.get("value"), snippet_texts, rel_tol)
+    rec["original_value"] = answer.get("value")
     if rec["verdict"] == "blocked":
         return {"value": None, "must_retrieve": True}, rec
     return answer, rec

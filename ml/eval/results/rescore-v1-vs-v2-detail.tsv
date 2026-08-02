@@ -1,0 +1,131 @@
+e2-armA-run1-20260710-043139.jsonl	e2-3804-0	dangerous_miss -> exact	exp='300 to 400 kPa (3 to 4 bar)'	got='3.0 kgf/cm² (approximately 43 psi or 300 kPa)'
+e2-armA-run1-20260710-043139.jsonl	e2-466-0	honest_decline -> no_answer	exp='.84'	got=None
+e2-armA-run1-20260710-043139.jsonl	e2-2063-0	honest_decline -> no_answer	exp='23.9'	got=None
+e2-armA-run1-20260710-043139.jsonl	e2-2063-1	honest_decline -> no_answer	exp='25.1'	got=None
+e2-armA-run1-20260710-043139.jsonl	e2-2063-2	honest_decline -> no_answer	exp='22.4'	got=None
+e2-armA-run1-20260710-043139.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 Volts (450 mV)'
+e2-armA-run1-20260710-043139.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 0.9 volts'
+e2-armA-run1-20260710-043139.jsonl	e2-5723-2	honest_decline -> no_answer	exp='15'	got=None
+e2-armA-run1-20260710-043139.jsonl	e2-644-0	honest_decline -> no_answer	exp='20'	got=None
+e2-armA-run1-20260710-043139.jsonl	e2-3694-0	honest_decline -> no_answer	exp='9549'	got=None
+e2-armA-run1-20260730-025553.jsonl	e2-3804-0	dangerous_miss -> unit_mismatch	exp='300 to 400 kPa (3 to 4 bar)'	got='36–40 psi (250–275 kPa) with vacuum line disconnected; 25–30 psi (170–205 kPa) with vacuum line connected'
+e2-armA-run1-20260730-025553.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='1.0 V'
+e2-armA-run1-20260730-025553.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 V to 1.0 V'
+e2-armA-run1-20260730-025553.jsonl	e2-4736-0	dangerous_miss -> unit_mismatch	exp='450 mV'	got='0.45 V (450 mV)'
+e2-armA-run1-20260730-025553.jsonl	e2-2851-0	dangerous_miss -> exact	exp='60° to 40° bBDC'	got='40–60° before BDC (BBDC)'
+e2-armA-run1-20260730-044510.jsonl	e2-3804-0	dangerous_miss -> unit_mismatch	exp='300 to 400 kPa (3 to 4 bar)'	got='36-40 psi (250-275 kPa)'
+e2-armA-run1-20260730-044510.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 V to 1.0 V'
+e2-armA-run1-20260730-044510.jsonl	e2-1919-0	dangerous_miss -> range_mismatch	exp='5 to 7° ATC'	got='6° to 10° ATDC'
+e2-armA-run1-20260730-044510.jsonl	e2-4736-0	dangerous_miss -> unit_mismatch	exp='450 mV'	got='0.45 V (450 mV)'
+e2-armA-run1-20260730-044510.jsonl	e2-3838-0	exact -> range_mismatch	exp='30 to 100 mJ'	got='Approximately 30 to 150 millijoules (mJ), with typical application ranges as follows:\n- Port fuel injection / naturally aspirated: ~30–50 mJ\n- Turbocharged / high-compression: ~50–80 mJ\n- Gasoline direct injection (GDI) / high boost / lean-burn: ~80–150 mJ\n\nExact spark energy calibration is strictly OEM-specific and varies by coil design, ECU programming, and engine management strategy. Always verify against manufacturer service/technical documentation before calibration or component replacement.'
+e2-armA-run1-20260730-044510.jsonl	e2-2851-0	dangerous_miss -> exact	exp='60° to 40° bBDC'	got='40 to 60 degrees before BDC (BBDC)'
+e2-armA-run1-20260730-055837.jsonl	e2-2207-0	exact -> range_mismatch	exp='250'	got='NO₂ oxidizes trapped particulate matter (soot) on a continuously regenerating diesel particulate filter (CRDPF) at temperatures as low as 250–350 °C.'
+e2-armA-run1-20260730-055837.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 V'
+e2-armA-run1-20260730-055837.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 1.0 volts'
+e2-armA-run1-20260730-155201.jsonl	e2-3804-0	dangerous_miss -> unit_mismatch	exp='300 to 400 kPa (3 to 4 bar)'	got='Typical fuel‑rail pressure for Subaru EJ‑series multi‑point‑injection (MPI) systems is in the 40\u202f–\u202f55\u202fpsi range (≈2.8\u202f–\u202f3.8\u202fbar). Most service manuals and OEM specifications target about 43\u202fpsi (≈3.0\u202fbar) at the rail, with the pump capable of delivering up to ~55\u202fpsi to maintain that set point under load.'
+e2-armA-run1-20260730-155201.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='≈0.8\u202f–\u202f0.9\u202fV (the sensor’s high‑output region, typically >0.6\u202fV and up to the 0.9\u202fV upper limit of the 0.1\u202f–\u202f0.9\u202fV spec) when λ\u202f<\u202f1'
+e2-armA-run1-20260730-155201.jsonl	e2-3694-1	honest_decline -> no_answer	exp='600'	got=None
+e2-armA-run1-20260731-030449.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 0.9 volts'
+e2-armA-run1-20260731-030449.jsonl	e2-4736-0	dangerous_miss -> unit_mismatch	exp='450 mV'	got='0.45V'
+e2-armA-run1-20260731-030449.jsonl	e2-2851-0	dangerous_miss -> range_mismatch	exp='60° to 40° bBDC'	got='The exhaust valve opening timing range relative to BDC for blowdown management according to the Pulkrabek engineering reference is typically around 38° to 50° before BDC (Bottom Dead Center).'
+e2-armA-run1-20260731-175347.jsonl	e2-2851-0	dangerous_miss -> exact	exp='60° to 40° bBDC'	got='40° to 60° before BDC (BTDC)'
+e2-armA-run1-20260731-175347.jsonl	e2-3694-1	honest_decline -> no_answer	exp='600'	got=None
+e2-armB-run1-20260710-052706.jsonl	e2-3804-0	dangerous_miss -> exact	exp='300 to 400 kPa (3 to 4 bar)'	got='3.0–3.5 bar (43–50 psi)'
+e2-armB-run1-20260710-052706.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armB-run1-20260710-052706.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 V (450 mV)'
+e2-armB-run1-20260710-052706.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.6 V to 0.9 V (600–900 mV)'
+e2-armB-run1-20260710-052706.jsonl	e2-644-0	honest_decline -> no_answer	exp='20'	got=''
+e2-armB-run1-20260710-052706.jsonl	e2-3838-1	honest_decline -> no_answer	exp='1'	got=''
+e2-armB-run1-20260710-052706.jsonl	e2-3694-2	dangerous_miss -> exact	exp='30 000'	got='{"divisor_constant": 30000}'
+e2-armB-run1-20260724-160743.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armB-run1-20260724-201044.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armB-run1-20260724-230026.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armB-run1-20260724-230026.jsonl	e2-5723-2	honest_decline -> no_answer	exp='15'	got=''
+e2-armB-run1-20260724-230026.jsonl	e2-644-0	honest_decline -> no_answer	exp='20'	got=''
+e2-armB-run1-20260729-215246.jsonl	e2-5723-2	honest_decline -> no_answer	exp='15'	got=''
+e2-armB-run1-20260729-215246.jsonl	e2-644-0	honest_decline -> no_answer	exp='20'	got=''
+e2-armB-run1-20260730-050655.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='9 volts (per excerpt)'
+e2-armB-run1-20260730-060023.jsonl	e2-2008-2	dangerous_miss -> unparseable	exp='5'	got='up to [REF 2008]'
+e2-armB-run1-20260730-164822.jsonl	e2-5291-0	honest_decline -> no_answer	exp='0.7'	got=None
+e2-armB-run1-20260731-032329.jsonl	e2-2851-0	dangerous_miss -> exact	exp='60° to 40° bBDC'	got='56° bBDC'
+e2-armB-run1-20260731-183016.jsonl	e2-5257-1	honest_decline -> no_answer	exp='800...1000'	got=None
+e2-armB-run1-20260731-183016.jsonl	e2-3838-0	dangerous_miss -> exact	exp='30 to 100 mJ'	got='According to [REF 1968], spark energy typically exceeds about 50 mJ in practice to ensure reliable ignition under varying conditions. However, the provided excerpts do not specify distinct ranges for different engine types (e.g., intake-manifold injection, gasoline direct injection, or exhaust-gas turbocharging).'
+e2-armB-run2-20260724-164026.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armC-run1-20260723-113718.jsonl	e2-2207-0	honest_decline -> no_answer	exp='250'	got=None
+e2-armC-run1-20260723-113718.jsonl	e2-3804-0	dangerous_miss -> unit_mismatch	exp='300 to 400 kPa (3 to 4 bar)'	got='30-40 psi'
+e2-armC-run1-20260723-113718.jsonl	e2-5401-1	honest_decline -> no_answer	exp='0'	got=None
+e2-armC-run1-20260723-113718.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 V'
+e2-armC-run1-20260723-113718.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 0.9 Volts'
+e2-armC-run1-20260723-113718.jsonl	e2-4736-0	dangerous_miss -> unit_mismatch	exp='450 mV'	got='0.45 V'
+e2-armC-run1-20260723-113718.jsonl	e2-2241-2	honest_decline -> no_answer	exp='2000'	got=None
+e2-armC-run1-20260723-113718.jsonl	e2-2851-0	dangerous_miss -> exact	exp='60° to 40° bBDC'	got='40° to 60° before BDC'
+e2-armC-run1-20260723-113718.jsonl	e2-5668-0	dangerous_miss -> unit_mismatch	exp='288 cc/min'	got='100 lbs/hr'
+e2-armC-run1-20260723-113718.jsonl	e2-2097-0	honest_decline -> no_answer	exp='20°'	got=None
+e2-armC-run1-20260723-113718.jsonl	e2-2097-1	honest_decline -> no_answer	exp='2 to 4'	got=None
+e2-armC-run1-20260723-113718.jsonl	e2-3694-2	dangerous_miss -> exact	exp='30 000'	got='30000'
+e2-armC-run1-20260723-113718.jsonl	e2-1953-1	honest_decline -> no_answer	exp='1500'	got=None
+e2-armC-run2-20260723-123915.jsonl	e2-2207-0	honest_decline -> no_answer	exp='250'	got=None
+e2-armC-run2-20260723-123915.jsonl	e2-3804-0	dangerous_miss -> unit_mismatch	exp='300 to 400 kPa (3 to 4 bar)'	got='30-40 psi'
+e2-armC-run2-20260723-123915.jsonl	e2-5401-1	honest_decline -> no_answer	exp='0'	got=None
+e2-armC-run2-20260723-123915.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 V'
+e2-armC-run2-20260723-123915.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 0.9 Volts'
+e2-armC-run2-20260723-123915.jsonl	e2-4736-0	dangerous_miss -> unit_mismatch	exp='450 mV'	got='0.45 V'
+e2-armC-run2-20260723-123915.jsonl	e2-2241-2	honest_decline -> no_answer	exp='2000'	got=None
+e2-armC-run2-20260723-123915.jsonl	e2-2851-0	dangerous_miss -> exact	exp='60° to 40° bBDC'	got='40° to 60° before BDC'
+e2-armC-run2-20260723-123915.jsonl	e2-5668-0	dangerous_miss -> unit_mismatch	exp='288 cc/min'	got='100 lbs/hr'
+e2-armC-run2-20260723-123915.jsonl	e2-2097-0	honest_decline -> no_answer	exp='20°'	got=None
+e2-armC-run2-20260723-123915.jsonl	e2-2097-1	honest_decline -> no_answer	exp='2 to 4'	got=None
+e2-armC-run2-20260723-123915.jsonl	e2-3694-2	dangerous_miss -> exact	exp='30 000'	got='30000'
+e2-armC-run2-20260723-123915.jsonl	e2-1953-1	honest_decline -> no_answer	exp='1500'	got=None
+e2-armD-run1-20260723-211552.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armD-run1-20260723-211552.jsonl	e2-2063-1	honest_decline -> no_answer	exp='25.1'	got=None
+e2-armD-run1-20260723-211552.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 V'
+e2-armD-run1-20260723-211552.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 0.9 volts'
+e2-armD-run1-20260723-211552.jsonl	e2-5113-0	honest_decline -> no_answer	exp='1'	got=None
+e2-armD-run1-20260723-211552.jsonl	e2-5579-2	honest_decline -> no_answer	exp='44'	got=None
+e2-armD-run1-20260723-211552.jsonl	e2-2008-1	honest_decline -> no_answer	exp='30'	got=None
+e2-armD-run1-20260723-211552.jsonl	e2-3838-0	dangerous_miss -> unparseable	exp='30 to 100 mJ'	got='The provided excerpt [REF 3838] cuts off before specifying the exact spark energy range.'
+e2-armD-run1-20260723-211552.jsonl	e2-3694-0	honest_decline -> no_answer	exp='9549'	got=None
+e2-armD-run1-20260723-211552.jsonl	e2-3694-2	honest_decline -> no_answer	exp='30 000'	got=None
+e2-armD-run1-20260723-211552.jsonl	e2-1953-2	honest_decline -> no_answer	exp='1.0'	got=None
+e2-armD-run1-20260724-045413.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armD-run1-20260724-045413.jsonl	e2-2063-1	honest_decline -> no_answer	exp='25.1'	got=None
+e2-armD-run1-20260724-045413.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 V'
+e2-armD-run1-20260724-045413.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 0.9 volts'
+e2-armD-run1-20260724-045413.jsonl	e2-5113-0	honest_decline -> no_answer	exp='1'	got=None
+e2-armD-run1-20260724-045413.jsonl	e2-5579-2	honest_decline -> no_answer	exp='44'	got=None
+e2-armD-run1-20260724-045413.jsonl	e2-2008-1	honest_decline -> no_answer	exp='30'	got=None
+e2-armD-run1-20260724-045413.jsonl	e2-3838-0	dangerous_miss -> unparseable	exp='30 to 100 mJ'	got='The provided excerpt [REF 3838] cuts off before specifying the exact spark energy range.'
+e2-armD-run1-20260724-045413.jsonl	e2-3694-0	honest_decline -> no_answer	exp='9549'	got=None
+e2-armD-run1-20260724-045413.jsonl	e2-3694-2	honest_decline -> no_answer	exp='30 000'	got=None
+e2-armD-run1-20260724-045413.jsonl	e2-1953-2	honest_decline -> no_answer	exp='1.0'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-2817-0	honest_decline -> no_answer	exp='18°'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armD-run1-20260724-100234.jsonl	e2-2063-2	honest_decline -> no_answer	exp='22.4'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='approx. 0.45 V'
+e2-armD-run1-20260724-100234.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='> 0.8 V (typically ~800 mV)'
+e2-armD-run1-20260724-100234.jsonl	e2-5723-1	honest_decline -> no_answer	exp='11.8'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-1165-0	honest_decline -> no_answer	exp='8'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-5579-2	honest_decline -> no_answer	exp='44'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-2241-0	honest_decline -> no_answer	exp='16'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-1953-0	honest_decline -> no_answer	exp='3.5'	got=None
+e2-armD-run1-20260724-100234.jsonl	e2-1953-1	honest_decline -> no_answer	exp='1500'	got=None
+e2-armD-run1-20260729-202732.jsonl	e2-2063-1	honest_decline -> no_answer	exp='25.1'	got=None
+e2-armD-run1-20260729-202732.jsonl	e2-5113-0	honest_decline -> no_answer	exp='1'	got=None
+e2-armD-run1-20260729-202732.jsonl	e2-5579-2	honest_decline -> no_answer	exp='44'	got=None
+e2-armD-run1-20260729-202732.jsonl	e2-2008-1	honest_decline -> no_answer	exp='30'	got=None
+e2-armD-run1-20260729-202732.jsonl	e2-3838-0	dangerous_miss -> unparseable	exp='30 to 100 mJ'	got='The provided excerpt [REF 3838] cuts off before specifying the exact spark energy range.'
+e2-armD-run1-20260729-202732.jsonl	e2-3694-0	honest_decline -> no_answer	exp='9549'	got=None
+e2-armD-run1-20260729-202732.jsonl	e2-3694-2	honest_decline -> no_answer	exp='30 000'	got=None
+e2-armD-run1-20260729-202732.jsonl	e2-1953-2	honest_decline -> no_answer	exp='1.0'	got=None
+e2-armD-run2-20260723-224019.jsonl	e2-466-0	dangerous_miss -> exact	exp='.84'	got='0.84'
+e2-armD-run2-20260723-224019.jsonl	e2-2063-1	honest_decline -> no_answer	exp='25.1'	got=None
+e2-armD-run2-20260723-224019.jsonl	e2-5257-0	dangerous_miss -> unit_mismatch	exp='450...500'	got='0.45 V'
+e2-armD-run2-20260723-224019.jsonl	e2-5257-1	dangerous_miss -> unit_mismatch	exp='800...1000'	got='0.8 to 0.9 volts'
+e2-armD-run2-20260723-224019.jsonl	e2-5113-0	honest_decline -> no_answer	exp='1'	got=None
+e2-armD-run2-20260723-224019.jsonl	e2-5579-2	honest_decline -> no_answer	exp='44'	got=None
+e2-armD-run2-20260723-224019.jsonl	e2-2008-1	honest_decline -> no_answer	exp='30'	got=None
+e2-armD-run2-20260723-224019.jsonl	e2-3838-0	dangerous_miss -> unparseable	exp='30 to 100 mJ'	got='The provided excerpt [REF 3838] cuts off before specifying the exact spark energy range.'
+e2-armD-run2-20260723-224019.jsonl	e2-3694-0	honest_decline -> no_answer	exp='9549'	got=None
+e2-armD-run2-20260723-224019.jsonl	e2-3694-2	honest_decline -> no_answer	exp='30 000'	got=None
+e2-armD-run2-20260723-224019.jsonl	e2-1953-2	honest_decline -> no_answer	exp='1.0'	got=None

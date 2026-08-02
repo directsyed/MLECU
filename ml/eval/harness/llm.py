@@ -51,9 +51,13 @@ def chat(cfg: LlmCfg, system: str, user: str, json_schema: dict | None = None,
                               timeout=cfg.request_timeout_s)
             r.raise_for_status()
             data = r.json()
-            return (data["choices"][0]["message"]["content"],
-                    data.get("usage", {}),
-                    time.monotonic() - t0)
+            choice = data["choices"][0]
+            usage = dict(data.get("usage", {}))
+            # A2 (2026-08-02): finish_reason was never read or recorded, so an empty
+            # completion from a model that exhausted its token budget was indistinguishable
+            # from a model that chose to decline — and E2 scored the former as a virtue.
+            usage["finish_reason"] = choice.get("finish_reason")
+            return choice["message"]["content"], usage, time.monotonic() - t0
         except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
             last = e
             time.sleep(delay)

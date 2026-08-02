@@ -54,6 +54,10 @@ TERMINAL = ("done", "skipped")
 # 40 sits well below any genuine reasoner and well above a bare grammar-constrained answer.
 MIN_MEDIAN_TOKENS = 40
 
+# Share of rows allowed to end at the token ceiling before the cell is rejected. Some
+# truncation is normal on the hardest cases; a fifth of the run is a budget problem.
+MAX_TRUNCATED_FRAC = 0.20
+
 
 @contextmanager
 def connect(path: Path | None = None):
@@ -231,7 +235,24 @@ def validate_output(path: Path, model_tag: str, n_expected: int, arm: str,
     if median is not None and median < MIN_MEDIAN_TOKENS:
         return False, (f"median completion_tokens {median} < {MIN_MEDIAN_TOKENS}: model is "
                        f"answering without reasoning (wrong variant / thinking disabled?)")
-    return True, f"ok ({len(rows)} rows, {answered} answered, median {median} tok)"
+    # finish_reason census (2026-08-02). The 8192-token ceiling silently truncated Thinking
+    # models mid-trace on 2026-07-31 and their blanks scored as misses, understating them by
+    # up to 14pp — with nothing in the ledger to show it. A cell where a large share of rows
+    # died at the ceiling is not a capability measurement, it is a budget measurement.
+    census: dict[str, int] = {}
+    for r in rows:
+        census[str(r.get("finish_reason"))] = census.get(str(r.get("finish_reason")), 0) + 1
+    n_len = census.get("length", 0)
+    if n_len > MAX_TRUNCATED_FRAC * len(rows):
+        return False, (f"{n_len}/{len(rows)} rows hit the token ceiling "
+                       f"(finish_reason=length) — raise --max-tokens before banking this cell")
+    # a stale dense index or a silent hybrid->BM25 fallback changes what the model was shown
+    if any(r.get("index_stale") for r in rows):
+        return False, "rows report a STALE dense index — rebuild before banking this cell"
+    if any(r.get("dense_fallback") for r in rows):
+        return False, "hybrid silently fell back to BM25 (dense index unavailable)"
+    cen = " ".join(f"{k}={v}" for k, v in sorted(census.items()))
+    return True, f"ok ({len(rows)} rows, {answered} answered, median {median} tok; {cen})"
 
 
 def _has_answer(row: dict) -> bool:

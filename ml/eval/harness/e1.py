@@ -47,7 +47,7 @@ def run_arm(cfg: Config, arm: str, run_idx: int, cases: list[dict],
     out = cfg.results_dir / f"e1-arm{arm}-run{run_idx}-{stamp}.jsonl"
     with out.open("w") as f:
         for i, case in enumerate(cases):
-            user, ref_ids = arms.build_user(arm, cfg, case["prompt"])
+            user, ref_ids, rmeta = arms.build_user(arm, cfg, case["prompt"], task="e1")
             content, usage, latency = chat_fn(
                 cfg.llm, arms.SYSTEM, user, json_schema=arms.answer_schema(case["choices"]))
             # The grammar guarantees shape ONLY if generation reached the content phase — a
@@ -65,6 +65,18 @@ def run_arm(cfg: Config, arm: str, run_idx: int, cases: list[dict],
                 "retrieved_doc_ids": ref_ids, "latency_s": round(latency, 2),
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
+                # provenance (audit C3/C5) — an empty answer from a model that hit the token
+                # ceiling is a DIFFERENT fact from one that answered off-grammar, and until
+                # 2026-08-02 the row could not tell them apart.
+                "finish_reason": usage.get("finish_reason"),
+                "n_expected": len(cases),
+                "retrieval_mode": rmeta.get("retrieval_mode"),
+                "retrieval_mode_used": rmeta.get("mode_used"),
+                "top_k": rmeta.get("top_k"),
+                "index_mtime": rmeta.get("index_mtime"),
+                "index_stale": rmeta.get("index_stale"),
+                "dense_fallback": rmeta.get("dense_fallback"),
+                "missing_rowids": rmeta.get("missing_rowids"),
             }) + "\n")
             f.flush()                                  # crash-safe: every row lands on disk
             log(f"  [{arm}/run{run_idx}] {i+1}/{len(cases)} {case['case_id']}: "
@@ -83,9 +95,24 @@ def score_results(cfg: Config, results_path: Path):
     return scoring.score(scored_cases, answered)
 
 
-def determinism(path_a: Path, path_b: Path) -> tuple[int, int]:
-    """(identical, total) answers across two runs of the same arm — temp-0 sanity check."""
-    a = {json.loads(l)["case_id"]: json.loads(l)["answer"] for l in path_a.read_text().splitlines() if l.strip()}
-    b = {json.loads(l)["case_id"]: json.loads(l)["answer"] for l in path_b.read_text().splitlines() if l.strip()}
-    common = a.keys() & b.keys()
-    return sum(a[k] == b[k] for k in common), len(common)
+def determinism(path_a: Path, path_b: Path, n_expected: int | None = None) -> tuple[int, int]:
+    """(identical, total) answers across two runs of the same arm — temp-0 sanity check.
+
+    A12 (2026-08-02): v1 scored the INTERSECTION of the two files, so a run that died after
+    case 3 reported a triumphant "3/3 identical" — the denominator shrank to match the
+    damage. Worse, two empty answers ("" == "") counted as agreement, so a pair of runs that
+    both failed to answer scored as perfectly deterministic. The denominator is now the
+    expected case count (from the rows, or the caller), missing cases count as disagreement,
+    and empty-vs-empty is not evidence of anything.
+    """
+    def rows(p: Path) -> list[dict]:
+        return [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+
+    ra, rb = rows(path_a), rows(path_b)
+    a = {r["case_id"]: r["answer"] for r in ra}
+    b = {r["case_id"]: r["answer"] for r in rb}
+    if n_expected is None:
+        stated = {r.get("n_expected") for r in ra + rb if r.get("n_expected")}
+        n_expected = stated.pop() if len(stated) == 1 else max(len(a), len(b))
+    agree = sum(1 for k in a.keys() & b.keys() if a[k] == b[k] and a[k] != "")
+    return agree, n_expected

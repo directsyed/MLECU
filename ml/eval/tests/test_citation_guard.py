@@ -44,9 +44,36 @@ def test_pdf_mangled_digits_healed():
     assert cg.verify("2500 rpm", ev)["verdict"] == "cited"
 
 
-def test_no_evidence_blocks_any_number():
+def test_empty_evidence_makes_the_guard_abstain(monkeypatch):
+    """CONTRACT CHANGE 2026-08-02 (audit A3). This used to assert the opposite: with an empty
+    evidence pool the guard blocked every number. That is not cite-or-decline, it is "the
+    retriever missed, so you are guilty" — a correct parametric answer was converted into a
+    decline because retrieval returned nothing. The guard now abstains and the answer is
+    scored on its merits; the row records verdict='no_evidence' so the abstention is counted,
+    not hidden."""
     ans, rec = cg.apply({"value": "14.7", "must_retrieve": False}, [])
-    assert rec["verdict"] == "blocked" and ans["must_retrieve"] is True
+    assert rec["verdict"] == "no_evidence"
+    assert ans == {"value": "14.7", "must_retrieve": False}
+    # whitespace-only snippets are an empty pool too
+    assert cg.verify("14.7", ["", "   "])["verdict"] == "no_evidence"
+
+
+def test_blocked_answer_preserves_what_the_model_actually_said():
+    """A8: `apply` returned only the verdict, so once an answer was blocked the model's
+    original claim was gone and the block could not be audited after the fact."""
+    ans, rec = cg.apply({"value": "2.6 ms", "must_retrieve": False}, EVIDENCE)
+    assert rec["verdict"] == "blocked" and rec["original_value"] == "2.6 ms"
+    assert ans["value"] is None
+
+
+def test_hyphen_ranges_are_not_healed_into_fake_evidence():
+    """A9: '10-15 psi' healed to 1015, putting a number in the evidence pool that the source
+    never states. Every healing error runs in the permissive direction — it grounds
+    fabrications. Spaces and soft hyphens are PDF damage; a hyphen between digits is a range."""
+    ev = ["recommended boost 10-15 psi on pump fuel"]
+    assert cg.verify("1015", ev)["verdict"] == "blocked"
+    assert cg.verify("10", ev)["verdict"] == "cited"
+    assert cg.verify("15", ev)["verdict"] == "cited"
 
 
 def test_leading_dot_number_parses_and_cites():

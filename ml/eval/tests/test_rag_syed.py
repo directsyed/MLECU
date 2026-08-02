@@ -41,7 +41,7 @@ def test_retrieve_returns_snippets_with_provenance():
 
 @needs_db
 def test_arm_b_injects_reference_block():
-    user, refs = arms.build_user("B", CFG, CASES[0]["prompt"])
+    user, refs, _ = arms.build_user("B", CFG, CASES[0]["prompt"])
     assert refs, "arm B must report which doc ids it retrieved (audit trail)"
     assert "[REF " in user                       # the context block is present...
     assert CASES[0]["prompt"] in user            # ...and the case is intact within it
@@ -50,5 +50,5 @@ def test_arm_b_injects_reference_block():
 @needs_db
 def test_arm_a_untouched_by_rag_build():
     # the single-variable discipline: A must remain the verbatim case, forever
-    user, refs = arms.build_user("A", CFG, CASES[0]["prompt"])
+    user, refs, _ = arms.build_user("A", CFG, CASES[0]["prompt"])
     assert user == CASES[0]["prompt"] and refs == []
