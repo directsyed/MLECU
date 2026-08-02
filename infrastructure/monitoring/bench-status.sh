@@ -30,6 +30,11 @@ AVG=$(sqlite3 "$DB" "SELECT ROUND(AVG((julianday(ended_at)-julianday(started_at)
   echo "done=$DONE  left=$LEFT  mean=${AVG}m/cell  -> ETA ~$(( LEFT * ${AVG%.*} / 60 ))h remaining"
 
 echo
+echo "== e2v2 scores so far (scorer v2, probes v2) =="
+"$M/car/.venv/bin/python" "$M/infrastructure/monitoring/e2v2-scores.py" 2>/dev/null \
+  || echo "  (scorer unavailable)"
+
+echo
 echo "== ledger =="
 RUNNING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE state='running';" 2>/dev/null)
 PENDING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE state='pending';" 2>/dev/null)
