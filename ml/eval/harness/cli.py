@@ -47,8 +47,9 @@ def main() -> None:
     # C4 (2026-08-02): this defaulted to the 93-row DRAFT file — the one whose own header says
     # "DRAFT ONLY — Syed spot-check required before any arm runs against it". Any E2 invocation
     # that forgot --probes silently benchmarked against unratified probes.
-    p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_v1.jsonl",
-                   help="ratified probe file (never the draft)")
+    p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_v2.jsonl",
+                   help="ratified probe file (never the draft). v2 = v1 + one question fix "
+                        "(e2-3927-1) + kind/derivable annotations; v1 kept for repro.")
     p.add_argument("--score-e2", type=Path, default=None,
                    help="score an E2 results JSONL with scorer v2")
     p.add_argument("--tolerance", type=float, default=1.0, help="E2 match tolerance in %%")

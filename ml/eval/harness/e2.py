@@ -209,7 +209,14 @@ def classify(probe: dict, answer: dict, tolerance_pct: float = 1.0,
     if not stated_cands:
         return "unparseable"
     s_lo, s_hi, stated_unit = stated_cands[0]
-    if len(readings) > 1:      # genuinely ambiguous numeric reading -> never convict
+    # The ambiguity rule exists to avoid CONVICTING on a parse ambiguity — it must never
+    # demote an answer that is plainly right. When the probe's OWN expected value is written
+    # with spaced thousands ("30 000"), joining is this corpus's convention for this probe and
+    # the joined reading is authoritative. Caught by the probe self-consistency check: probe
+    # e2-3694-2 answered with its own expected value scored ambiguous_parse.
+    expected_text = str(probe.get("expected_value") or "")
+    spaced_convention = _join_thousands(expected_text) != expected_text
+    if len(readings) > 1 and not spaced_convention:
         point_verdicts = {_verdict(r, r, cands, stated_unit, tolerance_pct)
                           for r in readings}
         if len(point_verdicts) > 1:
