@@ -9,6 +9,61 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-02 — BENCH INTEGRITY: the harness was convicting models for its own bugs; instrumentation rebuilt, probe file re-derived from source, E4 built
+
+Executed Phases 1, 2 and 5 of the held bench-integrity plan. The premise, proven on disk
+before anything was changed: **the benchmark was measuring the harness at least as much as the
+models.** FTS5's 24-*token* snippet window split `11.8%` into the tokens `11` and `8` and
+emitted `…increases effective injector size by 11 … `; three separate models were then scored
+`dangerous_miss` — the class that means "this model fabricates engine calibration values" —
+for faithfully quoting the evidence we handed them.
+
+**Snippet extraction rebuilt.** One character-window extractor for every hybrid hit: anchors on
+the densest passage (most distinct query terms), centres the window on that span, never bisects
+a token or a number run — including runs broken across a space (`30 000`) or trailing a unit
+sign (`11.8 %`) — and honours `snippet_max_chars` strictly. Two drafts were wrong and both were
+caught by running real probes rather than reading code: first-hit anchoring put probe
+e2-5723-1's window ~7,000 chars from its answer; left-anchoring missed e2-2207-0's by 43 chars.
+**Expected value present in the window of its own source doc: 29/69 → 59/69, zero regressions.**
+A multi-window variant scored higher still (63/69 at the same budget) and was **rejected**: it
+would have been chosen *because it scored better on the benchmark's own answers*.
+
+**Scorer v2 + guard v2.** New gate-neutral classes `unit_mismatch` (450 mV vs "0.45 V", λ vs
+AFR — 19 probes were traps of this shape) and `range_mismatch` (containment, not first-number,
+decides a stated range). `[REF n]` citation ids no longer parse as the stated value — gpt-oss
+was convicted on "1968" parsed out of `[REF 1968]` while its real claim sat inside the expected
+range. Empty completions no longer score as virtue. `score()` gained a completeness check: an
+EMPTY file used to return hard_gate "pass" — the gate was passable by producing no evidence.
+The guard now abstains when retrieval returns nothing (it was convicting models for the
+*retriever's* miss) and no longer heals `10-15 psi` into a fabricated `1015`.
+
+**A defect neither audit found, surfaced by writing a regression test:** an infix minus was read
+as a sign in both guard and scorer, so `10-15 psi` yielded `[10, -15]` and `(x-32768)` yielded
+`[-32768]`. A model correctly quoting 15 or 32768 was **blocked** because the source "never
+stated" it. Second instance of the harness convicting models for its own parsing.
+
+**Probe file v2 — and three audit claims refuted.** Every disposition was decided against the
+source text in `ref_fts`, not the audit's summary. The audit proposed excluding 8–9 probes from
+the fabrication hard gate as "derived"; checked against source, **0 of 69** probes have an
+expected value absent from their source document, so excluding them would have softened a
+pre-committed safety gate on an unsupported premise. They stay gated. One probe *was* genuinely
+broken — `e2-3927-1`, where the Bosch source means main nozzle-opening pressure = 300 bar
+absolute, so v1's "by how many bar higher" convicted a model that correctly answered 120. v2 =
+69 probes, 0 drops, 1 question fix. The probe file now carries a CI calibration certificate:
+every probe answered with its own expected value must score `exact`, and a wildly wrong answer
+must still trip the gate on every probe.
+
+**E4 built** — the composed loop (LLM diagnoses → deterministic layer acts → MVEM re-simulates),
+scoring the half of the job E1 and E2 cannot see: **did the right knob move, or did the trim
+converge by masking?** The model emits one enum token per iteration and never a number; there
+is no path from model output to a table value. Fake-LLM dry run green 7/7, including the
+load-bearing check that `masking` can be made to *fire* — a masking score of 0 is meaningless
+if a deliberately wrong model can't trip it. Labelled `sim-calibrated-pending`: MVEM is not yet
+validated against the real engine. **Pre-registered bars await Syed's signature.**
+
+Re-scoring all 28 historical E2 files, published both ways per the anti-benchmark-maxxing
+contract: exact 558 → 577, dangerous 265 → 201, and **stricter in 2 rows**. Test suite 54 → 121.
+
 ## 2026-07-25 — THE FOUR-ARM SHOWDOWN: first bar PASS in project history (B-v2 hybrid@3: 93.9%); pilot fine-tune fails informatively
 
 The delegated overnight pipeline (2026-07-22 → 07-25) ran the complete pre-registered
@@ -473,3 +528,8 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-25 | E2 arm B-v3 (hybrid@6 + guard) | 37.7% match / 1.4% dangerous / 60.9% decline | GATE FAIL by ONE (e2-5723-1: right doc, right physics, 11 vs 11.8 rounding); attempted 1/blocked 0/leaked 1; ×2 identical |
 | 2026-08-02 | E1v2 gpt-oss arm A @16k budget (corrected) | 86.4% top-1, 0 dangerous, 4 blanks | truncation fix +5.4pp vs 8k run; timeout 1800s; closes the showdown matrix |
 | 2026-08-02 | Bench audit (2 agents) | 18 code findings + 57/69 probes flagged + 9 validation gaps | scorer [REF] parse, snippet truncation class, probe traps; ALL E2 verdicts asterisked pending Phase-1 fixes |
+| 2026-08-02 | Snippet extraction v2 (evidence recall) | 29/69 → 59/69 expected values in-window | own-source doc, 1200-char cap, zero regressions; old = FTS5 24-token snippet |
+| 2026-08-02 | Scorer v2 re-score (all 28 E2 files) | exact 558→577; dangerous 265→201 | [REF]-strip + intervals + unit/range classes + infix-minus fix; stricter in 2 rows; both gate-PASS cells still 0 dangerous |
+| 2026-08-02 | Probe file v2 audit-vs-source | 0/69 values absent from source; 1 question fixed, 0 dropped | 3 audit claims refuted; hard gate NOT softened; 18/69 quote diffs all PDF artifacts |
+| 2026-08-02 | E4 fake-LLM dry run | 7/7 checks; oracle residual 3.8% vs wrong-knob 9.3% | scoring falsifiable — masking provably fires on a deliberately wrong model; sim-calibrated-pending |
+| 2026-08-02 | Eval test suite | 54 → 121 tests green | every Phase-1 fix landed with a regression test from the observed failure |
