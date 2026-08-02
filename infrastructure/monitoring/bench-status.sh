@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Plan-phase status for the bench cockpit's top-right pane.
 #
-# WHY THIS REPLACED THE RAW DRIVER-LOG TAIL: between phases the driver is stopped, so that
-# pane showed nothing but "no pending units — all phases drained" every 30 seconds. This shows
-# where the plan of record actually is, and falls back to the driver log the moment a queue is
-# running again — so the pane is useful in both states instead of one.
+# WHY THIS REPLACED THE RAW DRIVER-LOG TAIL: between phases the driver is stopped, so that pane
+# showed nothing but "no pending units — all phases drained" every 30 seconds. This shows where
+# the plan of record actually is, plus the corrected matrix filling in live, and falls back to
+# the driver log whenever a queue is running.
+#
+# BUDGET: the pane is ~68 cols x 25 rows. Everything here is trimmed to fit — anything longer
+# wraps and eats two rows. Full detail lives in ml/eval/bench/PHASE-STATUS.md.
 #
 # Usage: watch -n 20 bash infrastructure/monitoring/bench-status.sh
 set -u
@@ -12,42 +15,23 @@ M="$HOME/Shared/Computing Projects/MLECU"
 DB="$M/ml/eval/bench/bench.sqlite"
 STATUS="$M/ml/eval/bench/PHASE-STATUS.md"
 
-echo "== PLAN: docs/PLAN-bench-integrity-e4-2026-08-01.md =="
-[ -f "$STATUS" ] && sed -n '1,18p' "$STATUS"
+# checklist only (stop at the first blank line — headline/needs-Syed stay in the file)
+[ -f "$STATUS" ] && awk 'NF==0{exit} {print}' "$STATUS"
 
 echo
-echo "== e2v2 progress =="
-sqlite3 "$DB" "
-  SELECT printf('%-42s %-8s %5s', label, state,
-                CASE WHEN started_at IS NULL THEN ''
-                     ELSE ROUND((julianday(COALESCE(ended_at,'now'))-julianday(started_at))*1440,0)||'m' END)
-  FROM unit WHERE phase='e2v2' AND state!='pending' ORDER BY seq;" 2>/dev/null
-DONE=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE phase='e2v2' AND state='done';" 2>/dev/null)
-LEFT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE phase='e2v2' AND state='pending';" 2>/dev/null)
-AVG=$(sqlite3 "$DB" "SELECT ROUND(AVG((julianday(ended_at)-julianday(started_at))*1440),0)
-                     FROM unit WHERE phase='e2v2' AND state='done';" 2>/dev/null)
-[ -n "${AVG:-}" ] && [ "${LEFT:-0}" -gt 0 ] && \
-  echo "done=$DONE  left=$LEFT  mean=${AVG}m/cell  -> ETA ~$(( LEFT * ${AVG%.*} / 60 ))h remaining"
-
-echo
-echo "== e2v2 scores so far (scorer v2, probes v2) =="
 "$M/car/.venv/bin/python" "$M/infrastructure/monitoring/e2v2-scores.py" 2>/dev/null \
   || echo "  (scorer unavailable)"
 
-echo
-echo "== ledger =="
-RUNNING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE state='running';" 2>/dev/null)
-PENDING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE state='pending';" 2>/dev/null)
-# is-active exits non-zero when inactive, so `|| echo` would append a second word
+DONE=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE phase='e2v2' AND state='done';" 2>/dev/null)
+LEFT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE phase='e2v2' AND state='pending';" 2>/dev/null)
+RUN=$(sqlite3 "$DB" "SELECT label||' '||ROUND((julianday('now')-julianday(started_at))*1440,0)||'m' FROM unit WHERE phase='e2v2' AND state='running';" 2>/dev/null)
+FAIL=$(sqlite3 "$DB" "SELECT COUNT(*) FROM unit WHERE phase='e2v2' AND state='failed';" 2>/dev/null)
+AVG=$(sqlite3 "$DB" "SELECT ROUND(AVG((julianday(ended_at)-julianday(started_at))*1440),0) FROM unit WHERE phase='e2v2' AND state='done';" 2>/dev/null)
 SVC=$(systemctl --user is-active mlecu-bench 2>/dev/null || true)
-echo "pending=${PENDING:-?}  running=${RUNNING:-?}   service: ${SVC:-unknown}"
-
-if [ "${RUNNING:-0}" != "0" ] || [ "${PENDING:-0}" != "0" ]; then
-  echo
-  echo "== driver log (queue active) =="
-  tail -n 12 "$M/ml/finetuning/logs/bench-driver.log" 2>/dev/null
-fi
 
 echo
-echo "== git =="
-git -C "$M" log --oneline -4 2>/dev/null
+echo "done=${DONE:-?} left=${LEFT:-?} failed=${FAIL:-0} svc=${SVC:-?}$(
+  [ -n "${AVG:-}" ] && [ "${LEFT:-0}" -gt 0 ] && echo "  ETA ~$(( LEFT * ${AVG%.*} / 60 ))h" )"
+[ -n "${RUN:-}" ] && echo "RUNNING: ${RUN:0:64}"
+[ "${FAIL:-0}" != "0" ] && echo "!! ${FAIL} FAILED — see driver log (pane below-right)"
+echo "detail + open questions: ml/eval/bench/PHASE-STATUS.md"
