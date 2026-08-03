@@ -328,7 +328,8 @@ def run_unit(unit) -> None:
         _fallback_to_ti_only(unit)
         return
     if rc != 0:
-        ledger.mark_failed(unit["id"], f"harness exit {rc}", out_path=str(out) if out else "")
+        ledger.mark_failed(unit["id"], f"harness exit {rc}: {harness_tail()}",
+                           out_path=str(out) if out else "")
         return
     if out is None:
         ledger.mark_failed(unit["id"], "no result file produced")
@@ -349,10 +350,24 @@ def _run_shell(argv: list[str], unit) -> tuple[int, str]:
     return p.returncode, " | ".join(tail)[:500]
 
 
+HARNESS_LOG = MLECU / "ml/finetuning/logs/bench-harness.log"
+
+
 def _run_harness(argv: list[str]) -> tuple[int, bool]:
-    """Run a harness.cli invocation with the duty watchdog sampling alongside it."""
+    """Run a harness.cli invocation with the duty watchdog sampling alongside it.
+
+    Output goes to a FILE, not to an unread pipe (2026-08-03). The old version piped stdout
+    and never read it, so when a unit died the traceback went nowhere: unit 51 failed with
+    "harness exit 1" at probe 61 of 69 and left no evidence of why. An unread pipe is also a
+    latent deadlock — a chatty run that fills the 64KB buffer would block forever with the
+    watchdog happily sampling a hung process.
+    """
     cmd = [str(VENV), "-m", "harness.cli"] + argv
-    p = subprocess.Popen(cmd, cwd=str(EVAL_DIR), stdout=subprocess.PIPE,
+    HARNESS_LOG.parent.mkdir(parents=True, exist_ok=True)
+    hf = HARNESS_LOG.open("a")
+    hf.write(f"\n===== {time.strftime('%F %T')} :: {' '.join(argv)}\n")
+    hf.flush()
+    p = subprocess.Popen(cmd, cwd=str(EVAL_DIR), stdout=hf,
                          stderr=subprocess.STDOUT, text=True)
     trips = 0
     trip = False
@@ -373,7 +388,16 @@ def _run_harness(argv: list[str]) -> tuple[int, bool]:
         p.wait(timeout=30)
     except subprocess.TimeoutExpired:
         p.kill()
+    hf.close()
     return (p.returncode if p.returncode is not None else 1), trip
+
+
+def harness_tail(n: int = 6) -> str:
+    """Last few harness lines — attached to a failure note so the ledger says WHY."""
+    try:
+        return " | ".join(HARNESS_LOG.read_text().splitlines()[-n:])[:400]
+    except Exception:
+        return ""
 
 
 def _fallback_to_ti_only(unit) -> None:
