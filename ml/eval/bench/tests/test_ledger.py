@@ -161,3 +161,24 @@ def test_validate_accepts_genuine_reasoning(tmp_path):
     p = _write(tmp_path / "r.jsonl", rows)
     ok, msg = ledger.validate_output(p, "m1", 3, "B")
     assert ok and "median 1750" in msg
+
+
+def test_requeue_clears_the_previous_attempts_completion_fields(tmp_path, monkeypatch):
+    """A stale ended_at on a pending unit makes every duration query built on it lie — the
+    re-queued 35B cell reported a running time of MINUS 228 minutes (2026-08-03)."""
+    db = tmp_path / "l.sqlite"
+    monkeypatch.setattr(ledger, "DB_PATH", db)
+    ledger.init(db)
+    uid = ledger.add_unit(phase="p", seq=0, label="u1", kind="harness", argv_json="[]")
+    ledger.claim_next()
+    ledger.mark_failed(uid, "boom", out_path="/tmp/x.jsonl", n_rows_got=61)
+    with ledger.connect(db) as c:
+        row = c.execute("SELECT ended_at, out_path, n_rows_got FROM unit WHERE id=?",
+                        (uid,)).fetchone()
+    assert row["ended_at"] and row["out_path"] and row["n_rows_got"] == 61
+    ledger.requeue(uid, "retry")
+    with ledger.connect(db) as c:
+        row = c.execute("SELECT state, ended_at, out_path, n_rows_got FROM unit WHERE id=?",
+                        (uid,)).fetchone()
+    assert row["state"] == "pending"
+    assert row["ended_at"] is None and row["out_path"] is None and row["n_rows_got"] is None

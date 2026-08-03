@@ -144,9 +144,18 @@ def mark_skipped(unit_id: int, reason: str) -> None:
 
 
 def requeue(unit_id: int, note: str = "") -> None:
-    """Return a failed unit to pending (retry paths, or after a config change)."""
+    """Return a failed unit to pending (retry paths, or after a config change).
+
+    Clears the PREVIOUS attempt's completion fields (2026-08-03). Leaving a stale `ended_at`
+    on a pending unit makes every duration and ordering query built on it lie: the re-queued
+    35B cell reported a running time of MINUS 228 minutes, because `ended_at` still held the
+    moment its failed attempt died while `started_at` had moved forward to the retry.
+    `out_path`/`n_rows_got` are cleared for the same reason — they describe an attempt that is
+    no longer the unit's result.
+    """
     with connect() as c:
-        c.execute("UPDATE unit SET state='pending', note=? WHERE id=?", (note or None, unit_id))
+        c.execute("UPDATE unit SET state='pending', note=?, ended_at=NULL, out_path=NULL, "
+                  "n_rows_got=NULL WHERE id=?", (note or None, unit_id))
         c.commit()
 
 
