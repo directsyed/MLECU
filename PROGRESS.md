@@ -528,6 +528,12 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-25 | E2 arm B-v3 (hybrid@6 + guard) | 37.7% match / 1.4% dangerous / 60.9% decline | GATE FAIL by ONE (e2-5723-1: right doc, right physics, 11 vs 11.8 rounding); attempted 1/blocked 0/leaked 1; ×2 identical |
 | 2026-08-02 | E1v2 gpt-oss arm A @16k budget (corrected) | 86.4% top-1, 0 dangerous, 4 blanks | truncation fix +5.4pp vs 8k run; timeout 1800s; closes the showdown matrix |
 | 2026-08-02 | Bench audit (2 agents) | 18 code findings + 57/69 probes flagged + 9 validation gaps | scorer [REF] parse, snippet truncation class, probe traps; ALL E2 verdicts asterisked pending Phase-1 fixes |
+| 2026-08-03 | E2-v2 final matrix (k6+guard, 5 models) | 27B 47/2 · gpt-oss 48/0 · 35B 47/3 · 80B 43/1 · Mistral 34/2 | probes v2 + scorer v2 + fixed snippets, MTP-off, 16384 tok / 24576 ctx; only gpt-oss gate-clean |
+| 2026-08-03 | E2 closed-book (arm A), all 5 models | 7-10 exact of 69; 3-14 CONFIDENT fabrications each | H3 confirmed: no model carries Subaru calibration constants in weights |
+| 2026-08-03 | top_k 6 vs 3 (H4, new) | k6 > k3 in 5/5 models: 47>40, 48>42, 47>41, 43>39, 34>29 | coverage rises AND precision holds — the two normally trade |
+| 2026-08-03 | 27B E2 gate, old vs fixed instrumentation | 19ex/0dg @27.5% cov (PASS) -> 47ex/2dg @72.5% cov (FAIL) | the old PASS was an artifact of evidence starved by our own snippet bug |
+| 2026-08-03 | E1v2 armB@3 re-verify, finalists | 27B 93.2 -> 92.5 (in noise) · gpt-oss 83.7 -> 78.9 (outside) | snippet fix hit VALUE LOOKUP only, not diagnosis; better evidence made gpt-oss worse |
+| 2026-08-03 | Verdict vs pre-registered bars | NO model passes both (E1 90%+0dang, E2 0 fabrications) | finalists fail in opposite directions; E4 is the tiebreaker |
 | 2026-08-02 | Snippet extraction v2 (evidence recall) | 29/69 → 59/69 expected values in-window | own-source doc, 1200-char cap, zero regressions; old = FTS5 24-token snippet |
 | 2026-08-02 | Scorer v2 re-score (all 28 E2 files) | exact 558→577; dangerous 265→201 | [REF]-strip + intervals + unit/range classes + infix-minus fix; stricter in 2 rows; both gate-PASS cells still 0 dangerous |
 | 2026-08-02 | Probe file v2 audit-vs-source | 0/69 values absent from source; 1 question fixed, 0 dropped | 3 audit claims refuted; hard gate NOT softened; 18/69 quote diffs all PDF artifacts |
