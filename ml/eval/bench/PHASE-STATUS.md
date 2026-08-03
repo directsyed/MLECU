@@ -4,10 +4,22 @@ EXECUTING bench-integrity plan (2026-08-02, autonomous)
  [x] P1c guard v2   A3/A4/A8/A9 + infix-minus (not in audit)
  [x] P1d index v2   5638 rows + freshness stamp
  [x] P2  probes v2  0 drops, 1 question fix, 3 audit claims refuted
- [>] P3  RERUN LIVE 27B done (4/4); oss120 next
+ [>] P3  RERUN LIVE finalists DONE (8/17); 35B/80B/mistral next
  [ ] P4  rundown    generator ready, waiting on P3
  [x] P5  E4         dry-run 7/7 -> BARS AWAIT SYED
  tests 121 green
+
+FINALIST VERDICT (both complete, final instrumentation):
+
+  DIAGNOSIS  E1v2 armB@3    27B 92.5%   oss120 78.9%   -> 27B +13.6pp
+             vs historical  (93.2, noise) (83.7, -4.8) -> better
+             snippets HURT gpt-oss; H2 (retrieval value is
+             model-dependent) now holds in the negative direction too
+  INTEGRITY  E2 k6+guard    27B 47ex/2dg FAIL
+                            oss120 48ex/0dg PASS  <- only gate pass
+  So: the 27B diagnoses far better; gpt-oss is the only model that
+  does not fabricate. E4 measures the third axis and is BLOCKED on
+  Syed ratifying its bars.
 
 TWO HEADLINES (27B, the working model):
 
