@@ -3,14 +3,16 @@
 **READ THIS FIRST on session start. Supersedes 2026-08-02-session-close-bench-complete.md.**
 Syed gave the word to execute the held plan
 ([docs/PLAN-bench-integrity-e4-2026-08-01.md](../../docs/PLAN-bench-integrity-e4-2026-08-01.md)).
-Phases 1, 2, 4-scaffold and 5 are COMPLETE. Phase 3 (the 17-cell rerun) is RUNNING.
+**Phases 1-5 are COMPLETE.** The 17-cell rerun finished; the rundown is at
+[ml/eval/results/RUNDOWN-2026-08-03.md](../../ml/eval/results/RUNDOWN-2026-08-03.md).
+The ONLY thing left in the plan is E4 execution, which is blocked on Syed ratifying its bars.
 
 ## START HERE (next agent, in order)
 
-1. **Check the rerun.** `bash infrastructure/monitoring/watch-bench.sh` (reattach:
-   `tmux attach -t bench`). The top-right pane shows plan status + the corrected matrix as it
-   fills in. Ledger phase `e2v2`, 17 cells. If it drained, go to Phase 4:
-   `cd ml/eval && ../../car/.venv/bin/python rundown.py > results/RUNDOWN-<date>.md`.
+1. **Read the rundown** — `ml/eval/results/RUNDOWN-2026-08-03.md`. Headline: **NO MODEL PASSES
+   BOTH PRE-REGISTERED BARS**, and the two finalists fail in OPPOSITE directions (27B: E1 92.5%
+   PASS / E2 47ex-2dg FAIL; gpt-oss: E1 78.9% FAIL / E2 48ex-0dg PASS). E4 is the tiebreaker.
+   Regenerate any time with `cd ml/eval && ../../car/.venv/bin/python rundown.py`.
 2. **FOUR THINGS NEED SYED** — all pinned in `ml/eval/bench/PHASE-STATUS.md`:
    - **E4 pre-registered bars** ([docs/E4-DESIGN.md](../../docs/E4-DESIGN.md) §8). E4 is built
      and dry-run green; NO model runs against it until he signs.
@@ -190,3 +192,48 @@ E4 measures the loop, not the car, until wideband logs land.
   show false failures.
 - Timing: cells run 53–199 min (MTP-off + 16384-token budget make them 3–5× the showdown's).
   Plan's "14-16h" estimate did not account for MTP-off halving the 27B's throughput.
+
+
+---
+
+# ADDENDUM — run complete (2026-08-03 15:00)
+
+## Final matrix (all five models, fixed instrumentation)
+
+|  | armA | k3+guard | k6+guard | k6 precision | E2 gate | E1v2 armB@3 |
+|---|---|---|---|---|---|---|
+| **27B dense** | 9/9 | 40/3 | **47/2** | 0.940 | FAIL | **92.5% PASS** |
+| **gpt-oss-120b** | 7/3 | 42/2 | **48/0** | **0.980** | **PASS** | 78.9% FAIL |
+| 35B-A3B | 10/**14** | 41/3 | 47/3 | 0.922 | FAIL | 83.7%* |
+| 80B-Thinking | 9/4 | 39/2 | 43/1 | 0.878 | FAIL | 72.8%* |
+| Mistral Small 4 | 7/10 | 29/1 | 34/2 | 0.944 | FAIL | 44.9%* |
+
+\* not re-run (finalists only, per Syed 2026-08-01)
+
+## What the run added beyond the plan
+
+- **H4 (new):** top_k 6 beats top_k 3 in **all five models on every axis** — coverage rises AND
+  precision holds, which is unusual. The k3-for-values half of the serving config is unsupported.
+- **H3 confirmed decisively:** closed-book is not weak, it is *dangerous* — 3-14 confident
+  fabrications per model. Asking any of these to recall a calibration value invites an invented one.
+- **Two more harness defects found mid-run** (U+202F thousands separators; engine codes like
+  `EJ20` parsed as values) — both found by scrutinising the cell that PASSED, both even-handed in
+  effect, neither changed a gate verdict. A **stopping rule** was then adopted: no further
+  scorer/guard change during the run.
+- **Guard fixes are retroactive.** The guard is post-hoc, `original_value` is preserved (A8), and
+  retrieval is deterministic — so `rundown.reguarded()` re-derives them EXACTLY offline, asserting
+  per row that re-retrieved doc ids match. Saved ~3.5h of re-runs.
+- **Calibrated offload profiles are NOT invariant to retrieval changes.** The 35B k6 cell crashed
+  the SERVER (CUDA OOM in `cudaGraphInstantiate`) three times because the snippet fix enlarged k6
+  prompts past the profile's VRAM headroom. Fixed by pushing tail experts to CPU (NOT to the
+  convicted 3090). That cell's t/s is flagged non-comparable. **Nothing in the pipeline checks
+  for this** — worth a preflight assertion later.
+- Driver now captures harness stdout to `bench-harness.log` (a failure with no evidence is not
+  diagnosable); `ledger.requeue()` clears the previous attempt's completion fields.
+
+## System state at close
+- Driver **drained and stopped**; all 17 units `done`. GPUs idle (1 MiB, ~100W).
+- Test suite **129 green** (was 54 at session start). Run under `car/.venv`.
+- Deferred to v3 (documented, NOT patched — stopping rule): a trailing period after spaced
+  thousands (`"...is 30 000."`) defeats the thousands-join. **Measured: 0 of 690 rows affected**,
+  so no verdict in this run depends on it.
