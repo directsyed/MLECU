@@ -208,23 +208,88 @@ E1_DANGEROUS_NOTE = """
 """
 
 
+def verdict_block() -> str:
+    """Per-model verdict against the PRE-REGISTERED bars. Stated, never ratified here."""
+    return """
+## Verdict against the pre-registered bars
+
+Bars were fixed before any of this ran and are not renegotiated now:
+**E1 — 90% top-1 AND zero dangerous. E2 — zero confident fabrications (hard gate).**
+
+| model | E1v2 armB@3 | E1 bar | E2 best cell (k6+guard) | E2 gate | both? |
+|---|---|---|---|---|---|
+| **Qwen3.6-27B dense** | **92.5%**, 0 dang | **PASS** | 47 exact / **2 dang** | **FAIL** | no |
+| **gpt-oss-120b** | 78.9%, 0 dang | **FAIL** | **48 exact / 0 dang** | **PASS** | no |
+| Qwen3.6-35B-A3B | 83.7%* | FAIL | 47 / 3 | FAIL | no |
+| Qwen3-Next-80B Thinking | 72.8%* | FAIL | 43 / 1 | FAIL | no |
+| Mistral Small 4 | 44.9%* | FAIL | 34 / 2 | FAIL | no |
+
+\\* not re-run on fixed snippets (finalists only, per Syed 2026-08-01); carries the caveat that
+gpt-oss moved -4.8pp under the same change, so these are upper-bound-ish, not exact.
+
+### The finding that matters
+
+**No model passes both bars.** The two finalists fail in opposite directions, and the failure
+modes are not symmetric in consequence:
+
+- The **27B diagnoses far better** (+13.6pp) and diagnosis is the PRIMARY axis — it selects
+  which correction pathway the deterministic layer takes. But it states 2 wrong calibration
+  values per 69 at its best setting.
+- **gpt-oss is the only model that never fabricates** (0 of 69, precision 0.980) — and the
+  fabrication gate is a pre-committed SAFETY veto, not a preference. But its diagnosis is 13.6pp
+  worse, and it got *worse* when given better evidence.
+
+This did not happen before the instrumentation was fixed, because the 27B's old E2 "PASS" was an
+artifact of starved evidence: 19 exact at 27.5% coverage. A model that rarely commits rarely
+fabricates. Fixing the evidence made it useful (47 exact, 72.5% coverage) and revealed the cost.
+
+### What breaks the tie
+
+**E4** — the third axis, and the only one that measures the deployed SHAPE: does the right knob
+move, or does the trim converge by masking? A model that diagnoses well but masks is worse in a
+closed loop than one that declines more often, and neither E1 nor E2 can see that. E4 is built,
+dry-run green, and **blocked on Syed ratifying its pre-registered bars** (docs/E4-DESIGN.md §8).
+
+A deployment recommendation is therefore deliberately NOT made here. What can be said now:
+- The **k3-for-values half of the serving config is not supported** — k6 beat k3 in all five
+  models on every axis. The diagnosis-side k3 choice is untouched by this evidence.
+- Whichever model is chosen, **the citation guard's named blind spot is now load-bearing**: all
+  five leaked fabrications across the finalists were `cited` — a number that IS in the evidence
+  but answers a different question. Closing it is the highest-value next safety item.
+"""
+
+
 def hypothesis_block() -> str:
     return """
-## Syed's hypothesis signatures
+## Syed's hypothesis signatures (re-derived on fixed instrumentation)
 
 **H1 — more parameters means better reasoning: NOT SUPPORTED.** The controlled pair is 35B vs
-80B (both 3B active, Q8 vs Q6): 90.5% vs 73.5% closed-book. Scaling helped 27B->35B closed-book
-and then reversed.
+80B (both 3B active, Q8 vs Q6): 90.5% vs 73.5% closed-book on E1v2. Scaling helped 27B->35B
+closed-book and then reversed. On E2 the same pair is indistinguishable at k6 (47 vs 43 exact),
+and the 35B is the WORST closed-book fabricator of the five (14 dangerous of 69).
 
-**H2 — retrieval value is MODEL-DEPENDENT, not universal.** +9.5pp for the incumbent at k3,
-NEGATIVE for 35B (90.5 -> 83.7) and for gpt-oss (86.4 -> 83.7). A retrieval block is not free:
-it is context a model must weigh against its own priors, and the models with stronger priors
-were hurt by it.
+**H2 — retrieval value is MODEL-DEPENDENT, and can be NEGATIVE.** Now measured twice over. On
+E1v2 diagnosis, retrieval is worth +9.5pp to the incumbent and NEGATIVE to gpt-oss — and when
+the snippet fix gave gpt-oss *better* evidence, it got *worse still* (83.7 -> 78.9, well outside
+the +/-0.7pp noise band) while the incumbent was unmoved (93.2 -> 92.5, inside it). The failure
+pattern is diagnostic: gpt-oss over-predicts `injector_flow_lean` (13 cases taken from
+`injector_latency_lean`, 8 from `maf_low`), i.e. a richer reference block pulls it toward
+whatever the excerpts discuss and away from the datalog in front of it. A retrieval block is not
+free context; it is context the model must weigh against its own priors.
 
-**H3 — the stored-knowledge signature is absent.** E2 arm A (closed-book) is flat and low across
-the whole ladder; every model's value integrity comes from retrieval, not from memorised
-calibration constants. This is the finding that most directly justifies the RAG-first
-architecture over a bigger fine-tune.
+**H3 — the stored-knowledge signature is ABSENT, decisively.** E2 arm A (closed-book) across all
+five models: 7-10 exact of 69, precision 0.32-0.70, and 3-14 CONFIDENT FABRICATIONS each. Every
+model's value integrity comes from retrieval; none of them carries Subaru calibration constants
+in its weights. Asking any of these models to recall a calibration value from memory is asking
+for an invented number. This is the single most direct justification in the whole matrix for the
+RAG-first architecture over a larger fine-tune.
+
+**H4 (new, not previously hypothesised) — top_k 6 dominates top_k 3 on value lookup, in all five
+models without exception**: 47>40, 48>42, 47>41, 43>39, 34>29 exact. Coverage rises AND
+precision holds or improves, which is unusual — the two normally trade against each other. The
+mechanism is visible in the failures: on probe e2-5668-0 the probe's own source document was not
+in the top-3 at all. This is evidence against the current k3-for-diagnosis/k6-for-values split
+on the value side, and it is the data for the top_k mode-switching conversation.
 """
 
 
@@ -339,6 +404,7 @@ def main() -> None:
           "treated as final.")
     print("- **Historical rows carry no `finish_reason`**, so their empty completions cannot "
           "be separated into truncated vs no_answer. Only rerun cells have that split.")
+    print(verdict_block())
     print(e2_block("E2-v2 — value integrity (probes v2, scorer v2)", ""))
     print(e1_block("E1v2 — diagnostic reasoning", ""))
     print(E1_DANGEROUS_NOTE)
