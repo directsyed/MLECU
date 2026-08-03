@@ -63,7 +63,11 @@ CLASSES = ("exact", "dangerous_miss", "unit_mismatch", "range_mismatch", "ambigu
 # lookbehind, "10-15 psi" yields [10, -15] and "(x-32768)" yields [-32768] — so a model
 # correctly quoting 15 or 32768 was BLOCKED, because the source "never stated" it.
 # Found 2026-08-02 while writing the A9 regression test.
-_NUM = re.compile(r"(?:(?<![\w.)])-)?(?:\d+(?:[.,]\d+)?|[.]\d+)")
+# A digit run glued to a LETTER is an identifier, not a value: EJ20, FA20, EJ255, VF48,
+# SH7058, A2WC411D are engine/ECU codes that saturate this corpus. Without the lookbehind
+# the harness read "Not specified for Subaru EJ20/FA20 in provided excerpts" — an explicit
+# DECLINE — as the stated value 20, and scored it dangerous_miss. Found 2026-08-03.
+_NUM = re.compile(r"(?:(?<![\w.)])-)?(?<![A-Za-z0-9.])(?:\d+(?:[.,]\d+)?|[.]\d+)")
 # A9: v1 used (?<=\d)[ ](?=\d{3}\b), which fired on ANY digit before a space and three digits
 # — "1.5 300" became "1.5300". v2 requires the FULL thousands shape.
 _THOUSANDS = re.compile(r"(?<![\d.])\d{1,3}(?:[    ]\d{3})+(?![\d.])")
@@ -77,6 +81,7 @@ _RANGE_SEP = re.compile(
 # so a model answering 480 mV, squarely inside the source's stated range, scored
 # dangerous_miss. Normalize the ellipsis to a word separator before any number is extracted.
 _ELLIPSIS_RANGE = re.compile(r"(?<=\d)\s*\.{2,}\s*(?=\d)")
+_TYPOGRAPHIC_THOUSANDS = re.compile("\\d[\u00a0\u202f\u2009]\\d{3}")
 
 
 def _normalize_numeric_text(s: str) -> str:
@@ -137,8 +142,14 @@ def expected_candidates(expected, unit_field: str = "") -> list[tuple[float, flo
     Descending ranges are normalized; ties collapse to a point interval.
     """
     text = _normalize_numeric_text(_strip_refs(str(expected or "")))
-    joined = _join_thousands(text)
-    nums = list(_NUM.finditer(joined.replace(",", "")))
+    # Commas are stripped BEFORE the scan, and the same string is used for both the number
+    # search and the gap slices. v1 of this function searched `joined.replace(",","")` but
+    # sliced `joined`, so every comma before a range separator shifted the offsets by one and
+    # the gap text came out garbled — "100,000 to 130,000" sliced as "00 t", which failed to
+    # match the range separator and split one interval into two point values. Found
+    # 2026-08-03: gpt-oss's correct "100 000 - 130 000" then scored range_mismatch.
+    joined = _join_thousands(text).replace(",", "")
+    nums = list(_NUM.finditer(joined))
     if not nums:
         return []
     hint_units = units.units_in(unit_field)
@@ -216,6 +227,13 @@ def classify(probe: dict, answer: dict, tolerance_pct: float = 1.0,
     # e2-3694-2 answered with its own expected value scored ambiguous_parse.
     expected_text = str(probe.get("expected_value") or "")
     spaced_convention = _join_thousands(expected_text) != expected_text
+    # A NON-ASCII space between digit groups is a typographic thousands separator — that is
+    # what U+202F/U+00A0/U+2009 exist for — so the joined reading is not in genuine doubt.
+    # Only a plain ASCII space is ambiguous ("250 300" really could be two numbers). Without
+    # this, gpt-oss's correct "100 000 - 130 000" scored ambiguous_parse purely because the
+    # probe's own expected value happens to use commas instead. (2026-08-03)
+    if _TYPOGRAPHIC_THOUSANDS.search(_normalize_numeric_text(_strip_refs(str(raw)))):
+        spaced_convention = True
     if len(readings) > 1 and not spaced_convention:
         point_verdicts = {_verdict(r, r, cands, stated_unit, tolerance_pct)
                           for r in readings}

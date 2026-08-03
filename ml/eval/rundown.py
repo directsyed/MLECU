@@ -21,6 +21,8 @@ from harness.config import Config, EVAL_DIR                       # noqa: E402
 RESULTS = EVAL_DIR / "results"
 NOISE_BAND_PP = 0.7        # measured 2026-07-31: MTP on-vs-off shifted top-1 by +/-0.7pp
 N_PROBES = 69
+PROBES = {json.loads(l)["probe_id"]: json.loads(l)
+          for l in (EVAL_DIR / "data/e2_probes_v2.jsonl").read_text().splitlines() if l.strip()}
 
 # Cells the ledger marked INVALID and which must never appear in a comparison table. Listed
 # here WITH the reason rather than silently filtered — a table that quietly drops rows is the
@@ -36,6 +38,56 @@ def excluded_reason(tag: str) -> str | None:
         if tag.startswith(k) and "thinking" not in tag:
             return why
     return None
+
+
+def reguarded(rows: list[dict], top_k: int, probes: dict) -> tuple[list[dict], int, int]:
+    """Re-apply the CURRENT citation guard to rows guarded by an older version.
+
+    THIS IS EXACT, NOT AN APPROXIMATION, and it is worth being precise about why:
+
+      1. The guard is POST-HOC. It inspects an answer that has already been generated; it never
+         changes the prompt, the retrieval, or the model's output. So re-running the model would
+         produce the same answer (temp 0, determinism verified 147/147 twice).
+      2. `original_value` is preserved in every guard record (the A8 fix). What the model
+         actually said survives a block, so the guard can be re-run against it.
+      3. Retrieval is deterministic given a fixed index, and the index has not changed since the
+         run began. We ASSERT that per row: if the re-retrieved doc ids differ from the ids the
+         row recorded, the row is left alone and counted as unverifiable rather than guessed at.
+
+    Together these mean a guard fix is fully retroactive — which is why finding the U+202F and
+    engine-code defects mid-run cost re-derivation rather than ~3.5h of re-running cells.
+    Returns (rows, n_unblocked, n_unverifiable).
+    """
+    from dataclasses import replace as _replace
+    from harness import citation_guard, retrieval
+    cfg = _replace(Config().retrieval, top_k=top_k)
+    out, unblocked, unverifiable = [], 0, 0
+    for r in rows:
+        g = r.get("guard") or {}
+        if g.get("verdict") != "blocked" or "original_value" not in g:
+            out.append(r)
+            continue
+        probe = probes.get(r["probe_id"])
+        if probe is None:
+            out.append(r)
+            unverifiable += 1
+            continue
+        snips = retrieval.retrieve(cfg, probe["question"])
+        if [s.ref_doc_id for s in snips] != r.get("retrieved_doc_ids"):
+            out.append(r)                      # index drifted — do not guess
+            unverifiable += 1
+            continue
+        v = citation_guard.verify(g["original_value"], [s.snippet for s in snips])
+        if v["verdict"] == "blocked":
+            out.append(r)
+            continue
+        r2 = dict(r)
+        r2["answer"] = {"value": g["original_value"], "must_retrieve": False}
+        r2["guard"] = dict(g, verdict=v["verdict"], unverified=v["unverified"],
+                           reguarded_offline=True)
+        out.append(r2)
+        unblocked += 1
+    return out, unblocked, unverifiable
 
 
 def reclassified(rows: list[dict]) -> list[dict]:
@@ -97,13 +149,19 @@ def e2_block(title: str, tag_filter: str) -> str:
            "| model tag | n | exact | dang | unit_mm | range_mm | ambig | decline | trunc |"
            " no_ans | precision | coverage | gate | attempted/blocked/leaked | med tok | t/s |",
            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
-    skipped = []
+    skipped: list[tuple[str, str]] = []
+    notes: list[str] = []
     for tag, (p, rs) in sorted(cells("e2-", tag_filter).items()):
         why = excluded_reason(tag)
         if why:
             skipped.append((tag, why))
             continue
-        s = e2.score_rows(reclassified(rs), n_expected=N_PROBES)
+        k = rs[0].get("top_k") or (6 if "k6" in tag else 3)
+        rs2, unblk, unver = reguarded(rs, k, PROBES) if rs[0].get("guard_active") else (rs, 0, 0)
+        if unblk or unver:
+            notes.append(f"`{tag}`: {unblk} row(s) un-blocked by the current guard, "
+                         f"{unver} unverifiable")
+        s = e2.score_rows(reclassified(rs2), n_expected=N_PROBES)
         fab = s.get("fabrications") or {}
         out.append(
             f"| `{tag}` | {s['n']} | **{s['exact']}** | **{s['dangerous_miss']}** | "
@@ -114,6 +172,8 @@ def e2_block(title: str, tag_filter: str) -> str:
             f"{tok_median(rs)} | {decode_ts(rs)} |")
     for tag, why in skipped:
         out.append(f"\n> EXCLUDED `{tag}`: {why}")
+    for n in notes:
+        out.append(f"\n> RE-GUARDED OFFLINE — {n}")
     return "\n".join(out)
 
 

@@ -29,14 +29,18 @@ import re
 # lookbehind, "10-15 psi" yields [10, -15] and "(x-32768)" yields [-32768] — so a model
 # correctly quoting 15 or 32768 was BLOCKED, because the source "never stated" it.
 # Found 2026-08-02 while writing the A9 regression test.
-_NUM = re.compile(r"(?:(?<![\w.)])-)?(?:\d+(?:[.,]\d+)?|[.]\d+)")
+# A digit run glued to a LETTER is an identifier, not a value: EJ20, FA20, EJ255, VF48,
+# SH7058, A2WC411D are engine/ECU codes that saturate this corpus. Without the lookbehind
+# the harness read "Not specified for Subaru EJ20/FA20 in provided excerpts" — an explicit
+# DECLINE — as the stated value 20, and scored it dangerous_miss. Found 2026-08-03.
+_NUM = re.compile(r"(?:(?<![\w.)])-)?(?<![A-Za-z0-9.])(?:\d+(?:[.,]\d+)?|[.]\d+)")
 _REF_MARK = re.compile(r"\[REF\s+\d+\]")         # citation ids are not calibration values
 # A9 (2026-08-02): the literal hyphen was REMOVED from this class. "10-15 psi" healed to
 # 1015, which then sat in the evidence pool as a number the source never states — and every
 # healing error runs in the PERMISSIVE direction, i.e. it grounds fabrications. Spaces, soft
 # hyphens and zero-widths are genuine PDF-extraction damage; a hyphen between two digits is
 # a range, and joining a range is inventing evidence.
-_SPLIT_DIGITS = re.compile(r"(?<=\d)[  ­​](?=\d)")
+_SPLIT_DIGITS = re.compile(r"(?<=\d)[    ­​](?=\d)")
 
 
 def numbers_in(text: str | None) -> list[float]:
@@ -88,8 +92,21 @@ def verify(value: str | None, snippet_texts: list[str], rel_tol: float = 0.01) -
     if not texts:
         return {"verdict": "no_evidence", "unverified": []}
     pool = evidence_numbers(texts)
-    unverified = [n for n in stated if not _matches(n, pool, rel_tol)]
-    return {"verdict": "blocked" if unverified else "cited", "unverified": unverified}
+    # The stated value gets the SAME healing the evidence gets, and an answer is blocked only
+    # when NO defensible reading of it is grounded. Found 2026-08-03 by scrutinising the one
+    # cell that PASSED the gate: gpt-oss answered "100 000 – 130 000 RPM" with U+202F narrow
+    # no-break spaces (a typographic thousands separator), the healer did not know that
+    # character, so the guard read [100, 0, 130, 0], found no support, and converted a
+    # CORRECT answer into a decline. Healing was only ever applied to the evidence side, so a
+    # model whose number formatting differed from the corpus was punished for typography.
+    readings = [stated]
+    healed = _healed(value)
+    if healed != value:
+        alt = numbers_in(healed)
+        if alt and alt != stated:
+            readings.append(alt)
+    best = min((([n for n in r if not _matches(n, pool, rel_tol)]) for r in readings), key=len)
+    return {"verdict": "blocked" if best else "cited", "unverified": best}
 
 
 def apply(answer: dict, snippet_texts: list[str], rel_tol: float = 0.01) -> tuple[dict, dict]:

@@ -266,3 +266,40 @@ def test_candidate_docs_are_kept_single_chunk_reference():
     docs = e2gen.candidate_docs(CFG, limit=5)
     assert docs, "expected keep>=4 single-chunk reference docs in a judged corpus"
     assert all(d["score"] >= 4 for d in docs)
+
+
+def test_typographic_thousands_are_not_an_ambiguous_parse():
+    """U+202F/U+00A0/U+2009 between digit groups EXIST to group thousands, so the joined
+    reading is not in genuine doubt. gpt-oss's correct '100 000 - 130 000' scored
+    ambiguous_parse purely because the probe's expected value uses commas (2026-08-03)."""
+    nnbsp = " "
+    probe = {"probe_id": "e2-2762-0", "expected_value": "100,000 to 130,000", "unit": "rpm"}
+    ans = f"100{nnbsp}000{nnbsp}–{nnbsp}130{nnbsp}000{nnbsp}RPM"
+    assert e2.classify(probe, {"value": ans, "must_retrieve": False}) == "exact"
+
+
+def test_a_plain_ascii_space_is_still_treated_as_ambiguous():
+    probe = {"probe_id": "a", "expected_value": "250", "unit": "C"}
+    assert e2.classify(probe, {"value": "250 300", "must_retrieve": False}) == "ambiguous_parse"
+
+
+def test_engine_codes_are_identifiers_not_values():
+    """Found 2026-08-03. "EJ20", "FA20", "EJ255", "SH7058", "A2WC411D" saturate this corpus.
+    The harness read an explicit DECLINE — "Not specified for Subaru EJ20/FA20 in provided
+    excerpts" — as the stated value 20 and scored it dangerous_miss. A first attempt at the fix
+    only excluded the FIRST digit, so EJ20 then parsed as 0."""
+    probe = {"probe_id": "e2-1309-0", "expected_value": "0.100", "unit": "inch"}
+    decline = "Not specified for Subaru EJ20/FA20 in provided excerpts"
+    assert e2.parse_number(decline) is None
+    assert e2.classify(probe, {"value": decline, "must_retrieve": False}) == "unparseable"
+    # and the real value in the same sentence still parses
+    assert e2.parse_number("Not provided for EJ20/FA20. Principle: ~0.100 inch") == 0.100
+    assert e2.parse_number("the SH7058 memmodel") is None
+    assert e2.parse_number("ECU A2WC411D value 14.7") == 14.7
+
+
+def test_identifier_exclusion_does_not_break_ordinary_values():
+    for s, want in (("30psi", 30.0), ("-12.5 deg", -12.5), (".84", 0.84),
+                    ("1,282 tok/s", 1282.0), ("(x-32768)*0.019", 32768.0),
+                    ("0.45 V (450 mV)", 0.45)):
+        assert e2.parse_number(s) == want, s

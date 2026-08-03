@@ -673,3 +673,50 @@ negotiable; this change is on the correct side of it.
 
 **Standing checkpoint:** E4 pre-registered bars are proposed in docs/E4-DESIGN.md and NOT
 ratified. No model runs against E4 until Syed signs them.
+
+### 2026-08-03 — TWO MORE HARNESS DEFECTS, found mid-run by scrutinising a PASSING cell
+
+**D10 — the defects.** Both are the same family as the snippet bug: the harness punishing a
+model for text handling rather than measuring it. Both were found by looking hard at the ONE
+cell that PASSED the gate, not by hunting for something that would flip a verdict.
+
+  a) **U+202F narrow no-break space.** gpt-oss formats numbers with typographic thousands
+     separators: `100 000 – 130 000 RPM`. The guard's healer knew U+00A0/U+00AD/U+200B but not
+     U+202F, so it read [100, 0, 130, 0], found no support, and converted a CORRECT answer into
+     a decline. Worse, healing had ONLY ever been applied to the EVIDENCE side, never to the
+     stated value — so any model whose number formatting differed from the corpus was penalised
+     for typography. The guard now heals both sides and blocks only when NO defensible reading
+     of the answer is grounded.
+  b) **Engine codes parsed as values.** `EJ20`, `FA20`, `EJ255`, `SH7058`, `A2WC411D` saturate
+     this corpus. The harness read the 27B's explicit DECLINE — "Not specified for Subaru
+     EJ20/FA20 in provided excerpts" — as the stated value 20 and scored it dangerous_miss. A
+     first attempt at the fix excluded only the first digit, so `EJ20` then parsed as 0; the
+     lookbehind now excludes a digit run glued to any alphanumeric.
+
+  Also fixed en route: `expected_candidates` ran its number scan on a comma-stripped string but
+  sliced the un-stripped one, so every comma before a range separator shifted the offsets and
+  `"100,000 to 130,000"` split into two point values instead of one interval.
+
+**D11 — the fixes are EVEN-HANDED, which is the check that matters.** (a) helps gpt-oss, (b)
+helps the 27B, and the comma fix made the scorer STRICTER on the 27B (its `100,000 to 200,000`
+over-claim correctly became range_mismatch instead of exact). Net on completed cells: 27B armA
+10→9 exact, 27B k3 39→40, 27B k6 46→47, gpt-oss k6 47→48. **No gate verdict changed.**
+
+**D12 — NO RE-RUN NEEDED, and the reason is a design property worth keeping.** The citation
+guard is POST-HOC: it inspects an already-generated answer and never touches the prompt,
+retrieval, or generation. Combined with (1) `original_value` preserved in every guard record —
+the A8 fix earning its keep — and (2) deterministic retrieval, verified by asserting the
+re-retrieved doc ids match the ids the row recorded, a guard fix is **fully retroactive and
+exact**, not an approximation. `rundown.reguarded()` re-derives it offline and refuses to guess
+on any row whose retrieval does not reproduce. This saved ~3.5h of re-running four cells, and it
+means cells run before and after the fix converge on identical final instrumentation.
+
+**D13 — STOPPING RULE adopted.** Each fix in this exercise has revealed another. To keep the
+matrix from becoming a moving target, no further scorer or guard change lands during this run:
+any defect found from here is documented and deferred to a v3. The cost of one more "small fix"
+is a matrix whose cells were measured under different rules.
+
+**Still pending Syed, unchanged:** E4 bars; the E1 dangerous-flip ruling; top_k mode-switching;
+adjudication of `unit_mismatch` rows (incl. whether "equivalence ratio" joins the mixture family
+— NOT added on discovery, because changing the scorer in response to a specific failing row is
+the benchmark-maxxing pattern this whole exercise exists to avoid).

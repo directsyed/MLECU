@@ -88,3 +88,28 @@ def test_ref_citation_ids_are_not_values():
     ev = ["timing advance 20 degrees at light load"]
     v = cg.verify('{"value": 20, "citation": "[REF 644]"}', ev)
     assert v["verdict"] == "cited"
+
+
+def test_typographic_thousands_separator_does_not_block_a_correct_answer():
+    """Found 2026-08-03 by scrutinising the ONE cell that passed the gate. gpt-oss answered
+    '100 000 - 130 000 RPM' using U+202F narrow no-break spaces — a typographic thousands
+    separator — the healer did not know that character, so the guard read [100, 0, 130, 0],
+    found no support, and converted a CORRECT answer into a decline. Healing had only ever
+    been applied to the EVIDENCE side, so a model whose number formatting differed from the
+    corpus was punished for typography."""
+    nnbsp = " "
+    ev = ["turbocharger shaft speeds of 100,000 to 130,000 rpm are typical"]
+    ans = f"100{nnbsp}000{nnbsp}–{nnbsp}130{nnbsp}000{nnbsp}RPM"
+    assert cg.verify(ans, ev)["verdict"] == "cited"
+
+
+def test_an_answer_is_blocked_only_if_no_defensible_reading_is_grounded():
+    ev = ["rev limit 6,700 rpm"]
+    assert cg.verify("6 700", ev)["verdict"] == "cited"          # healed reading grounded
+    assert cg.verify("9 900", ev)["verdict"] == "blocked"        # neither reading grounded
+
+
+def test_healing_the_stated_value_does_not_launder_a_fabrication():
+    ev = ["injector dead time 1.0 ms at 14.0 V"]
+    assert cg.verify("2.6 ms", ev)["verdict"] == "blocked"
+    assert cg.verify("2 600", ev)["verdict"] == "blocked"
