@@ -184,14 +184,28 @@ def _verdict(s_lo: float, s_hi: float, cands: list[tuple[float, float, object]],
     matching = [c for c in cands if stated_unit is not None and c[2] == stated_unit]
     pool = matching or cands
     overlaps = False
-    for lo, hi, _ in pool:
+    for lo, hi, cu in pool:
+        a, b = s_lo, s_hi
+        if stated_unit is not None and cu is not None and stated_unit != cu:
+            # v3 (2026-08-04): convert where the ratio is EXACT. Refusing to convert was
+            # doing damage both ways — denying credit to "0.45 V" against 450 mV, and
+            # SHIELDING "324 kPa" against 3.5 bar (7.4% wrong) from the hard gate.
+            conv = units.convert_interval(a, b, stated_unit, cu)
+            if conv is None:
+                continue                 # affine or fuel-dependent -> unit_mismatch below
+            a, b = conv
         tol = max(abs(lo), abs(hi)) * tolerance_pct / 100.0
         lo_t, hi_t = lo - tol, hi + tol
-        if lo_t <= s_lo and s_hi <= hi_t:
+        if lo_t <= a and b <= hi_t:
             return "exact"
-        if not (s_hi < lo_t or s_lo > hi_t):
+        if not (b < lo_t or a > hi_t):
             overlaps = True
-    if not matching and units.mismatched([c[2] for c in cands if c[2]], stated_unit):
+    exp_units = [c[2] for c in cands if c[2]]
+    # `unit_mismatch` now means ONLY "same quantity family, but we refuse to guess the
+    # conversion" (C/F, lambda/AFR, cc-min/lb-hr). Anything exactly convertible has already
+    # been converted and judged on its merits.
+    if (not matching and units.mismatched(exp_units, stated_unit)
+            and not units.convertible_between(exp_units, stated_unit)):
         return "unit_mismatch"
     if overlaps:
         return "range_mismatch"

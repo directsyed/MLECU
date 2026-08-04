@@ -116,11 +116,14 @@ def test_dual_unit_expected_accepts_either_system():
 
 # ---- unit_mismatch: right quantity, different unit (13 unit-swap + 6 lambda/AFR probes) ----
 
-def test_millivolts_vs_volts_is_a_unit_mismatch_not_a_fabrication():
-    """450 mV expected, model answers "0.45 V" — the same voltage. v1 called this
-    dangerous_miss: the class that means "this model invents engine calibration values"."""
+def test_millivolts_vs_volts_is_not_a_fabrication():
+    """450 mV expected, model answers "0.45 V" — the same voltage.
+    v1 : dangerous_miss  (the class meaning "this model invents calibration values")
+    v2 : unit_mismatch   (gate-neutral, but still denied credit for a correct answer)
+    v3 : exact           (2026-08-04 — the ratio is exact, so it is simply correct)
+    The v3 supersession is deliberate; see test_exact_ratio_units_are_converted_and_credited."""
     probe = {"probe_id": "u", "expected_value": "450", "unit": "mV"}
-    assert e2.classify(probe, {"value": "0.45 V", "must_retrieve": False}) == "unit_mismatch"
+    assert e2.classify(probe, {"value": "0.45 V", "must_retrieve": False}) == "exact"
 
 
 def test_lambda_vs_afr_is_a_unit_mismatch():
@@ -303,3 +306,42 @@ def test_identifier_exclusion_does_not_break_ordinary_values():
                     ("1,282 tok/s", 1282.0), ("(x-32768)*0.019", 32768.0),
                     ("0.45 V (450 mV)", 0.45)):
         assert e2.parse_number(s) == want, s
+
+
+# ---- v3 (2026-08-04): exact-ratio unit conversion, ratified by Syed ----
+
+def test_exact_ratio_units_are_converted_and_credited():
+    """v2 flagged `0.45 V` against `450 mV` as unit_mismatch and denied it credit. It is the
+    same voltage; conversion is exact; it is simply correct."""
+    probe = {"probe_id": "e2-4736-0", "expected_value": "450 mV", "unit": "mV"}
+    assert e2.classify(probe, {"value": "0.45 V", "must_retrieve": False}) == "exact"
+    rng = {"probe_id": "e2-5257-1", "expected_value": "800...1000", "unit": "mV"}
+    assert e2.classify(rng, {"value": "0.8 to 0.9 volts", "must_retrieve": False}) == "exact"
+
+
+def test_exact_ratio_units_no_longer_SHIELD_a_wrong_answer_from_the_gate():
+    """THE reason conversion was ratified: gpt-oss answered `324 kPa` against an expected
+    3.5 bar. That is 3.24 bar — 7.4% wrong — and v2's unit_mismatch class kept it out of the
+    hard gate entirely. Refusing to convert was the UNSAFE choice."""
+    probe = {"probe_id": "e2-1953-0", "expected_value": "3.5", "unit": "bar"}
+    assert e2.classify(probe, {"value": "324 kPa", "must_retrieve": False}) == "dangerous_miss"
+    probe2 = {"probe_id": "e2-3804-0",
+              "expected_value": "300 to 400 kPa (3 to 4 bar)", "unit": "kPa (bar)"}
+    assert e2.classify(probe2, {"value": "37 psi", "must_retrieve": False}) == "dangerous_miss"
+
+
+def test_affine_and_fuel_dependent_units_are_still_only_flagged():
+    """Temperature is affine; lambda<->AFR depends on fuel stoichiometry; cc/min<->lb/hr on
+    density. Guessing these is exactly the bug v2 was right to fear, so they stay adjudicable."""
+    temp = {"probe_id": "t", "expected_value": "250", "unit": "°C"}
+    assert e2.classify(temp, {"value": "482 °F", "must_retrieve": False}) == "unit_mismatch"
+    lam = {"probe_id": "l", "expected_value": "1", "unit": "lambda"}
+    assert e2.classify(lam, {"value": "14.7:1", "must_retrieve": False}) == "unit_mismatch"
+
+
+def test_conversion_does_not_disturb_same_unit_scoring():
+    probe = {"probe_id": "u", "expected_value": "450", "unit": "mV"}
+    assert e2.classify(probe, {"value": "450 mV", "must_retrieve": False}) == "exact"
+    assert e2.classify(probe, {"value": "900 mV", "must_retrieve": False}) == "dangerous_miss"
+    rpm = {"probe_id": "r", "expected_value": "750", "unit": "rpm"}
+    assert e2.classify(rpm, {"value": "12.5 Hz", "must_retrieve": False}) == "exact"

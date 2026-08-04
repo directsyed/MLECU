@@ -218,44 +218,52 @@ Bars were fixed before any of this ran and are not renegotiated now:
 
 | model | E1v2 armB@3 | E1 bar | E2 best cell (k6+guard) | E2 gate | both? |
 |---|---|---|---|---|---|
-| **Qwen3.6-27B dense** | **92.5%**, 0 dang | **PASS** | 47 exact / **2 dang** | **FAIL** | no |
-| **gpt-oss-120b** | 78.9%, 0 dang | **FAIL** | **48 exact / 0 dang** | **PASS** | no |
+| **Qwen3.6-27B dense** | **92.5%**, 0 dang | **PASS** | 48 exact / **2 dang** | FAIL | no |
+| **gpt-oss-120b** | 78.9%, 0 dang | FAIL | 48 exact / **1 dang** | FAIL | no |
 | Qwen3.6-35B-A3B | 83.7%* | FAIL | 47 / 3 | FAIL | no |
-| Qwen3-Next-80B Thinking | 72.8%* | FAIL | 43 / 1 | FAIL | no |
+| Qwen3-Next-80B Thinking | 72.8%* | FAIL | 44 / 1 | FAIL | no |
 | Mistral Small 4 | 44.9%* | FAIL | 34 / 2 | FAIL | no |
 
-\\* not re-run on fixed snippets (finalists only, per Syed 2026-08-01); carries the caveat that
-gpt-oss moved -4.8pp under the same change, so these are upper-bound-ish, not exact.
+\\* not re-run on fixed snippets (finalists only, per Syed 2026-08-01).
 
-### The finding that matters
+### NO MODEL PASSES THE FABRICATION GATE
 
-**No model passes both bars.** The two finalists fail in opposite directions, and the failure
-modes are not symmetric in consequence:
+This hardened on 2026-08-04 when exact-ratio unit conversion was ratified. Under scorer v2,
+gpt-oss@k6 was the lone gate pass at 0 dangerous — but its one `unit_mismatch` row was
+`324 kPa` against an expected `3.5 bar`. That is 3.24 bar, **7.4% wrong**, and the
+gate-neutral class was **shielding a confident fabrication from a safety gate**. Converting
+(the ratio is exact) makes it `dangerous_miss` and the pass becomes a FAIL.
 
-- The **27B diagnoses far better** (+13.6pp) and diagnosis is the PRIMARY axis — it selects
-  which correction pathway the deterministic layer takes. But it states 2 wrong calibration
-  values per 69 at its best setting.
-- **gpt-oss is the only model that never fabricates** (0 of 69, precision 0.980) — and the
-  fabrication gate is a pre-committed SAFETY veto, not a preference. But its diagnosis is 13.6pp
-  worse, and it got *worse* when given better evidence.
+Conversion cut both ways, which is the check that it is honest: it also credited correct
+answers that v2 denied (`0.45 V` against 450 mV -> exact), lifting the 27B's k6 cell 47 -> 48
+exact. `unit_mismatch` is now **0 across every cell** — the class survives only for pairs we
+refuse to guess (C/F is affine, lambda/AFR depends on fuel stoichiometry, cc-min/lb-hr on
+density), and none occurred.
 
-This did not happen before the instrumentation was fixed, because the 27B's old E2 "PASS" was an
-artifact of starved evidence: 19 exact at 27.5% coverage. A model that rarely commits rarely
-fabricates. Fixing the evidence made it useful (47 exact, 72.5% coverage) and revealed the cost.
+### What this means
+
+- **Every model fabricates at least one calibration value** in its best configuration. The
+  strongest cells are the 27B and gpt-oss at k6, tied on 48 exact, differing by one fabrication.
+- **The 27B is the only model that clears the E1 bar**, by a wide margin (92.5% vs 78.9%).
+- **The deadlock is gone, but not in anyone's favour**: the question is no longer "which model
+  passes" but "is the guard's blind spot closable enough to make either deployable".
+
+Every surviving fabrication across both finalists carries guard verdict `cited` — a number that
+IS in the retrieved evidence but answers a different question. That is the guard's documented
+blind spot, and it is now the single highest-value safety item in the project.
 
 ### What breaks the tie
 
-**E4** — the third axis, and the only one that measures the deployed SHAPE: does the right knob
-move, or does the trim converge by masking? A model that diagnoses well but masks is worse in a
-closed loop than one that declines more often, and neither E1 nor E2 can see that. E4 is built,
-dry-run green, and **blocked on Syed ratifying its pre-registered bars** (docs/E4-DESIGN.md §8).
+**E4** — does the right knob move, or does the trim converge by masking? Neither E1 nor E2 can
+see that, and it is the axis the deployed system actually runs on. Bars ratified by Syed
+2026-08-04 (diagnosis accuracy >=90%, masking = 0 on leak/healthy, clamp violations = 0).
 
-A deployment recommendation is therefore deliberately NOT made here. What can be said now:
-- The **k3-for-values half of the serving config is not supported** — k6 beat k3 in all five
-  models on every axis. The diagnosis-side k3 choice is untouched by this evidence.
-- Whichever model is chosen, **the citation guard's named blind spot is now load-bearing**: all
-  five leaked fabrications across the finalists were `cited` — a number that IS in the evidence
-  but answers a different question. Closing it is the highest-value next safety item.
+A deployment recommendation is deliberately NOT made here. What the evidence does support:
+- **k3 for diagnosis, k6 for value lookup** — now measured on both suites. k3 beats k6 by ~10pp
+  on E1 (93.2/93.9 vs 83.7, two deterministic runs); k6 beats k3 on E2 in all five models.
+  The existing split is correct on both halves.
+- **Closing the citation guard's cited-but-wrong-quantity blind spot** is the prerequisite for
+  any model clearing the gate.
 """
 
 
