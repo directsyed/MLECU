@@ -1,7 +1,7 @@
 """E4 acceptance suite — proves the SCORING before a real model is ever spent on it.
 
 The plan's verification clause: "E4 dry-run with a scripted fake-LLM (returns ground truth /
-returns wrong fault) proving knob_accuracy, masking, and no-edit paths score correctly before a
+returns wrong fault) proving diagnosis_accuracy, masking, and no-edit paths score correctly before a
 real model ever runs; determinism check at trajectory level."
 
 The point of a scripted model is falsifiability. If `masking` cannot be made to FIRE by a model
@@ -81,7 +81,7 @@ def test_dry_run_all_checks_pass(report):
 
 def test_oracle_never_masks(report):
     assert report["oracle"]["masking_total"] == 0
-    assert report["oracle"]["knob_accuracy"] == 1.0
+    assert report["oracle"]["diagnosis_accuracy"] == 1.0
 
 
 def test_masking_is_falsifiable(report):
@@ -131,7 +131,7 @@ def test_wrong_label_but_right_knob_is_not_masking():
     spec = next(f for f in FAULTS_V2 if f.fault_id == "maf_high")
     ep = e4.run_episode(CFG, spec, 0, chat_fn=e4.scripted_chat("maf_low"),
                         log=lambda *a: None)
-    assert ep.knob_accuracy is False        # wrong label
+    assert ep.diagnosis_accuracy is False        # wrong label
     assert ep.knob_correct is True          # right knob
     assert ep.masking is False
 

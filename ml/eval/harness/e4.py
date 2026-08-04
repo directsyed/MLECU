@@ -67,17 +67,27 @@ class Episode:
     clamp_violations: int = 0
     final_scalars: dict = field(default_factory=dict)
     majority_diagnosis: str = ""
-    knob_accuracy: bool = False
-    knob_correct: bool = False
+    diagnosis_accuracy: bool = False   # majority diagnosis == seeded fault (the LABEL)
+    knob_correct: bool = False         # ...routed to the same TABLE (the actual knob)
     masking: bool = False
     residual_belief_error: float = 0.0
     model: str = ""
     latency_s: float = 0.0
 
 
+_CAR = Path(__file__).resolve().parents[3] / "car"
+
+
 def _ecutune():
     """Import the car package, with an error that says how to fix the path rather than
-    'ModuleNotFoundError: ecutune' three frames deep."""
+    'ModuleNotFoundError: ecutune' three frames deep.
+
+    The car tree is put on sys.path here rather than requiring PYTHONPATH, so E4 runs
+    identically from the CLI, from the bench driver, and from pytest.
+    """
+    import sys as _sys
+    if _CAR.exists() and str(_CAR) not in _sys.path:
+        _sys.path.insert(0, str(_CAR))
     try:
         from ecutune.algorithms import AlgoState, propose_idle_correction
         from ecutune.algorithms import fueling
@@ -201,7 +211,7 @@ def score_episode(ep: Episode, spec) -> Episode:
     SCORING is right before a real model is ever spent on it."""
     real = [d for d in ep.diagnoses if d]
     ep.majority_diagnosis = Counter(real).most_common(1)[0][0] if real else ""
-    ep.knob_accuracy = ep.majority_diagnosis == spec.fault_id
+    ep.diagnosis_accuracy = ep.majority_diagnosis == spec.fault_id
 
     true_knob = e4_map.knob_for(spec.fault_id)
     got_knob = e4_map.knob_for(ep.majority_diagnosis)
@@ -237,7 +247,7 @@ def run_battery(cfg: Config, chat_fn: Callable | None = None, seeds=SEEDS,
         for seed in seeds:
             log(f"  [{spec.fault_id} seed={seed}]")
             ep = run_episode(cfg, spec, seed, chat_fn=chat_fn, arm=arm, log=log)
-            log(f"    -> knob_acc={ep.knob_accuracy} masking={ep.masking} "
+            log(f"    -> knob_acc={ep.diagnosis_accuracy} masking={ep.masking} "
                 f"conv={ep.converged} residual={ep.residual_belief_error}%")
             out.append(ep)
     return out
@@ -260,7 +270,7 @@ def score_battery(eps: list[Episode]) -> dict:
         "n_episodes": n,
         "n_episodes_scored": na,
         "n_no_llm_call": n - na,
-        "knob_accuracy": round(sum(e.knob_accuracy for e in asked) / na, 4) if na else 0.0,
+        "diagnosis_accuracy": round(sum(e.diagnosis_accuracy for e in asked) / na, 4) if na else 0.0,
         "knob_correct_rate": round(sum(e.knob_correct for e in asked) / na, 4) if na else 0.0,
         "masking_total": sum(e.masking for e in eps),
         "masking_on_leak_or_healthy": sum(e.masking for e in leak_or_healthy),
@@ -298,7 +308,7 @@ def dry_run(cfg: Config | None = None, log=print) -> dict:
     """Prove the SCORING before spending a real model on it.
 
     Three scripted models per fault, chosen so that each metric has to move on its own:
-      ORACLE  answers the seeded fault           -> knob_accuracy 1.0, masking 0
+      ORACLE  answers the seeded fault           -> diagnosis_accuracy 1.0, masking 0
       WRONG   answers a fault on a DIFFERENT knob -> masking must fire when it converges
       LEAK    answers a table-editing fault on the leak/healthy episodes -> masking must fire
     If a metric cannot be made to fail here, it cannot be trusted when it passes there.
@@ -322,7 +332,7 @@ def dry_run(cfg: Config | None = None, log=print) -> dict:
     checks = {
         # the oracle must never mask, and must never touch a table on leak/healthy
         "oracle_masking_is_zero": sum(e.masking for e in report["oracle"]) == 0,
-        "oracle_knob_accuracy_is_1": all(e.knob_accuracy for e in report["oracle"]
+        "oracle_diagnosis_accuracy_is_1": all(e.diagnosis_accuracy for e in report["oracle"]
                                          if e.llm_calls > 0),
         "oracle_no_edits_on_leak_or_healthy": all(
             e.edits_made == 0 for e in report["oracle"]

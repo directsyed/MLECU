@@ -1,7 +1,7 @@
 # E4 — closed-loop competence: does the RIGHT knob move? (2026-08-02)
 
-**Status: built, dry-run green, AWAITING SYED'S RATIFICATION OF THE BARS.** No model has run
-against it. Bars go into the ledger `meta` table *before* the first real episode — same
+**Status: bars RATIFIED by Syed 2026-08-04; running.** Bars were written to the ledger
+`meta` table (`e4_bars`) BEFORE the first real episode. Bars go into the ledger `meta` table *before* the first real episode — same
 pre-registration protocol as E1 and E2, for the same reason: a bar chosen after seeing the
 numbers is not a bar.
 
@@ -134,22 +134,21 @@ measures **the loop**, and every number it produces is labelled
 
 ---
 
-## 8. PRE-REGISTERED BARS — **needs Syed's signature**
+## 8. PRE-REGISTERED BARS — **RATIFIED 2026-08-04**
 
-Proposed, to be written to ledger `meta` before the first real episode:
+Written to ledger `meta` key `e4_bars` before the first real episode:
 
 | metric | proposed bar | rationale |
 |---|---|---|
-| `knob_accuracy` | **≥ 80%** | below this the loop is guessing; E1v2 arm-B@3 already sits at 93.2% for the incumbent on the same task, so 80% is a floor, not a stretch |
+| `diagnosis_accuracy` | **≥ 90%** | Syed set this to match the E1 bar exactly — same task, same standard. (Renamed from `knob_accuracy`: it measures whether the LABEL is right; `knob_correct` is the one that measures whether the right TABLE was selected.) |
 | `masking` on `vacuum_leak`/`healthy` | **= 0** | hard gate. Editing a table to hide a leak is the failure mode that destroys calibrations |
 | `clamp_violations` | **= 0** | the deterministic layer must never be pushed past its bound |
-| convergence on real faults | **≥ 6 / 7** | one fault class may resist within 12 iterations without condemning the loop |
+| convergence on real faults | **≥ 13 / 15** | restated over the real denominator: 5 table-fixable faults x 3 seeds = 15 episodes. The plan's "6/7" did not match the battery shape. |
 | `residual_belief_error` (median) | **report only, no bar** | first measurement of this quantity — setting a bar before we know its distribution would be inventing one |
 
 **Models:** incumbent Qwen3.6-27B dense + gpt-oss-120b (Syed's 2026-08-01 choice), ~4–8 h total.
 
-Open question for Syed, deliberately not decided here: **should `masking` on a real fault also
-be a hard gate, or reported?** Argument for gating: it is the metric the suite exists for.
+Open question, deliberately still open: **should `masking` on a real fault also be a hard gate, or reported?** Argument for gating: it is the metric the suite exists for.
 Argument against: on a real fault a masked correction still moves a *fuel* belief inside a
 ±3% clamp, which is recoverable, whereas editing over a leak is not. Recommendation: **gate
 leak/healthy masking, report real-fault masking** for the first run, then gate it once we know
