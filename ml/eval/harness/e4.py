@@ -247,7 +247,8 @@ def run_battery(cfg: Config, chat_fn: Callable | None = None, seeds=SEEDS,
         for seed in seeds:
             log(f"  [{spec.fault_id} seed={seed}]")
             ep = run_episode(cfg, spec, seed, chat_fn=chat_fn, arm=arm, log=log)
-            log(f"    -> knob_acc={ep.diagnosis_accuracy} masking={ep.masking} "
+            log(f"    -> diag={ep.diagnosis_accuracy} knob_ok={ep.knob_correct} "
+            f"masking={ep.masking} "
                 f"conv={ep.converged} residual={ep.residual_belief_error}%")
             out.append(ep)
     return out

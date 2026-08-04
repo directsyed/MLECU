@@ -1,9 +1,8 @@
 # E4 — closed-loop competence: does the RIGHT knob move? (2026-08-02)
 
-**Status: bars RATIFIED by Syed 2026-08-04; running.** Bars were written to the ledger
-`meta` table (`e4_bars`) BEFORE the first real episode. Bars go into the ledger `meta` table *before* the first real episode — same
-pre-registration protocol as E1 and E2, for the same reason: a bar chosen after seeing the
-numbers is not a bar.
+**Status: bars RATIFIED by Syed 2026-08-04; running.** They were written to the ledger `meta`
+table (key `e4_bars`) BEFORE the first real episode — same pre-registration protocol as E1 and
+E2, for the same reason: a bar chosen after seeing the numbers is not a bar.
 
 ---
 
@@ -77,7 +76,9 @@ always documented as awaiting (`algorithms/fueling.py:22`).
 
 Per episode:
 
-- **`knob_accuracy`** — majority diagnosis == seeded fault. Denominator counts only episodes
+- **`diagnosis_accuracy`** — majority diagnosis == seeded fault. This measures the LABEL, not
+  the knob; it was called `knob_accuracy` until 2026-08-04, which was simply a wrong name.
+  Denominator counts only episodes
   where the model was actually *asked* (a `healthy` episode converges at iteration 1 before any
   diagnosis is requested; scoring that as a miss penalises a model for a question never put).
   A model that *was* asked and answered nothing still counts against itself.
@@ -103,7 +104,7 @@ scripted models and asserts the scoring can both pass *and fail*:
 
 ```
 PASS  oracle_masking_is_zero              PASS  editing_a_leak_is_masking
-PASS  oracle_knob_accuracy_is_1           PASS  no_clamp_violations
+PASS  oracle_diagnosis_accuracy_is_1           PASS  no_clamp_violations
 PASS  oracle_no_edits_on_leak_or_healthy  PASS  trajectory_deterministic
 PASS  wrong_knob_masking_fires
 ```
