@@ -720,3 +720,50 @@ is a matrix whose cells were measured under different rules.
 adjudication of `unit_mismatch` rows (incl. whether "equivalence ratio" joins the mixture family
 — NOT added on discovery, because changing the scorer in response to a specific failing row is
 the benchmark-maxxing pattern this whole exercise exists to avoid).
+
+### 2026-08-04 — E4 RUN: neither finalist passes; the loop itself has a design gap
+
+**Bars ratified by Syed and pre-registered in ledger meta before the first episode**:
+diagnosis_accuracy >= 0.90 (set to match E1), masking on leak/healthy = 0, clamp violations = 0,
+convergence >= 13/15, residual reported without a bar. `knob_accuracy` renamed
+`diagnosis_accuracy` — Syed flagged the name and was right: it measures the LABEL, not the knob.
+
+**Result — the two finalists scored IDENTICALLY in aggregate**, which is coincidence at an
+18-episode sample (accuracy moves in 5.6% steps), verified as genuinely distinct runs by file,
+timestamp, latency (2.1h vs 3.4h) and diagnosis sequences:
+
+| bar | 27B | gpt-oss | verdict |
+|---|---|---|---|
+| diagnosis_accuracy >= 90% | 88.9% | 88.9% | **FAIL** (one episode) |
+| masking on leak/healthy = 0 | 2 | 2 | **FAIL — hard** |
+| clamp violations = 0 | 0 | 0 | pass |
+| convergence >= 13/15 | 15/15 | 15/15 | pass |
+| median residual belief error | 4.39% | 4.14% | reported |
+
+**D14 — THE FINDING: a single-iteration slip permanently corrupts a table, and that is a gap in
+the DETERMINISTIC layer, not the model.** On both of the 27B's failing leak episodes it
+diagnosed the leak correctly on 11 of 12 iterations and slipped ONCE. The deterministic layer
+applied a bounded, clamped, entirely legal edit — and the injector-latency belief is now 2.9%
+wrong permanently, with the leak partially masked (trim 13.1 -> 10.2). There is no undo. The
+loop acts on the INSTANTANEOUS diagnosis, so one hallucination in twelve is enough.
+
+**D15 — proposed fix, deterministic-side (where the doctrine says fixes belong): require
+diagnosis STABILITY before acting.** Counterfactual over all 8 masking events:
+  N=2 consecutive identical diagnoses: prevents 4/4 for the 27B, 2/4 for gpt-oss
+  N=3 consecutive identical diagnoses: prevents 4/4 for BOTH
+gpt-oss needs the higher N because its failures are not isolated slips — it THRASHES
+(`injector_flow_lean, injector_flow_lean, injector_latency_lean, vacuum_leak, ...`) and even
+emits empty diagnoses mid-loop, which the unknown-token -> NO_EDIT default handled correctly.
+The 27B's failures are rare slips on an otherwise stable correct answer. That difference is
+invisible in the aggregate score and is the strongest qualitative separator between them.
+CAVEAT: the counterfactual is exact only up to the first divergence — once an edit is
+suppressed the trim trajectory changes and later diagnoses would differ. It justifies building
+and TESTING the rule, not adopting a specific N on this evidence.
+Cost to weigh: N=3 delays every first edit by 2 iterations against a 12-iteration budget where
+the median episode uses 4.
+
+**Composite state: NO model passes all three suites.** 27B passes E1 only (92.5%); nobody passes
+E2 since unit conversion (every model fabricates >=1 value at its best setting); nobody passes
+E4. Deployment remains unratified, and the two highest-value engineering items are now both in
+the deterministic layer, not the model: (1) the diagnosis-stability rule above, (2) closing the
+citation guard's cited-but-wrong-quantity blind spot.
