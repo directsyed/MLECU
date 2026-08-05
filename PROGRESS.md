@@ -9,6 +9,52 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-05 — DETERMINISTIC-LAYER HARDENING: the loop can now disagree with the model, and the incumbent passes E4
+
+E4 had shown the closed loop failing structurally, not for want of a better model. At one
+operating point the observable is scalar and the state is three-dimensional — `trim = f(latency,
+flow, maf)` — so any of the three beliefs can null the trim. The LLM's diagnosis was therefore
+not advice; it was **the missing constraint that made the problem solvable**, and the
+deterministic layer had no basis on which to disagree with it. One slip in twelve iterations
+permanently bent a table, and 9 of 42 episodes ended with a second belief corrupted that was
+never faulty.
+
+**The layer sees strictly less than the model saw.** The E1v2 prompt has always shown three
+probe points (idle / fast idle / low voltage); `propose_idle_correction` received **one number**.
+The two observations that identify the fault were computed for the prompt and thrown away. Three
+points make the system identifiable — and `mvem.py` documented exactly why in its own comments,
+years of design ahead of anything using it.
+
+**`algorithms/identify.py` inverts the forward model.** Each single-fault hypothesis fits its one
+free parameter against the observed trims via `mvem.steady_trim`, bounded golden-section, numpy
+only. Two distinct refusals, both new capabilities: *not identifiable* (hypotheses tie) and *no
+single fault fits* (multiple faults or something unmodelled → escalate).
+
+Validated with **no LLM and no GPU**: 7 fault types × 20 seeds through the real log→bin path with
+sensor noise gave **138 correct / 2 safe refusals / ZERO confidently wrong**. Replayed against all
+8 real masking events from 2026-08-04, evaluated on the diagnosis that caused each edit: **8/8
+prevented.**
+
+Four bugs found by running it rather than reasoning about it — the estimator's baseline used OEM
+constants as "truth" (making every hypothesis fit a two-fault world); MAF and injector-flow errors
+are **exactly degenerate in trim space** so the reported airflow had to be scored too; the margin
+compared hypotheses rather than *actions*; and the gate cried `knob_mismatch` **even when both
+sides agreed**, because the proposer always emits three edits with the unselected ones zeroed.
+
+**Result — the incumbent now passes all four ratified E4 bars** (diagnosis 88.9→100%, masking
+2→0, clamps 0, convergence 13/15), with collateral belief corruption 9 episodes → 0.
+
+**The finding worth keeping:** the two defences catch different failures. The 27B's errors are
+isolated *slips* — stability caught all 52 and the cross-check gate never fired. gpt-oss
+*thrashes*: 8 of its edits survived stability and had to be vetoed by the estimator. Neither
+mechanism alone sufficed for gpt-oss, and this is invisible in the headline scores.
+
+**One planned item was rejected by its own acceptance test.** The citation-guard context check
+scored **0/21 fabrications caught, 6/410 false blocks** and was reverted rather than tuned against
+its test set. The blind spot turns out to be a consequence of the guard's evidence-only contract —
+"right document, wrong quantity" needs to know *which* quantity was asked for, and the guard is
+deliberately blind to the probe. `guard_retrotest.py` is kept as the bar for any future attempt.
+
 ## 2026-08-02 — BENCH INTEGRITY: the harness was convicting models for its own bugs; instrumentation rebuilt, probe file re-derived from source, E4 built
 
 Executed Phases 1, 2 and 5 of the held bench-integrity plan. The premise, proven on disk
@@ -528,6 +574,13 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-07-25 | E2 arm B-v3 (hybrid@6 + guard) | 37.7% match / 1.4% dangerous / 60.9% decline | GATE FAIL by ONE (e2-5723-1: right doc, right physics, 11 vs 11.8 rounding); attempted 1/blocked 0/leaked 1; ×2 identical |
 | 2026-08-02 | E1v2 gpt-oss arm A @16k budget (corrected) | 86.4% top-1, 0 dangerous, 4 blanks | truncation fix +5.4pp vs 8k run; timeout 1800s; closes the showdown matrix |
 | 2026-08-02 | Bench audit (2 agents) | 18 code findings + 57/69 probes flagged + 9 validation gaps | scorer [REF] parse, snippet truncation class, probe traps; ALL E2 verdicts asterisked pending Phase-1 fixes |
+| 2026-08-05 | Deterministic estimator (no LLM, no GPU) | 138 correct / 2 safe refusals / **0 confidently wrong** of 140 | 7 faults x 20 seeds through the real log->bin path with sensor noise |
+| 2026-08-05 | Estimator vs the 8 real E4 masking events | **8/8 prevented** | per-iteration, on the diagnosis that caused each edit; exact to first divergence |
+| 2026-08-05 | E4 re-run, 27B dense (ratified bars) | diagnosis 100% · masking 0 · clamps 0 · convergence 13/15 | **all four bars PASS** (was 88.9% / 2 / 0 / 15-15) |
+| 2026-08-05 | E4 re-run, gpt-oss-120b | diagnosis 77.8% · masking 0 · clamps 0 · convergence 11/15 | safety bars pass, capability bars fail |
+| 2026-08-05 | Collateral belief corruption (both models) | 9 episodes -> **0** | metric added because `masking` keys on the majority diagnosis and under-counted |
+| 2026-08-05 | Defence-layer attribution | 27B: 52 stability / 0 gate · gpt-oss: 54 stability / **8 gate** | the two layers catch different failure modes; neither alone sufficed for gpt-oss |
+| 2026-08-05 | Citation-guard context check (REJECTED) | 0/21 caught, 6/410 false blocks | reverted, not tuned; blind spot is a consequence of the evidence-only contract |
 | 2026-08-03 | E2-v2 final matrix (k6+guard, 5 models) | 27B 47/2 · gpt-oss 48/0 · 35B 47/3 · 80B 43/1 · Mistral 34/2 | probes v2 + scorer v2 + fixed snippets, MTP-off, 16384 tok / 24576 ctx; only gpt-oss gate-clean |
 | 2026-08-03 | E2 closed-book (arm A), all 5 models | 7-10 exact of 69; 3-14 CONFIDENT fabrications each | H3 confirmed: no model carries Subaru calibration constants in weights |
 | 2026-08-03 | top_k 6 vs 3 (H4, new) | k6 > k3 in 5/5 models: 47>40, 48>42, 47>41, 43>39, 34>29 | coverage rises AND precision holds — the two normally trade |
