@@ -767,3 +767,45 @@ E2 since unit conversion (every model fabricates >=1 value at its best setting);
 E4. Deployment remains unratified, and the two highest-value engineering items are now both in
 the deterministic layer, not the model: (1) the diagnosis-stability rule above, (2) closing the
 citation guard's cited-but-wrong-quantity blind spot.
+
+### 2026-08-05 — D16: the citation guard's blind spot is NOT closable inside its own contract
+
+**Attempted and REJECTED on its own acceptance test.** Plan Part 5 proposed closing the guard's
+`cited-but-wrong-quantity` blind spot — the hole through which every surviving fabrication in the
+E2 rerun escaped — with two deterministic, evidence-only checks: unit agreement, and question
+anchoring (the number's surrounding window must contain a query term).
+
+Built it, then ran the established 2026-07-25 retro-test protocol over the real corpus: 21
+cited-and-WRONG rows (the leaks) and 410 cited-and-CORRECT rows (the false-block control).
+
+    fabrications caught : 0/21
+    false blocks        : 6/410
+
+**Strictly worse than nothing, so it was reverted rather than tuned.** Tuning thresholds against
+those 21 rows until the number looked better would be fitting the check to the test set — the
+exact benchmark-maxxing pattern this project has refused twice already (the multi-window snippet
+sweep, and adding "equivalence ratio" to the units table on discovery).
+
+**Why it cannot work as specified.** Question anchoring fails because query terms are scattered
+throughout a 1200-char snippet, so a +/-220 char window almost always contains one — the check is
+satisfied by nearly every number in the pool. Unit agreement fails because the leaked answers
+generally carry a unit that matches; their error is the QUANTITY, not the unit.
+
+The underlying reason is structural: "right document, wrong quantity" requires knowing WHICH
+quantity was asked for, and the guard is deliberately blind to the probe and the expected value —
+that blindness is what makes it an honest clamp rather than an answer key. The blind spot is a
+consequence of the contract, not an oversight in the implementation.
+
+**What would actually be needed** (none of it a guard-internal change, all deferred):
+  (a) require the model to return the SUPPORTING SENTENCE verbatim alongside the value; the
+      guard can then verify that sentence exists in the evidence and contains the number. This
+      makes the model commit to a claim LOCATION and is still fully deterministic. It is a
+      prompt + answer-schema change, not a clamp change.
+  (b) a semantic check of "does this sentence answer this question", which is an LLM judgement
+      and would break the deterministic contract — it would need its own calibration and would
+      make the clamp only as trustworthy as a model.
+
+**Standing consequence:** the E2 fabrication gate remains failed by every model, and the leak
+path is now understood rather than merely observed. `ml/eval/guard_retrotest.py` is kept — it is
+the harness any future attempt must clear, and it is what stopped a bad safety change from
+shipping on the strength of a plausible argument.
