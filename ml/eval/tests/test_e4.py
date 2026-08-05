@@ -85,15 +85,22 @@ def test_oracle_never_masks(report):
 
 
 def test_masking_is_falsifiable(report):
-    """The metric must be able to FIRE. A masking score of 0 is only meaningful if a model
-    that deliberately moves the wrong knob is caught."""
-    assert report["wrong_knob"]["masking_total"] > 0
+    """The metric must be able to FIRE. Once the cross-check gate is live a deliberately wrong
+    model can no longer mask, so this is measured with the gate OFF — otherwise "metric broken"
+    and "gate working" are indistinguishable from the outside."""
+    assert report["wrong_knob_ungated"]["masking_total"] > 0
+
+
+def test_the_GATE_is_what_prevents_the_masking(report):
+    """The other half of the pair: same wrong-knob model, gate ON, masking must be zero."""
+    assert report["wrong_knob_gated"]["masking_total"] == 0
+    assert report["wrong_knob_gated"]["refused_by_crosscheck"] > 0
 
 
 def test_wrong_knob_leaves_beliefs_further_from_truth_than_the_oracle(report):
     """Masking converges the trim while corrupting a belief that was correct. If residual
     belief error did not separate the two, it would not be measuring anything."""
-    assert (report["wrong_knob"]["median_residual_belief_error_pct"]
+    assert (report["wrong_knob_ungated"]["median_residual_belief_error_pct"]
             > report["oracle"]["median_residual_belief_error_pct"])
 
 
@@ -101,7 +108,20 @@ def test_no_clamp_violations_anywhere(report):
     """E4 asks for step_clamp 0.029 against a 0.03 safety bound precisely so the algorithm's
     own request never trips the clamp. A violation here means the knife-edge came back."""
     assert report["oracle"]["clamp_violations"] == 0
-    assert report["wrong_knob"]["clamp_violations"] == 0
+    assert report["wrong_knob_gated"]["clamp_violations"] == 0
+
+
+def test_stability_requirement_does_not_break_convergence(report):
+    """N=3 delays every first edit by two iterations against a 12-iteration budget. That was
+    flagged as a risk in the plan; this measures it instead of assuming."""
+    assert report["oracle"]["converged_faulty"] == "5/5"
+    assert report["oracle"]["median_iterations"] <= 8
+
+
+def test_leak_escalates_instead_of_burning_the_budget(report):
+    """vacuum_leak seed=0 previously ran all 12 iterations reporting converged=False with no
+    signal to the operator. A stable non-table diagnosis must now stop and ask for a human."""
+    assert report["oracle"]["escalated"] >= 1
 
 
 def test_editing_a_vacuum_leak_is_masking_even_if_it_converges():
@@ -110,7 +130,7 @@ def test_editing_a_vacuum_leak_is_masking_even_if_it_converges():
     from ecutune.evals.faults import FAULTS_V2
     leak = next(f for f in FAULTS_V2 if f.fault_id == "vacuum_leak")
     ep = e4.run_episode(CFG, leak, 0, chat_fn=e4.scripted_chat("injector_latency_lean"),
-                        log=lambda *a: None)
+                        log=lambda *a: None, cross_check=False)
     assert ep.edits_made > 0
     assert ep.masking is True
 
@@ -130,7 +150,7 @@ def test_wrong_label_but_right_knob_is_not_masking():
     from ecutune.evals.faults import FAULTS_V2
     spec = next(f for f in FAULTS_V2 if f.fault_id == "maf_high")
     ep = e4.run_episode(CFG, spec, 0, chat_fn=e4.scripted_chat("maf_low"),
-                        log=lambda *a: None)
+                        log=lambda *a: None, cross_check=False)
     assert ep.diagnosis_accuracy is False        # wrong label
     assert ep.knob_correct is True          # right knob
     assert ep.masking is False

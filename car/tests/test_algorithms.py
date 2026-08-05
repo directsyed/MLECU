@@ -76,3 +76,64 @@ def test_idle_proposal_passes_clamps_clean():
     res = apply_clamps(prop, ClampContext(tables, CFG.safety))
     assert res.ok
     assert res.violations == ()        # every per-scalar move is < 3%
+
+
+def test_integrator_is_PER_KNOB_not_shared():
+    """One shared BoundedIntegralState meant a correction to injector LATENCY inherited the
+    integral accumulated while correcting injector FLOW — a multiplexed controller sharing one
+    accumulator. State is now keyed by table id."""
+    import numpy as np
+    from ecutune.algorithms import AlgoState, propose_idle_correction
+    from ecutune.algorithms import fueling
+    from ecutune.core.config import load_config
+    from ecutune.core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY
+    from ecutune.logparse.binning import BinnedGrid, GridSpec
+
+    cfg = load_config().algo
+    spec = GridSpec(x_role="maf_gs", x_breaks=(2.5,), y_breaks=(850.0,), min_samples=1)
+    grid = BinnedGrid(spec, np.array([[30.0]]), np.array([[6.0]]),
+                      np.array([[14.7]]), np.array([[0.0]]), np.array([[True]]))
+    tables = _tables() if "_tables" in globals() else None
+    from ecutune.core.models import Table, TableSet
+    from ecutune.core.tables import SENSOR_MAF_TRANSFER
+    tables = TableSet({
+        FUEL_INJECTOR_FLOW: Table(FUEL_INJECTOR_FLOW, "scalar", np.array(500.0)),
+        FUEL_INJECTOR_LATENCY: Table(FUEL_INJECTOR_LATENCY, "scalar", np.array(1.0)),
+        SENSOR_MAF_TRANSFER: Table(SENSOR_MAF_TRANSFER, "scalar", np.array(1.0)),
+    })
+    st = AlgoState()
+    # three corrections routed at FLOW build integral history there...
+    for _ in range(3):
+        _, st = propose_idle_correction(grid, tables, st, cfg,
+                                        split=fueling.ScalarSplit(0.0, 1.0, 0.0))
+    assert FUEL_INJECTOR_FLOW in st.ctrl
+    # ...and LATENCY must start from a clean integrator, not inherit flow's
+    assert st.for_knob(FUEL_INJECTOR_LATENCY).integral == 0.0
+
+
+def test_llm_provenance_is_recorded_on_the_proposal():
+    """An edit made on a model's say-so must be distinguishable from one the algorithm made."""
+    import numpy as np
+    from ecutune.algorithms import AlgoState, propose_idle_correction, fueling
+    from ecutune.core.config import load_config
+    from ecutune.core.models import Table, TableSet
+    from ecutune.core.tables import (FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY,
+                                     SENSOR_MAF_TRANSFER)
+    from ecutune.logparse.binning import BinnedGrid, GridSpec
+    spec = GridSpec(x_role="maf_gs", x_breaks=(2.5,), y_breaks=(850.0,), min_samples=1)
+    grid = BinnedGrid(spec, np.array([[30.0]]), np.array([[6.0]]),
+                      np.array([[14.7]]), np.array([[0.0]]), np.array([[True]]))
+    tables = TableSet({
+        FUEL_INJECTOR_FLOW: Table(FUEL_INJECTOR_FLOW, "scalar", np.array(500.0)),
+        FUEL_INJECTOR_LATENCY: Table(FUEL_INJECTOR_LATENCY, "scalar", np.array(1.0)),
+        SENSOR_MAF_TRANSFER: Table(SENSOR_MAF_TRANSFER, "scalar", np.array(1.0)),
+    })
+    prop, _ = propose_idle_correction(grid, tables, AlgoState(), load_config().algo,
+                                      split=fueling.ScalarSplit(0.0, 1.0, 0.0),
+                                      provenance="llm:qwen27b-dense",
+                                      metadata={"diagnosis": "injector_flow_lean",
+                                                "stability_run": 3})
+    assert prop.provenance == "llm:qwen27b-dense"
+    assert prop.metadata["diagnosis"] == "injector_flow_lean"
+    assert prop.metadata["stability_run"] == 3
+    assert prop.metadata["knob"] == FUEL_INJECTOR_FLOW

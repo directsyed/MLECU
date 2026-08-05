@@ -26,22 +26,54 @@ from .controller import BoundedIntegralState, PIConfig, step
 
 @dataclass
 class AlgoState:
-    ctrl: BoundedIntegralState = field(default_factory=BoundedIntegralState)
+    """PER-KNOB integrator state (2026-08-05).
+
+    This was ONE BoundedIntegralState shared across all three tables. The integral term exists
+    to kill stubborn residual error, but with a single accumulator a correction applied to
+    injector LATENCY inherited the urgency accumulated while correcting injector FLOW — a
+    multiplexed controller sharing one integrator, which is simply a control bug.
+
+    Honest scope: anti-windup FREEZES the integral whenever the output saturates at the clamp,
+    and with kp=0.5 ki=0.05 damping=0.7 clamp=0.029 it only accumulates in the 5%-8.3% trim
+    window, i.e. the last iteration or two before convergence. Small blast radius, but that
+    endgame is exactly where residual belief error is decided.
+    """
+    ctrl: dict = field(default_factory=dict)     # table_id -> BoundedIntegralState
     iterations: int = 0
+
+    def for_knob(self, table_id: str) -> BoundedIntegralState:
+        return self.ctrl.get(table_id, BoundedIntegralState())
 
 
 def _scalar(tables: TableSet, table_id: str) -> float:
     return float(np.asarray(tables.get(table_id).values).reshape(-1)[0])
 
 
+def _dominant_knob(split: fueling.ScalarSplit) -> str:
+    """Which table this split actually moves — the integrator key."""
+    return max(((FUEL_INJECTOR_LATENCY, split.w_latency),
+                (FUEL_INJECTOR_FLOW, split.w_flow),
+                (SENSOR_MAF_TRANSFER, split.w_maf)), key=lambda kv: kv[1])[0]
+
+
 def propose_idle_correction(grid: BinnedGrid, tables: TableSet, state: AlgoState,
-                            cfg: AlgoCfg, split: fueling.ScalarSplit | None = None
+                            cfg: AlgoCfg, split: fueling.ScalarSplit | None = None,
+                            provenance: str = "algorithm:idle_global_scalar",
+                            metadata: dict | None = None
                             ) -> tuple[Proposal, AlgoState]:
-    """Produce one bounded idle-fueling Proposal from the binned log. Pure: returns a new state."""
+    """Produce one bounded idle-fueling Proposal from the binned log. Pure: returns a new state.
+
+    `provenance` / `metadata` (2026-08-05): when an LLM diagnosis selected the split, the audit
+    trail must say so. Proposal's own docstring has always specified "llm:vN", but this function
+    hardcoded the algorithm string, so an edit made on a model's say-so was indistinguishable
+    from one the neutral default made — in a safety-critical write path where the clamps'
+    docstring calls auditability "itself a safety property".
+    """
     split = split or fueling.ScalarSplit()
     error = fueling.trim_to_fuel_fraction(weighted_mean_trim(grid))   # fractional fuel error
     pi = PIConfig(cfg.kp, cfg.ki, cfg.step_clamp, cfg.damping)
-    correction, ctrl2 = step(error, state.ctrl, pi)
+    knob = _dominant_knob(split)
+    correction, ctrl_knob = step(error, state.for_knob(knob), pi)
 
     why = f"idle trim {error * 100:+.1f}% -> feedforward {correction * 100:+.2f}%"
     edits = (
@@ -57,6 +89,8 @@ def propose_idle_correction(grid: BinnedGrid, tables: TableSet, state: AlgoState
                  fueling.corrected_maf(_scalar(tables, SENSOR_MAF_TRANSFER),
                                        split.w_maf * correction), why),
     )
-    prop = Proposal(f"idle-{state.iterations}", "idle_stage2", edits, "fuel",
-                    "algorithm:idle_global_scalar", {"trim_error": error, "correction": correction})
-    return prop, AlgoState(ctrl2, state.iterations + 1)
+    meta = {"trim_error": error, "correction": correction, "knob": knob,
+            "split": (split.w_latency, split.w_flow, split.w_maf)}
+    meta.update(metadata or {})
+    prop = Proposal(f"idle-{state.iterations}", "idle_stage2", edits, "fuel", provenance, meta)
+    return prop, AlgoState({**state.ctrl, knob: ctrl_knob}, state.iterations + 1)

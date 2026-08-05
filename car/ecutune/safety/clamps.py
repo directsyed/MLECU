@@ -200,16 +200,24 @@ def clamp_diagnosis_agreement(prop: Proposal, ctx: ClampContext) -> ClampResult:
     if est is None or not prop.edits:
         return ClampResult(True, tuple(prop.edits))
 
+    # Compare only edits that MATERIALLY change a value. propose_idle_correction always emits
+    # one edit per table and zeroes the non-selected weights, so a split of (0, 1, 0) still
+    # carries three CellEdits — two of them no-ops writing the current value back. Comparing
+    # raw edit targets made the gate report knob_mismatch even when both sides agreed.
+    material = {e.table_id for e in prop.edits
+                if not math.isclose(e.new_value, _cur(ctx, e), rel_tol=1e-9, abs_tol=1e-12)}
+    if not material:
+        return ClampResult(True, tuple(prop.edits))         # nothing actually moves
+
     if not getattr(est, "identifiable", False):
         return ClampResult(False, (), _viol_all("diagnosis_agreement", ctx, prop, "aborted"),
                            aborted_by="diagnosis_agreement:not_identifiable")
 
     dl_knob = est.knob() if hasattr(est, "knob") else None
-    edited = {e.table_id for e in prop.edits}
     if dl_knob is None:
         return ClampResult(False, (), _viol_all("diagnosis_agreement", ctx, prop, "aborted"),
                            aborted_by="diagnosis_agreement:layer_says_no_table_edit")
-    if edited != {dl_knob}:
+    if material != {dl_knob}:
         return ClampResult(False, (), _viol_all("diagnosis_agreement", ctx, prop, "aborted"),
                            aborted_by="diagnosis_agreement:knob_mismatch")
     return ClampResult(True, tuple(prop.edits))
