@@ -14,14 +14,15 @@ from pathlib import Path
 
 import numpy as np
 
-from ..simulation.mvem import steady_trim
+from ..simulation.mvem import (FAST_AIR_SCALE, LOW_VOLTAGE, NOMINAL_MAF_IDLE,
+                               steady_trim)
 from .faults import FAULT_IDS, FAULTS, FAULTS_V2, build_case_world
 
 VERSION = "sim_eval_v1"
 VERSION_V2 = "sim_eval_v2"
-NOMINAL_MAF_IDLE = 2.50      # g/s reading on a healthy warm idle (this 2.0L at 850 rpm)
-FAST_AIR_SCALE = 2.0         # "fast idle" probe point (~1500 rpm)
-LOW_VOLTAGE = 12.0           # v2's electrical-load probe (vs 14.0 V charging reference)
+# NOMINAL_MAF_IDLE / FAST_AIR_SCALE / LOW_VOLTAGE are re-exported from simulation.mvem, which
+# is their canonical home (2026-08-05): they define the probe protocol the deterministic
+# estimator and the real-car capture procedure both depend on, not just this eval.
 
 _PROMPT = """You are diagnosing a fuel-trim problem on a port-injected gasoline engine \
 (2.0 L flat-4, MAF-metered, closed-loop fueling at idle). Healthy baseline at warm idle \

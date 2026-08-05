@@ -106,6 +106,10 @@ class FaultEstimate:
         return FAULT_KNOB.get(self.fault_id)
 
 
+def _scalar_of(tables: TableSet, table_id: str) -> float:
+    return float(np.asarray(tables.get(table_id).values).reshape(-1)[0])
+
+
 def _believed_with(base: TableSet, table_id: str, value: float) -> TableSet:
     """A copy of `base` with one believed scalar replaced. Never mutates the input — the same
     copy-semantics the write path enforces."""
@@ -116,11 +120,27 @@ def _believed_with(base: TableSet, table_id: str, value: float) -> TableSet:
 
 
 def _sse(believed: TableSet, params: EngineParams, obs: list[Observation]) -> float:
-    """Sum of squared trim residuals between the hypothesis' prediction and what we measured."""
+    """Squared residuals of everything the hypothesis predicts: the trim at each probe point
+    AND the airflow the ECU would report.
+
+    THE MAF READING TERM IS LOAD-BEARING, not a refinement. A MAF-scaling error and an
+    injector-flow error are EXACTLY degenerate in trim space — scaling `maf_b` by r and dividing
+    `flow_b` by r produce an identical pulse width, so no combination of airflow and voltage
+    probes can separate them. What separates them is that a wrong MAF transfer also corrupts the
+    airflow the ECU REPORTS, while a wrong injector-flow belief does not.
+
+    Found the hard way: scoring trims alone recovered 15/21 seeded faults through the real
+    log->bin path, and every miss was a MAF fault scored as the corresponding flow fault, with
+    the tie decided by sensor noise.
+    """
     total = 0.0
     for o in obs:
         pred = steady_trim(believed, params, air_scale=o.air_scale, voltage=o.voltage)
         total += (pred - o.trim) ** 2
+        if o.nominal_maf and not math.isnan(o.maf_reading) and not math.isnan(o.nominal_maf):
+            # this hypothesis implies the ECU over/under-reports airflow by exactly this ratio
+            pred_ratio = _scalar_of(believed, SENSOR_MAF_TRANSFER) / params.maf_scaling_true
+            total += (pred_ratio - o.maf_reading / o.nominal_maf) ** 2
     return total
 
 
@@ -148,10 +168,6 @@ def _golden_min(f, lo: float, hi: float, tol: float = 1e-5, max_iter: int = 60) 
             fd = f(d)
     x = (a + b) / 2.0
     return x, f(x)
-
-
-def _scalar_of(tables: TableSet, table_id: str) -> float:
-    return float(np.asarray(tables.get(table_id).values).reshape(-1)[0])
 
 
 def matched_params(believed: TableSet, params: EngineParams) -> EngineParams:
@@ -273,8 +289,18 @@ def identify(believed: TableSet, obs: list[Observation],
             fits[fault_id] = best_param
 
     order = sorted(residuals, key=lambda k: residuals[k])
-    best, runner_up = order[0], order[1]
-    r_best, r_next = residuals[best], residuals[runner_up]
+    best = order[0]
+    r_best = residuals[best]
+
+    # The margin is measured against the best competitor that would take a DIFFERENT ACTION.
+    # Two hypotheses routing to the same knob are operationally identical — `maf_low` vs
+    # `maf_high` move the same table (direction comes from the measured trim, not the label),
+    # and `healthy` vs `vacuum_leak` both mean "do not edit". Ranking them against each other
+    # produced spurious "not identifiable" verdicts on healthy engines where BOTH candidates
+    # meant the same thing. This is the same distinction E4 draws between diagnosis_accuracy
+    # and knob_correct.
+    rival = next((k for k in order[1:] if FAULT_KNOB.get(k) != FAULT_KNOB.get(best)), None)
+    r_next = residuals[rival] if rival else float("inf")
     margin = float("inf") if r_best <= 0 else r_next / r_best
 
     if r_best > MAX_ACCEPTABLE_RESIDUAL:
@@ -282,9 +308,16 @@ def identify(believed: TableSet, obs: list[Observation],
                              f"no single-fault hypothesis fits (best SSE {r_best:.2e} > "
                              f"{MAX_ACCEPTABLE_RESIDUAL:.2e}) — multiple faults or unmodelled "
                              f"behaviour; escalate", len(obs))
+    if best == "healthy":
+        # A healthy engine has trims at ~0, so any rival is fitting sensor NOISE with a
+        # negligible magnitude — it is not a competing action, it is "do nothing" wearing a
+        # different label. Were a real fault present, `healthy` could not have won on residual
+        # in the first place. Reporting this as "not identifiable" was technically true and
+        # operationally useless.
+        return FaultEstimate(best, fits[best], residuals, margin, True, "", len(obs))
     if margin < MIN_MARGIN_RATIO:
         return FaultEstimate(best, fits[best], residuals, margin, False,
-                             f"not identifiable: {best} and {runner_up} explain the data "
-                             f"comparably (margin {margin:.2f} < {MIN_MARGIN_RATIO}) — more "
-                             f"probe points needed", len(obs))
+                             f"not identifiable: {best} and {rival} imply DIFFERENT actions and "
+                             f"explain the data comparably (margin {margin:.2f} < "
+                             f"{MIN_MARGIN_RATIO}) — more probe points needed", len(obs))
     return FaultEstimate(best, fits[best], residuals, margin, True, "", len(obs))

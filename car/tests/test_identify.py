@@ -158,3 +158,60 @@ def test_identify_never_mutates_the_believed_tables():
     identify(believed, observe(believed, truth))
     after = {k: float(np.asarray(v.values).reshape(-1)[0]) for k, v in believed.tables.items()}
     assert before == after
+
+
+# ---------------------------------------------------------------- through the REAL log path
+
+def _observe_via_logs(believed, truth, seed):
+    """Not the analytic shortcut — the actual LOG -> BIN -> OBSERVE path, with sensor noise,
+    exactly as the deterministic layer will receive it on the car."""
+    from ecutune.simulation.harness import collect_observations
+    from ecutune.simulation.mvem import OperatingPoint
+    return collect_observations(believed, truth, OperatingPoint(), np.random.default_rng(seed))
+
+
+def test_recovers_faults_through_the_real_log_and_bin_path():
+    """The analytic test proves the maths; this proves it survives synthetic logs, binning and
+    sensor noise — which is what actually reaches the layer."""
+    misses = []
+    for spec in FAULTS_V2:
+        for seed in range(10):
+            believed, truth, _ = build_case_world(spec, np.random.default_rng(seed))
+            est = identify(believed, _observe_via_logs(believed, truth, seed))
+            if not (est.identifiable and est.fault_id == spec.fault_id):
+                misses.append((spec.fault_id, seed, est.fault_id, est.identifiable))
+    # allow refusals (they are safe); forbid confident misidentification
+    wrong = [m for m in misses if m[3]]
+    assert wrong == [], f"confident misidentifications: {wrong}"
+    assert len(misses) <= 3, f"too many refusals to be useful: {misses}"
+
+
+def test_NEVER_confidently_wrong_across_many_worlds():
+    """THE safety property for a gate: it may refuse, it may not be confidently wrong. A refusal
+    costs an iteration; a confident wrong verdict authorises the wrong table to be written."""
+    from ecutune.algorithms.identify import FAULT_KNOB as KNOB
+    confident_wrong = []
+    for spec in FAULTS_V2:
+        for seed in range(20):
+            believed, truth, _ = build_case_world(spec, np.random.default_rng(seed))
+            est = identify(believed, _observe_via_logs(believed, truth, seed))
+            if est.identifiable and est.knob() != KNOB[spec.fault_id]:
+                confident_wrong.append((spec.fault_id, seed, est.fault_id, round(est.margin, 2)))
+    assert confident_wrong == [], f"{len(confident_wrong)}/140 confidently wrong: {confident_wrong}"
+
+
+def test_maf_and_flow_are_degenerate_in_trim_and_separated_by_the_maf_READING():
+    """A MAF-scaling error and an injector-flow error produce IDENTICAL pulse widths — scaling
+    maf_b by r and dividing flow_b by r cancel exactly. Only the reported airflow separates
+    them, which is why _sse scores the MAF reading and not just trims. Dropping that term
+    regressed recovery to 15/21, every miss a MAF fault scored as the matching flow fault."""
+    spec = next(s for s in FAULTS_V2 if s.fault_id == "maf_low")
+    believed, truth, _ = build_case_world(spec, np.random.default_rng(0))
+    obs = observe(believed, truth)
+    blind = [Observation(o.air_scale, o.voltage, o.trim) for o in obs]   # no MAF reading
+    est_blind = identify(believed, blind)
+    est_full = identify(believed, obs)
+    assert est_full.identifiable and est_full.fault_id == "maf_low"
+    assert est_blind.fault_id != "maf_low" or not est_blind.identifiable, (
+        "without the MAF reading this must NOT confidently land on maf_low — if it does, the "
+        "degeneracy argument is wrong")

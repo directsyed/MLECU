@@ -14,12 +14,13 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..algorithms import AlgoState, propose_idle_correction
+from ..algorithms.identify import Observation
 from ..core.config import Config, load_config
 from ..core.models import ClampContext, TableSet
 from ..logparse.binning import GridSpec, bin_log, weighted_mean_trim
 from ..safety import apply_proposal
 from .mismatch import ej20x_into_ej255
-from .mvem import OperatingPoint
+from .mvem import (FAST_IDLE_RPM, NOMINAL_MAF_IDLE, PROBE_POINTS, OperatingPoint)
 from .synth_log import synth_idle_log
 
 CONVERGENCE_TOL_PCT = 5.0   # +/-5% trim = "idle dialed in"
@@ -27,6 +28,45 @@ CONVERGENCE_TOL_PCT = 5.0   # +/-5% trim = "idle dialed in"
 
 def idle_grid_spec(op: OperatingPoint) -> GridSpec:
     return GridSpec(x_role="maf_gs", x_breaks=(op.maf_gs,), y_breaks=(op.rpm,), min_samples=20)
+
+
+def probe_grid_spec(op: OperatingPoint) -> GridSpec:
+    """A grid covering BOTH airflow probe points. `bin_log` already supported multi-cell grids —
+    x_breaks/y_breaks are tuples and idle_grid_spec simply passed single-element ones, so this
+    needed no change to the binning machinery at all."""
+    return GridSpec(x_role="maf_gs",
+                    x_breaks=(op.maf_gs, op.maf_gs * PROBE_POINTS[1][0]),
+                    y_breaks=(op.rpm, FAST_IDLE_RPM), min_samples=20)
+
+
+def collect_observations(tables, params, op: OperatingPoint, rng,
+                         n: int = 60) -> list[Observation]:
+    """Run the three-point probe protocol and bin each point into an Observation.
+
+    Voltage is not a grid axis, so each probe point is logged and binned separately and the
+    results assembled here — which is also exactly how the real car will capture them (three
+    separate steady-state pulls, see car/logging/CAPTURE-PROTOCOL.md).
+
+    This is the data the deterministic layer has always been entitled to and never received:
+    `propose_idle_correction` sees one binned idle cell, while the LLM prompt has always shown
+    all three points. That asymmetry is why the layer could not disagree with a diagnosis.
+    """
+    obs: list[Observation] = []
+    for air_scale, voltage in PROBE_POINTS:
+        log = synth_idle_log(tables, params, op, rng, n=n,
+                             air_scale=air_scale, voltage=voltage)
+        spec = GridSpec(x_role="maf_gs",
+                        x_breaks=(op.maf_gs * air_scale,),
+                        y_breaks=(op.rpm if air_scale == 1.0 else FAST_IDLE_RPM,),
+                        min_samples=20)
+        grid = bin_log(log, spec)
+        maf = float(np.nanmean(log.get("maf_gs")))
+        volts = float(np.nanmean(log.get("battery_v")))
+        obs.append(Observation(air_scale=air_scale, voltage=volts,
+                               trim=weighted_mean_trim(grid) / 100.0,
+                               maf_reading=maf,
+                               nominal_maf=NOMINAL_MAF_IDLE * air_scale))
+    return obs
 
 
 @dataclass

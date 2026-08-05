@@ -59,6 +59,23 @@ class OperatingPoint:
     load_grev: float = 0.30
 
 
+# --- the multi-point probe protocol -------------------------------------------------------
+# CANONICAL HOME for these (2026-08-05). They were defined in evals/cases.py, which made them
+# look like an eval detail; they are not. They are the operating points that make the fault
+# IDENTIFIABLE, and both the deterministic estimator and the real-car capture protocol are
+# built around them. evals/cases.py now re-exports these so existing imports keep working and
+# there is one source of truth.
+NOMINAL_MAF_IDLE = 2.50      # g/s reading on a healthy warm idle (this 2.0 L at 850 rpm)
+FAST_AIR_SCALE = 2.0         # "fast idle" probe (~1500 rpm): separates LEAK (trim halves)
+                             # from flow/MAF errors (trim flat)
+FAST_IDLE_RPM = 1500.0
+LOW_VOLTAGE = 12.0           # electrical-load probe: separates LATENCY (trim grows) from
+                             # LEAK (trim flat). The only thing that splits those two.
+
+# (air_scale, voltage_or_None) — voltage None means "at v_ref".
+PROBE_POINTS = ((1.0, None), (FAST_AIR_SCALE, None), (1.0, LOW_VOLTAGE))
+
+
 def _scalar(tables: TableSet, table_id: str) -> float:
     return float(np.asarray(tables.get(table_id).values).reshape(-1)[0])
 
