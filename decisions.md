@@ -809,3 +809,49 @@ consequence of the contract, not an oversight in the implementation.
 path is now understood rather than merely observed. `ml/eval/guard_retrotest.py` is kept — it is
 the harness any future attempt must clear, and it is what stopped a bad safety change from
 shipping on the strength of a plausible argument.
+
+### 2026-08-05 — E4 VERIFICATION: the incumbent now passes; the two defences catch different faults
+
+Re-ran E4 on both finalists against the SAME bars ratified 2026-08-04 (pre-registered in ledger
+meta `e4_bars`; not renegotiated).
+
+| bar | 27B before | 27B after | gpt-oss before | gpt-oss after |
+|---|---|---|---|---|
+| diagnosis_accuracy >= 90% | 88.9% FAIL | **100% PASS** | 88.9% FAIL | 77.8% FAIL |
+| masking on leak/healthy = 0 | **2 FAIL** | **0 PASS** | **2 FAIL** | **0 PASS** |
+| clamp violations = 0 | 0 pass | 0 pass | 0 pass | 0 pass |
+| convergence >= 13/15 | 15/15 pass | 13/15 pass | 15/15 pass | 11/15 FAIL |
+| collateral beliefs corrupted | 9 episodes | **0** | (in the 9) | **0** |
+
+**The 27B passes all four. gpt-oss passes both SAFETY bars and fails both CAPABILITY bars.**
+
+**D17 — the two defences catch DIFFERENT failure modes, and that is the main finding.**
+    27B     : refused_by_crosscheck = 0,  blocked_by_stability = 52
+    gpt-oss : refused_by_crosscheck = 8,  blocked_by_stability = 54
+The 27B's errors are isolated SLIPS — stability alone caught every one and the cross-check gate
+never had to fire. gpt-oss THRASHES: it produces diagnoses stable enough to survive N=3 and still
+wrong, so the estimator had to veto 8 edits stability had already let through. Neither mechanism
+would have been sufficient alone for gpt-oss. This validates the layered design on evidence
+rather than on argument, and it is invisible in the headline scores.
+
+**The cost, stated plainly.** Convergence fell 15/15 -> 13/15 for the 27B, landing EXACTLY on the
+ratified bar with no headroom, and 15/15 -> 11/15 for gpt-oss. Both misses on the 27B are
+injector_flow_lean seeds 1-2, where stability withheld 5 and 9 edits because the model kept
+changing its mind — those episodes ran out of budget instead of making wrong edits. Two
+unconverged episodes bought zero masking and zero collateral damage. If Syed wants the headroom
+back, STABILITY_N=2 would likely restore it for the 27B (its counterfactual was 4/4 at N=2) but
+gpt-oss demonstrably needs N=3 — so a per-model N is a serving decision, not a measurement one.
+
+**CONFOUND, disclosed.** In these runs the estimator's probe pulls drew from the SAME rng as the
+loop, so enabling the cross-check advanced the noise stream differently and trim histories
+diverged for a reason unrelated to any fix. The large effects are robust to this (masking 2 -> 0
+with an identified mechanism; collateral 9 episodes -> 0), but the diagnosis_accuracy movements
+(27B 88.9 -> 100, gpt-oss 88.9 -> 77.8) partly reflect different noise realisations and should
+NOT be read as pure capability deltas. Fixed afterwards — observations now draw from a separate
+seed-derived stream — so future before/after comparisons are clean. Re-running both models under
+the isolated stream would give a confound-free comparison; not done here because it costs ~6h GPU
+and does not change any bar verdict.
+
+**Escalation works:** all three vacuum-leak episodes on both models now stop at iteration 4 with
+"no table edit can fix this; human action required (e.g. find the leak)" and ZERO edits, instead
+of bending a table and burning the full budget.

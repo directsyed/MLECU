@@ -176,6 +176,11 @@ def run_episode(cfg: Config, spec, seed: int, chat_fn: Callable | None = None,
     chat_fn = chat_fn or llm.chat
 
     rng = np.random.default_rng(seed)
+    # SEPARATE stream for the cross-check's probe pulls. Sharing `rng` meant enabling the
+    # cross-check advanced the loop's noise realisation, so trim histories diverged between runs
+    # for a reason unrelated to any fix — a confound in exactly the before/after comparison the
+    # verification depends on. Derived from the seed so it stays deterministic.
+    obs_rng = np.random.default_rng(seed + 10_000)
     believed, truth, magnitude_pct = E["build_case_world"](spec, rng)
     op = E["OperatingPoint"]()
     grid_spec = E["idle_grid_spec"](op)
@@ -236,7 +241,7 @@ def run_episode(cfg: Config, spec, seed: int, chat_fn: Callable | None = None,
         # CROSS-CHECK: the layer reaches its OWN verdict from the 3-point protocol.
         estimate = None
         if cross_check:
-            obs = E["collect_observations"](believed, truth, op, rng)
+            obs = E["collect_observations"](believed, truth, op, obs_rng)
             estimate = E["identify"](believed, obs)
 
         split = E["fueling"].ScalarSplit(*weights)
