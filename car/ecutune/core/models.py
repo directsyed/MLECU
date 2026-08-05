@@ -175,6 +175,17 @@ class ClampContext:
     tables: TableSet
     safety: SafetyCfg
     knock_active: bool = False
+    # --- 2026-08-05: the deterministic layer's OWN verdict, and the stock baseline -----------
+    # `fault_estimate` is an algorithms.identify.FaultEstimate (typed loosely to avoid a
+    # core -> algorithms import cycle). When present, clamp_diagnosis_agreement requires the
+    # proposal to move the SAME table the layer's own analysis points at. This is what makes the
+    # LLM a pointer rather than a command: E4 showed a single-iteration slip could permanently
+    # bend a table because the layer had no independent basis on which to disagree.
+    fault_estimate: object | None = None
+    # The archived stock-ROM values. clamp_ve_rate_limit bounds RATE (3%/iteration) and nothing
+    # bounded cumulative displacement — 12 iterations compounds to 43%. clamp_belief_envelope
+    # bounds distance from here.
+    baseline_tables: TableSet | None = None
     fuel_trims_converged: bool = False    # gates fuel_before_timing
     steady_state_ok: bool = False         # gates steady_before_transient
     wideband_tracking: bool = False       # gates boost

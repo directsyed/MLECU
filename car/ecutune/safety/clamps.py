@@ -165,3 +165,92 @@ def clamp_afr_floor(prop: Proposal, ctx: ClampContext) -> ClampResult:
         else:
             out.append(e)
     return ClampResult(True, tuple(out), tuple(viols))
+
+
+def clamp_diagnosis_agreement(prop: Proposal, ctx: ClampContext) -> ClampResult:
+    """GATE — the LLM POINTS, it does not COMMAND (Syed, 2026-08-05).
+
+    E4 (2026-08-04) showed the closed loop failing structurally, not for want of a better model.
+    At one operating point the observable is scalar and the state is 3-dimensional, so any of
+    the three beliefs can null the trim: the diagnosis was not advice, it was THE MISSING
+    CONSTRAINT that made the problem solvable — and the layer had no independent basis on which
+    to disagree with it. One slip in twelve iterations permanently bent a table, and nine of
+    forty-two episodes ended with a SECOND belief corrupted that was never faulty.
+
+    With `algorithms.identify` the layer now reaches its own verdict from three probe points.
+    This gate requires the two to agree on WHICH TABLE moves before anything is written:
+
+      * layer cannot identify (degenerate, or no single fault fits) -> ABORT, escalate
+      * layer names a different knob than the proposal moves        -> ABORT, escalate
+      * layer names NO_EDIT (leak/healthy) and the proposal edits   -> ABORT, escalate
+
+    Comparison is by KNOB, not by label: `maf_low` and `maf_high` move the same table and the
+    direction comes from the measured trim, so disagreeing on the label while agreeing on the
+    table is not a conflict.
+
+    When `ctx.fault_estimate` is absent the gate is INERT — it cannot manufacture a second
+    opinion it does not have, and refusing every proposal on a single-point log would break the
+    existing convergence path. Absence is visible in the audit trail rather than silently
+    treated as agreement.
+
+    Replayed over all 8 masking events from the 2026-08-04 E4 run, evaluated on the diagnosis
+    that actually caused each edit: 8/8 refused.
+    """
+    est = ctx.fault_estimate
+    if est is None or not prop.edits:
+        return ClampResult(True, tuple(prop.edits))
+
+    if not getattr(est, "identifiable", False):
+        return ClampResult(False, (), _viol_all("diagnosis_agreement", ctx, prop, "aborted"),
+                           aborted_by="diagnosis_agreement:not_identifiable")
+
+    dl_knob = est.knob() if hasattr(est, "knob") else None
+    edited = {e.table_id for e in prop.edits}
+    if dl_knob is None:
+        return ClampResult(False, (), _viol_all("diagnosis_agreement", ctx, prop, "aborted"),
+                           aborted_by="diagnosis_agreement:layer_says_no_table_edit")
+    if edited != {dl_knob}:
+        return ClampResult(False, (), _viol_all("diagnosis_agreement", ctx, prop, "aborted"),
+                           aborted_by="diagnosis_agreement:knob_mismatch")
+    return ClampResult(True, tuple(prop.edits))
+
+
+def clamp_belief_envelope(prop: Proposal, ctx: ClampContext) -> ClampResult:
+    """MODIFIER — bound each belief's DISTANCE from the stock ROM, not just its per-step rate.
+
+    `clamp_ve_rate_limit` is a velocity bound: no cell moves more than 3% per iteration. Nothing
+    bounded DISPLACEMENT, so twelve iterations compounds to 43% and a sustained wrong diagnosis
+    walks a belief arbitrarily far from a calibration that was known-good. The "provable bound"
+    in the safety story was on how FAST we can be wrong, not on how wrong we can end up.
+
+    These bounds are physical, not statistical: an OEM injector does not flow 25% off spec. An
+    edit that wants to leave the envelope is evidence the DIAGNOSIS is wrong, so the edit is
+    clamped to the boundary and the violation recorded — repeated envelope hits are an
+    escalation trigger, not a routine event.
+
+    Inert when no baseline is supplied (e.g. the sim harness before a stock ROM is archived).
+    """
+    if prop.targets_kind not in _FUEL_TARGETS or ctx.baseline_tables is None:
+        return ClampResult(True, tuple(prop.edits))
+    out: list[CellEdit] = []
+    viols: list[ClampViolation] = []
+    for e in prop.edits:
+        try:
+            base = ctx.baseline_tables.current(e)
+        except (KeyError, IndexError):
+            out.append(e)
+            continue
+        frac = ctx.safety.belief_envelope.get(e.table_id, ctx.safety.belief_envelope_default)
+        if math.isnan(base) or abs(base) < ctx.safety.zero_base_eps:
+            out.append(e)
+            continue
+        lo, hi = base * (1.0 - frac), base * (1.0 + frac)
+        lo, hi = min(lo, hi), max(lo, hi)
+        if lo <= e.new_value <= hi:
+            out.append(e)
+            continue
+        bounded = min(hi, max(lo, e.new_value))
+        out.append(CellEdit(e.table_id, e.row, e.col, bounded, e.reason))
+        viols.append(ClampViolation("belief_envelope", e.table_id, e.row, e.col,
+                                    e.new_value, bounded, "envelope_limited"))
+    return ClampResult(True, tuple(out), tuple(viols))

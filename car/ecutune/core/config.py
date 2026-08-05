@@ -31,6 +31,19 @@ class SafetyCfg(BaseModel):
     default_timing_ceiling: float = 25.0   # deg; used when no per-rpm override matches
     timing_ceilings: list[TimingCeiling] = Field(default_factory=list)
     zero_base_eps: float = 1e-9          # below this |current|, the relative clamp can't apply
+    # --- belief sanity envelope (2026-08-05) -------------------------------------------------
+    # max_ve_step bounds RATE. Nothing bounded DISPLACEMENT: at 3%/iteration, twelve iterations
+    # compounds to 43% away from the stock calibration, and a sustained wrong diagnosis walks a
+    # belief arbitrarily far. These are physically-motivated absolute bounds vs the archived
+    # stock ROM — an OEM injector does not flow 25% off spec, so hitting the envelope means the
+    # DIAGNOSIS is wrong, not that the hardware changed. Per-table so each reflects its own
+    # physics. VALUES ARE SYED'S TO RATIFY; these are starting points, not measurements.
+    belief_envelope: dict[str, float] = Field(default_factory=lambda: {
+        "fuel.injector_flow": 0.25,        # +/-25% of the build-sheet ~500 cc/min
+        "fuel.injector_latency": 0.30,     # +/-30% of the stock dead time
+        "sensor.maf_transfer": 0.20,       # +/-20% of stock MAF scaling
+    })
+    belief_envelope_default: float = 0.25  # applied to any fuel table not listed above
 
     def timing_ceiling_for(self, rpm: float) -> float:
         """Tightest configured ceiling whose rpm threshold the cell meets; else the default."""

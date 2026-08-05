@@ -3,11 +3,16 @@ becomes a set of edits eligible to touch a Table.
 
 Order rationale:
   1. knock_auto_abort      — fail fast on the hardest hard-stop.
+  1b. diagnosis_agreement  — the layer's OWN fault estimate must agree with the proposal's
+                             target table, else abort + escalate (the LLM points, it does not
+                             command). Inert when no estimate is supplied.
   2. fuel_before_timing    — ordering gates: reject out-of-sequence proposals before any work.
   3. steady_before_transient
   4. boost_gate            — defer boost edits until the three boost preconditions hold.
   5. timing_row_ceiling    — bound timing edits.
-  6. ve_rate_limit         — bound every fuel edit to +/-3% per iteration.
+  6. ve_rate_limit         — bound every fuel edit to +/-3% per iteration (VELOCITY).
+  6b. belief_envelope      — bound every fuel belief's DISTANCE from the stock ROM. The rate
+                             limit alone lets 12 iterations compound to 43%.
   7. afr_floor             — LAST: the final hard word on boost AFR cells (may richen past the
                              rate limit; rich is safe, lean-at-boost is the hazard).
 
@@ -23,11 +28,13 @@ from . import clamps
 
 CLAMP_PIPELINE = (
     clamps.clamp_knock_auto_abort,
+    clamps.clamp_diagnosis_agreement,
     clamps.clamp_fuel_before_timing,
     clamps.clamp_steady_before_transient,
     clamps.clamp_boost_gate,
     clamps.clamp_timing_row_ceiling,
     clamps.clamp_ve_rate_limit,
+    clamps.clamp_belief_envelope,
     clamps.clamp_afr_floor,
 )
 

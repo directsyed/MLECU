@@ -101,6 +101,10 @@ class FaultEstimate:
     identifiable: bool = False
     reason: str = ""                       # why not, when identifiable is False
     n_observations: int = 0
+    # The exact probe points this verdict was fitted to. Carried so the disagreement report can
+    # show the human the layer's INPUT as well as its conclusion — a verdict without its
+    # evidence is the thing this whole exercise exists to stop producing.
+    observations: tuple = ()
 
     def knob(self) -> str | None:
         return FAULT_KNOB.get(self.fault_id)
@@ -258,7 +262,8 @@ def identify(believed: TableSet, obs: list[Observation],
     params = params or EngineParams()
     if len(obs) < 2:
         return FaultEstimate("", 0.0, {}, 0.0, False,
-                             f"need >=2 probe points to identify, got {len(obs)}", len(obs))
+                             f"need >=2 probe points to identify, got {len(obs)}",
+                             len(obs), tuple(obs))
 
     base = matched_params(believed, params)
     residuals: dict[str, float] = {}
@@ -307,17 +312,19 @@ def identify(believed: TableSet, obs: list[Observation],
         return FaultEstimate(best, fits[best], residuals, margin, False,
                              f"no single-fault hypothesis fits (best SSE {r_best:.2e} > "
                              f"{MAX_ACCEPTABLE_RESIDUAL:.2e}) — multiple faults or unmodelled "
-                             f"behaviour; escalate", len(obs))
+                             f"behaviour; escalate", len(obs), tuple(obs))
     if best == "healthy":
         # A healthy engine has trims at ~0, so any rival is fitting sensor NOISE with a
         # negligible magnitude — it is not a competing action, it is "do nothing" wearing a
         # different label. Were a real fault present, `healthy` could not have won on residual
         # in the first place. Reporting this as "not identifiable" was technically true and
         # operationally useless.
-        return FaultEstimate(best, fits[best], residuals, margin, True, "", len(obs))
+        return FaultEstimate(best, fits[best], residuals, margin, True, "", len(obs),
+                             tuple(obs))
     if margin < MIN_MARGIN_RATIO:
         return FaultEstimate(best, fits[best], residuals, margin, False,
                              f"not identifiable: {best} and {rival} imply DIFFERENT actions and "
                              f"explain the data comparably (margin {margin:.2f} < "
-                             f"{MIN_MARGIN_RATIO}) — more probe points needed", len(obs))
-    return FaultEstimate(best, fits[best], residuals, margin, True, "", len(obs))
+                             f"{MIN_MARGIN_RATIO}) — more probe points needed", len(obs), tuple(obs))
+    return FaultEstimate(best, fits[best], residuals, margin, True, "", len(obs),
+                         tuple(obs))
