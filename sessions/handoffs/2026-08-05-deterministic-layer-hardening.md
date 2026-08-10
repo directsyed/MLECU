@@ -111,3 +111,72 @@ changes no bar verdict.
 - `llama-judge` still disabled from the pipeline — unchanged for several sessions now.
 - `ml/eval/guard_retrotest.py` kept: the bar any future guard attempt must clear, and what
   stopped a plausible-sounding safety change from shipping.
+
+
+---
+
+# §8 — CONSOLIDATED CURRENT STATE (added at session close)
+
+Everything a cold-start agent needs, in one place. Nothing is running; nothing is queued.
+
+## What is RATIFIED (do not renegotiate)
+
+| decision | ratified | where |
+|---|---|---|
+| Working model = **Qwen3.6-27B dense Q8** | 2026-08-02 | decisions.md |
+| E1 dangerous-flip = **lean/rich signature rule** | 2026-08-04 | `ml/eval/rundown.py` |
+| **Exact-ratio unit conversion** in the scorer (v3) | 2026-08-04 | `harness/units.py` |
+| **E4 bars**: diagnosis ≥90%, masking leak/healthy = 0, clamps = 0, convergence ≥13/15, residual reported | 2026-08-04 | ledger meta `e4_bars` |
+| Serving split **k3 diagnosis / k6 values** | measured both suites | RUNDOWN |
+| Cross-check on disagreement = **refuse + escalate with both sides** | 2026-08-05 | `safety/report.py` |
+
+## Where the numbers currently stand
+
+- **E1v2 arm B@3** — 27B **92.5%**, gpt-oss 78.9%. Only the 27B clears the 90% bar.
+- **E2 (scorer v3)** — **no model passes the fabrication gate.** Best cells: 27B k6 48ex/2dg,
+  gpt-oss k6 48ex/1dg. Conversion un-shielded a 7.4%-wrong answer that `unit_mismatch` had been
+  hiding, which cost gpt-oss its only gate pass.
+- **E4 (post-hardening)** — 27B passes **all four**; gpt-oss passes the two safety bars, fails
+  the two capability bars.
+- **top_k** — k3 beats k6 by ~10pp on diagnosis; k6 beats k3 on values in all five models.
+
+## Deployment status
+
+**Still not ratified, and now for a better reason.** The 27B is the only model clearing E1 and
+E4, but nothing clears E2. The blocker is no longer model choice — it is the citation guard's
+`cited-but-wrong-quantity` blind spot, which D16 establishes is a consequence of the guard's
+evidence-only contract rather than a fixable defect. Two candidate paths, both deferred:
+supporting-sentence-verbatim (deterministic, schema change) or a semantic check (makes the clamp
+only as trustworthy as a model).
+
+## Key files added this session
+
+```
+car/ecutune/algorithms/identify.py      the estimator (inverts MVEM)
+car/ecutune/safety/report.py            the disagreement report (both sides)
+car/ecutune/safety/clamps.py            + clamp_diagnosis_agreement (GATE)
+                                        + clamp_belief_envelope (MODIFIER)
+car/logging/CAPTURE-PROTOCOL.md         the 3-pull real-car procedure
+car/tests/test_identify.py              23 tests, no LLM/GPU needed
+car/tests/test_cross_check.py           gate + report + envelope
+ml/eval/guard_retrotest.py              the bar any guard attempt must clear
+ml/eval/rundown.py                      regenerates the corrected matrix
+```
+
+## Gotchas that cost time this session — do not relearn them
+
+- **`grep` is ugrep.** A pattern starting with `-` is read as an option; use `-e`.
+- **`pkill -f <pattern>` matches your own shell** and will kill the command you are running.
+  Use `pgrep -x llama-server` (exact process name) and kill by PID.
+- Tests need **`car/.venv`**. `ml/eval/.venv` has no numpy and fails for environment reasons that
+  look like real failures.
+- The **Bash tool times out at ~10 min** in the foreground. Anything longer needs
+  `run_in_background`.
+- `ml/eval/harness/e4.py` and the E4 tests take ~95 s — that is the fake-LLM battery, not a hang.
+
+## If the wideband/car data lands
+
+It still outranks everything. `car/logging/CAPTURE-PROTOCOL.md` is now written and should be
+followed as-is — three steady pulls, `battery_v` REQUIRED, Stage 0 leak test first. Note the
+open caveat: `NOMINAL_MAF_IDLE` (2.50 g/s) is a sim value and this engine has TGV + exhaust-AVCS
+deletes, so the healthy baseline must be measured on this car before MAF verdicts are trusted.
