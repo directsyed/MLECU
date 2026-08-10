@@ -9,6 +9,32 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-08 — FIRST CONTACT WITH THE CAR: live SSM2 logging works; ROM read and wideband serial both blocked, both diagnosed
+
+RomRaider connects to the '05 FXT through the Washinglee Openport 2.0 clone and streams live SSM2
+data (RPM, coolant temp, battery voltage) — **the first real telemetry from the test vehicle.**
+ECU ID reads `3B12504206`: absent from the 2009-era defs but surrounded by siblings
+(`3B125040/1/306`), i.e. a normal member of the 32-bit SH7058 family the defs simply predate.
+Drive-by-wire physically confirmed at the throttle body. Getting the logger up required a 32-bit
+Java `-cp` launcher (the `-jar` flag discards CLASSPATH, so the i18n bundle never loaded and
+`main()` exited silently) and a per-boot driver-signature-enforcement bypass for the cross-signed
+`openport.sys`.
+
+Two blockers remain, each reduced to a testable shortlist:
+
+- **ECU ROM read fails at seed/key.** SSM2 init succeeds and the ECU identifies itself, then
+  refuses the security unlock; no kernel is uploaded, nothing is written, retrying is safe.
+  Identical across EcuFlash 1.44.4347/1.44.4870, J2534 DLL 1.01/1.02, and sti04/sti05. H1:
+  previously locked ECU (AccessPort/EcuTek marriage). H2: the clone cable's partial K-line
+  implementation handles SSM2 but not reflash-mode entry. Discriminating test queued: current
+  defs → CAL ID via the logger.
+- **AEM 30-0300 wideband serial is silent on COM5.** Wiring continuity-verified end-to-end;
+  gauge healthy. Prime suspect: the USB-serial adapter (chipset unidentified). Correction worth
+  keeping: AEM's "RS-232" out is logic-level 0→5 V bursts at ~10 Hz — a 0.5 V multimeter average
+  is a *healthy* transmitter, not a fault.
+
+Full session detail: `sessions/handoffs/2026-08-08-forester-first-logging-toolchain.md`.
+
 ## 2026-08-05 — DETERMINISTIC-LAYER HARDENING: the loop can now disagree with the model, and the incumbent passes E4
 
 E4 had shown the closed loop failing structurally, not for want of a better model. At one
@@ -592,3 +618,6 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-02 | Probe file v2 audit-vs-source | 0/69 values absent from source; 1 question fixed, 0 dropped | 3 audit claims refuted; hard gate NOT softened; 18/69 quote diffs all PDF artifacts |
 | 2026-08-02 | E4 fake-LLM dry run | 7/7 checks; oracle residual 3.8% vs wrong-knob 9.3% | scoring falsifiable — masking provably fires on a deliberately wrong model; sim-calibrated-pending |
 | 2026-08-02 | Eval test suite | 54 → 121 tests green | every Phase-1 fix landed with a regression test from the observed failure |
+| 2026-08-08 | SSM2 live logging (real car, first contact) | WORKING — RPM, ECT, battery V streaming | RomRaider via Washinglee OP2 clone, 32-bit JRE `-cp` launcher; ECU ID `3B12504206` |
+| 2026-08-08 | ECU ROM read (EcuFlash, sti05) | BLOCKED at seed/key — unlock refused, nothing written | identical on 1.44.4347/1.44.4870, DLL 1.01/1.02, sti04/sti05; H1 locked ECU vs H2 clone K-line |
+| 2026-08-08 | AEM 30-0300 wideband serial → PC | BLOCKED — COM5 opens, zero bytes | wiring continuity-verified end-to-end; USB-serial chipset unidentified = prime suspect |

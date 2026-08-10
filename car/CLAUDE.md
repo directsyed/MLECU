@@ -18,7 +18,7 @@ destroys an engine — deterministic clamps give provable bounds; the LLM gives 
 - **Factory drive-by-wire** (FXT was DBW from 2004 — "cable throttle" notes are WRONG).
 - **VF48 turbo, 04–08 STI top-mount IC.** **Fully catless 3″ exhaust:** 3″ single-pipe cat-back → catless 3″ bellmouth downpipe → catless 04–21 STI up-pipe. **No cats anywhere; no EGT/cat-temp sensor on the up-pipe → expect a code** (plus rear-O2 / cat-monitor codes). Unconnected O2 bung remains.
 - **Intake AVCS operational** (ECU-controlled); **exhaust AVCS deleted**, oil ports blocked, exhaust cam mechanically fixed at the gear (NOT flashed).
-- **ROM presumed bone stock (USDM 2005 FXT ECU, 4EAT automatic).** **ECU is 32-bit** (05–06 DBW family; flashes reliably; RomRaider logging needs no green-connector jumper). ROM ID not yet captured (read it — Openport, read-only, safe).
+- **ROM presumed bone stock (USDM 2005 FXT ECU, 4EAT automatic).** **ECU is 32-bit** (05–06 DBW family; RomRaider logging needs no green-connector jumper). **ECU ID read via SSM2 = `3B12504206`** (2026-08-08). **ROM read currently BLOCKED at seed/key** — unlock refused, nothing ever written; "presumed stock" is under active test (CAL ID check queued). See `sessions/handoffs/2026-08-08-forester-first-logging-toolchain.md`.
 - **The car idles, and idles poorly; never driven by Syed.** This is the starting problem.
 
 ## Working theory for the bad idle (everything is a candidate — the DATA sets priorities)
@@ -42,16 +42,19 @@ map cell — fix the globals via closed-loop trims and the map shifts sane. **93
 
 ## Subdirs
 - `ecu/` — flash tooling (KKL/FTDI for logging; Openport 2.0 or a proven Rev-E clone for flashing), ROM defs, 32-bit facts, flash discipline (**stock ROM read + archived in multiple places before ANY write — the original ROM is sacred**).
-- `logging/` — SSM2-over-K-line capture, telemetry schema. **DORMANT: wideband not yet acquired → no logging yet.**
+- `logging/` — SSM2-over-K-line capture, telemetry schema, `CAPTURE-PROTOCOL.md` (the 3-pull procedure). **LIVE SSM2 logging verified on the car 2026-08-08** (RomRaider via Openport clone). AEM 30-0300 wideband installed and displaying; its serial link to the PC is still down.
 - `dataset/` — Subaru-first 70/30 corpus; **archived tuning iterations (trims → change → result) are literally training examples** in the form the model needs.
 - `algorithms/` — the deterministic tuning layer: bin-to-cell, bounded corrections.
 - `safety/` — the hard clamps; the write-path guard (**see the safety constraint above**).
 - `simulation/` — log-replay harness, mean-value engine model (MVEM), rusEFI software-in-the-loop.
 
-## Status (June 22, 2026) — DORMANT, hardware-blocked
-**Wideband** (the ground-truth instrument — nothing proceeds without it) **not acquired.** KKL/Openport
-status unconfirmed; ROM ID not yet captured. The car domain stays dormant until the wideband + logging
-cable arrive; the ML data-pipeline work proceeds first.
+## Status (Aug 8, 2026) — ACTIVE: first contact made, two blockers
+**Live SSM2 logging works** (RomRaider + Washinglee Openport clone: RPM, coolant, battery V streaming).
+Two blockers, both diagnosed to a shortlist in `sessions/handoffs/2026-08-08-forester-first-logging-toolchain.md`:
+**(A)** ECU ROM read refused at seed/key — locked/married ECU vs clone-cable K-line reflash support; CAL ID
+check queued. **(B)** AEM 30-0300 wideband serial silent on COM5 — USB-serial adapter chipset is the prime
+suspect. **The wideband link is the critical path:** once AFR reaches RomRaider, `logging/CAPTURE-PROTOCOL.md`
+runs. The ROM read is NOT required for capture — only for the (later) write path.
 
 ## Carried-forward design question
 Stay RomRaider/ECUFlash (OEM ECU) long-term, or plan a standalone (rusEFI) swap later? Shapes the
