@@ -439,6 +439,53 @@ are insulated to the contact and remove the bridging risk on 0.1" centres.
 (the Openport already does this through the OBD port), but adding a mains earth invites a ground
 loop, and this signal is already at marginal RS-232 mark levels.
 
+---
+
+## ★ PROBLEM B SOLVED — 2026-08-11: the crimped DB9 shell was the fault
+
+**Bypass test result:**
+
+```
+bytes waiting : 301
+text received : [99.9\r\n 99.9\r\n ... ]   (~50 samples in 5 s)
+```
+
+**The serial link works.** ~50 samples over 5 s = the gauge's ~10 Hz rate, and the `99.9\r\n`
+framing is the AEM ASCII protocol decoding cleanly at 9600 8N1. With the hand-crimped female DB9
+removed from the circuit and the gauge wired straight to adapter pins 2/5, data flows.
+
+**Root cause: the hand-crimped DB9 shell.** Its absolute pin identification was never
+independently established — the original continuity check was self-consistent with the mirrored
+numbering assumed while wiring, so it confirmed blue reached *a* pin repeatably, not that the pin
+was 2. See the mirrored-numbering caveat in Addendum (1).
+
+**Elimination sequence that got here, for the record:** cheap-chipset (killed by VID_0403 genuine
+FTDI) → TTL-vs-RS-232 level class (killed by −5.74 V on pin 3) → read method / PC side (killed by
+the pin 2↔3 loopback echo) → adapter damage (killed by a reboot) → **crimped shell (confirmed by
+bypass).** Every original §6 hypothesis was wrong; the fault was in the connector Syed built.
+
+### `99.9` is EXPECTED here — not a fault
+
+Real gasoline AFR spans ~8–20. **99.9 is an out-of-range sentinel.** With the engine off the
+sensor sits in ambient air, reads infinitely lean, and pegs. This result *confirms* a healthy
+gauge; it simply is not measuring combustion yet.
+
+### Remaining steps before RomRaider
+
+1. **Engine running, sensor at temperature, re-run the same one-liner.** Expect values near ~14.7
+   at warm closed-loop idle. **Cross-check the serial value against the gauge face** — if the face
+   shows a sensible AFR while the stream still reads 99.9, that is a *different* fault (format or
+   scaling) and must be resolved before proceeding.
+2. **Confirm the wideband sensor is actually installed in the exhaust bung.** The build notes
+   record an unconnected O2 bung; a sensor in free air reads 99.9 indefinitely regardless of
+   runtime.
+3. **Only then RomRaider** — plugin port settings apply at startup only, and the AEM parameter
+   must be ticked in the **External** tab, not merely configured in Settings. Going to RomRaider
+   before step 1 stacks an unverified stream under an unverified plugin config: two unknowns at
+   once, which is precisely the trap that cost this session.
+4. **Rebuild the DB9 shell** against the molded pin numbers before `CAPTURE-PROTOCOL.md`. Dupont
+   jumpers are adequate for a stationary test, **not** for the real three-pull capture.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
