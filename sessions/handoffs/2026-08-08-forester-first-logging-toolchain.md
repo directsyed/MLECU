@@ -328,6 +328,45 @@ the circuit entirely. Then listen (no write) for ~5 s.
   itself and suspect 3 (marginal 0 V mark level, whose fallback fix is the FT_PROG-inverted TTL
   adapter noted above).
 
+### ADDENDUM 2026-08-11 (4) — ⚠ COM5 NO LONGER ENUMERATES; adapter status UNKNOWN
+
+**The bypass test was never actually performed.** Two faults, in sequence:
+
+1. The USB adapter was unplugged for the earlier "empty `$n`" run — which fully explains that blank
+   (`BytesToRead` on an unopened port leaves the variable unset) and closes that mystery.
+2. With USB reconnected, the port is now **gone**:
+   `ERROR: Exception calling "Open" with "0" argument(s): "The port 'COM5' does not exist."`
+   Device Manager no longer lists COM5 at all.
+
+**This is a different class of failure from everything preceding it.** All prior symptoms were
+"port exists, no data." This is "no port" — the FT232R is not enumerating on USB, which is
+*upstream* of the adapter/driver/wiring layers already cleared.
+
+**Onset correlates with clipping bare wires onto the D-sub pins with the shell bypassed.** Two
+plausible mechanisms, both consequences of that test method:
+- DB9 pins are on 0.1" centres; bare wire or a clip bridges neighbours trivially, and one
+  neighbour (pin 3) sits at −5.74 V.
+- **AEM Connector A is the POWER/IO harness and carries 12 V.** 12 V onto a D-sub pin or the
+  adapter shell will destroy an FT232R.
+
+**Not yet written off.** Windows reassigns COM numbers, and a healthy adapter that re-enumerated as
+e.g. COM7 produces this exact error message.
+
+**Diagnostic queued:** re-seat into a different USB port, then
+`Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -like "*VID_0403*" } | Format-List
+FriendlyName, Status, Class, InstanceId` — note the `-Class Ports` filter is deliberately dropped,
+since a failed device leaves that class and would be hidden by it.
+- `Status : OK` + a new COM number → healthy, retarget the script.
+- `Status : Error` → enumerating, driver won't attach; usually recoverable.
+- **no output** → not responding on USB; adapter likely dead.
+
+**Method lesson for the rebuild.** Do not clip bare leads onto live D-sub pins next to a 12 V
+harness. Break out to the two signals with an insulated pigtail, or verify the intended pin pair in
+isolation with the gauge unpowered, before energising anything.
+
+**If a replacement is needed the spec is now precisely known:** a true RS-232 adapter with a real
+transceiver (negative idle rail on TX), which is what the −5.74 V reading proved the dead one was.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
