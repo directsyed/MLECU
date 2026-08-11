@@ -260,6 +260,42 @@ all (supports the wiring hypothesis).
 **Note on baud:** wrong baud produces *garbage bytes*, not *zero bytes*. The observed symptom does
 not implicate the 9600 8N1 setting.
 
+### ADDENDUM 2026-08-11 (2) — pin 3 = −5.74 V: level-class hypothesis ALSO eliminated
+
+Measured **−5.74 V DC, consistent**, on DB9 pin 3 → pin 5, adapter powered by USB with nothing
+else attached. Only a real RS-232 transceiver produces a negative idle rail; a bare FT232R TXD pin
+would have sat at +3.3/+5 V. **The adapter is the correct electrical class.**
+
+Consequence — the polarity chain now checks out end to end. An RS-232 receiver thresholds around
++1.4 V and inverts, so the AEM's 0 V idle reads as mark and its +5 V burst reads as space/start
+bit. Nothing in the level or polarity story explains the silence.
+
+**Two of three original suspects are now dead** (cheap chipset; TTL-vs-RS-232 class). Remaining,
+ranked:
+
+1. **Absolute pin identification on the female shell** (the mirrored-numbering caveat above).
+   Promoted to leading suspect by elimination. Note the pin-3 measurement has now *independently
+   confirmed the numbering on the adapter's male connector*, so the adapter end can be trusted as
+   a reference for any further test.
+2. **Unproven read method.** `ReadExisting()` has never been demonstrated to work on this setup at
+   all. "No data" and "my read code doesn't do what I think" are not yet distinguished.
+3. **Marginal mark level (secondary, keep on the list).** The AEM drives 0 V for mark, which is
+   inside RS-232's undefined dead zone (spec wants −3 to −15 V); +5 V for space is in spec. Real
+   MAX232-class receivers threshold near +1.4 V so 0 V is read as mark reliably in practice, but a
+   receiver with an unusual threshold or failsafe biasing could refuse it.
+   **Ironic fallback if this proves to be the cause:** a *TTL* adapter with RXD inverted in
+   FT_PROG reads a 0/5 V idle-low signal natively and cleanly, and would be the more robust
+   receiver for this gauge than the compliant RS-232 one.
+
+**Discriminating test (queued): LOOPBACK.** Jumper DB9 pin 2 to pin 3 on the adapter's male
+connector (safe — TX into RX is what a null modem does), then write and read in PowerShell. This
+bisects the whole problem: it exercises the adapter, driver, COM port, baud settings *and the read
+code* in one shot, with the car and gauge entirely out of the picture.
+
+- **Echo returns** → the entire PC side is proven good, including the read method. The fault is
+  then necessarily in the harness wiring or the gauge output, and suspect 1 becomes the target.
+- **Echo silent** → the fault is PC-side (driver/port/code) and the harness was never implicated.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
