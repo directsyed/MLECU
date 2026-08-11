@@ -296,6 +296,38 @@ code* in one shot, with the car and gauge entirely out of the picture.
   then necessarily in the harness wiring or the gauge output, and suspect 1 becomes the target.
 - **Echo silent** → the fault is PC-side (driver/port/code) and the harness was never implicated.
 
+### ADDENDUM 2026-08-11 (3) — LOOPBACK PASSES: the entire PC side is proven good
+
+Pin 2↔3 jumper on the adapter, write-then-read in PowerShell: **echo returned.** Adapter, FTDI
+driver, COM port, 9600 8N1 settings and the read method are all confirmed working end to end.
+
+**Suspect 2 (unproven read method) is eliminated.** With the chipset, the level class, the port
+config and the read code all cleared, **the fault is necessarily downstream of the adapter** — the
+hand-crimped DB9 shell, the harness wiring, or the gauge output itself.
+
+**Instrument gotcha worth keeping.** The first loopback attempt appeared to produce no output at
+all. Cause: `ReadExisting()` returning an empty string prints as *literally nothing* in PowerShell,
+so "test failed" and "command produced no output" are visually identical. Any serial test on this
+project must print an explicit byte COUNT (`$p.BytesToRead`, captured *before* `ReadExisting()`
+drains the buffer) and bracket the text (`"[$s]"`) so an empty result renders visibly as `[]`.
+A silent negative result is not a result.
+
+### Next test — BYPASS THE CRIMPED SHELL
+
+Leading suspect is now the hand-crimped female DB9, whose absolute pin identification has never
+been established independently (the continuity check was self-consistent with the assumption used
+when wiring). The adapter's male connector *is* now a trusted numbering reference, courtesy of the
+−5.74 V reading on pin 3.
+
+Test: with the gauge powered, connect the AEM blue wire directly to the adapter's **pin 2** and the
+AEM black to **pin 5** using jumper leads clipped to the male pins — the crimped shell removed from
+the circuit entirely. Then listen (no write) for ~5 s.
+
+- **Data arrives** → the crimped DB9 shell is miswired. Rebuild it against the molded numbers.
+- **Still nothing** → the shell is exonerated and the remaining candidates are the gauge output
+  itself and suspect 3 (marginal 0 V mark level, whose fallback fix is the FT_PROG-inverted TTL
+  adapter noted above).
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
