@@ -538,6 +538,41 @@ H2 confirmed.
 **Standing lesson:** any reboot silently disarms the Openport. Make step 1 the first check for
 *every* "logging stopped working" report from now on.
 
+### Correction 2026-08-11 — H1 ELIMINATED by Syed; timing REINFORCES H2
+
+Syed confirms he **did** launch with the signature-enforcement bypass active. **H1 is dead.**
+
+He also reports the freeze **began BEFORE the AFR serial fix.** This does *not* exonerate the
+plugin — it fits H2 better. If the AEM parameter was ticked on the External tab, every logger start
+had the plugin opening COM5 and waiting on a port that was first silent and later **absent
+entirely** (Addendum 4). A blocking read against a dead port stalls the logger thread, and that
+would begin failing the moment the port vanished — i.e. before the fix, exactly as observed.
+
+### Next: STOP INFERRING, READ THE STACK TRACE
+
+The §4 launcher runs `java.exe` (not `javaw.exe`) and ends in `pause`, **so a console window is
+open behind RomRaider** and any exception on the logger thread has already printed there with a
+full trace. This has not been looked at once this session.
+
+**Do not restart the logger before reading it — restarting clears the evidence.**
+
+| what the console shows | reading |
+|---|---|
+| `SerialPort` / `gnu.io` / `RXTX` / `javax.comm` exception, or anything naming COM5 | AEM plugin stalled the thread — **H2 confirmed** |
+| `J2534` / `op20pt32` / `openport` exception | ECU side dropped despite the driver loading |
+| repeated timeout/checksum warnings, no exception | comms alive, ECU not answering → physical/electrical |
+| nothing at all | no code failed → freeze is upstream of software; electrical leads |
+
+### H3 (new) — battery sag
+
+Extended key-on, engine off, with a **wideband sensor heater drawing 1–2 A continuously**. This
+battery has form: recorded at 11.2 V earlier in the build before recharging (§5). A sag toward
+~11 V makes the ECU unreliable on the K-line well before anything else looks wrong, and would
+produce a **silent stall with no Java exception** — which is precisely why the console must be read
+first: exceptions present = software; exceptions absent + sagging battery = found it.
+
+*Check:* battery voltage at the terminals while the fault is present.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
