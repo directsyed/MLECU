@@ -203,6 +203,63 @@ Continuity between DB9 pin 2 and pin 5 initially beeped. **This disappears when 
 
 Secondary note: some USB adapters require pin 3 connected as well for handshake, per one forum report.
 
+### ADDENDUM 2026-08-11 — prime suspect ELIMINATED, hypothesis moved
+
+Chipset identified via `Get-PnpDevice -Class Ports -PresentOnly`:
+
+```
+FriendlyName : USB Serial Port (COM5)
+InstanceId   : FTDIBUS\VID_0403+PID_6001+A9K1P84WA\0000
+```
+
+`0403:6001` = **genuine FTDI FT232R**, with a properly programmed serial (`A9K1P84WA`) rather
+than the blank/duplicated pattern typical of counterfeits. **The "cheap non-compliant adapter"
+hypothesis is dead. Do not buy a replacement adapter on the strength of §6 as originally written.**
+
+**The hypothesis that replaces it: RS-232 vs TTL signal LEVEL CLASS, not chipset.**
+
+FT232R is a **TTL-level** part with no RS-232 transceiver of its own. True RS-232 cables (FTDI
+US232R, Chipi-X) add a separate level-shifter; cheap cables solder the FT232R's bare TTL pins
+directly to a DB9 shell. **Both enumerate identically** — same VID, same PID, same friendly name.
+Device Manager cannot distinguish them.
+
+That distinction is decisive here because of polarity. The 0.5 V average (Corrections Log #3)
+implies the AEM line **idles LOW and pulses up**: at ~10 Hz with a short burst the line is idle
+most of the time, so standard TTL (idle HIGH at 5 V) would have averaged near 5 V, not 0.5 V.
+Idle-low 0→5 V is RS-232 *polarity sense* without the negative rail.
+
+| adapter class | behaviour with an idle-low 0→5 V input | outcome |
+|---|---|---|
+| true RS-232 (transceiver) | thresholds ~+1.4 V and inverts: 0 V → mark/idle, +5 V → space | decodes correctly |
+| bare TTL on a DB9 shell | expects idle HIGH, sees a permanently low line | continuous break → **zero valid bytes** |
+
+The bare-TTL row reproduces the observed symptom exactly (port opens, no data).
+
+**Discriminating test (queued):** adapter in USB, nothing else attached; DMM black on DB9 pin 5,
+red on **pin 3** (the adapter's own TX output, self-driven so it idles with nothing connected).
+- **−5 to −12 V** → true RS-232 → this hypothesis also dies; wiring becomes the suspect.
+- **+3.3 / +5 V** → bare TTL in a DB9 shell → polarity mismatch confirmed.
+
+**If TTL: the fix is free, not a purchase.** FT232R supports per-signal inversion in EEPROM via
+FTDI's FT_PROG utility — inverting RXD makes the chip accept the AEM polarity in hardware.
+
+**Wiring caveat that the continuity test cannot clear.** A female DB9 numbers mirror-image to a
+male when viewed from the wiring/contact-insertion side. A continuity check performed under the
+same mirrored assumption used when wiring is self-consistent and proves nothing absolute — it
+confirms blue reaches *a* pin repeatably, not that the pin is 2. Verify against the molded numbers
+in the shell. (Mirrored, the pin-2 position reads as pin 4 = DTR and pin 5 as pin 1 = DCD, which
+would also produce silence.)
+
+**Follow-up test after the above, not in parallel:** `$p.ReadExisting()` returns a decoded
+*String*, so a stream of NUL bytes — precisely what a break condition delivers — renders as
+visually empty. "No data" may actually be "nulls arriving." Re-test by counting `$p.BytesToRead`
+and hex-dumping raw bytes rather than printing a string. Non-zero count with 0x00 bytes = signal
+present but mis-framed (supports the polarity hypothesis); a true zero count = nothing arriving at
+all (supports the wiring hypothesis).
+
+**Note on baud:** wrong baud produces *garbage bytes*, not *zero bytes*. The observed symptom does
+not implicate the 9600 8N1 setting.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
