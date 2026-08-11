@@ -486,6 +486,58 @@ gauge; it simply is not measuring combustion yet.
 4. **Rebuild the DB9 shell** against the molded pin numbers before `CAPTURE-PROTOCOL.md`. Dupont
    jumpers are adequate for a stationary test, **not** for the real three-pull capture.
 
+---
+
+## ⚠ 2026-08-11 — LOGGER FROZEN after the reboot (open)
+
+**Symptom:** RomRaider displays the ECU ID and a green "reading" indicator, but **every field is
+frozen** — ECU parameters *and* the AFR field, which now shows a real value instead of nothing.
+Logging worked ~30 min earlier.
+
+**Do not trust the green dot or the displayed ECU ID.** RomRaider will show a cached ECU ID and a
+stale connected state while comms are dead; a stalled logger thread holds every field at its last
+value, which is exactly this symptom.
+
+### H1 (leading) — the driver-signature bypass did not survive the reboot
+
+**The laptop was restarted to recover the FTDI adapter** (Addendum 6). §7 of this document records
+that the `openport.sys` bypass **must be repeated on every boot** — a normal restart re-enables
+enforcement and the driver stops loading (Code 39). That reboot is the largest change between
+"logging fine" and "frozen", and it was performed for an unrelated reason, which is exactly how
+this class of regression sneaks in.
+
+*Check:* `Get-PnpDevice -PresentOnly | Where-Object { $_.Status -ne "OK" } | Format-List
+FriendlyName, Status, Class, InstanceId` → Openport with `Status : Error` = Code 39 confirmed.
+*Fix:* Shift+Restart → Troubleshoot → Advanced options → Startup Settings → Restart → **7**.
+
+### H2 — the AEM external plugin is blocking the logger thread
+
+RomRaider polls external datasources on the same thread as ECU parameters. A **blocking serial
+read** — which is what occurs if the gauge stops transmitting mid-session (ignition off, gauge
+unpowered) — stalls that thread and freezes *every* field at once, ECU parameters included. Also
+fits the symptom exactly, and explains why the AFR field holds a real-looking value: it was read
+successfully once, then the thread stalled.
+
+*Test:* relaunch with the AEM parameter **unticked** on the External tab. ECU logging returning =
+H2 confirmed.
+
+### Cold-start logging procedure (canonical — follow in order)
+
+1. Driver-signature bypass active (**after every reboot**).
+2. Openport enumerates clean, no Code 39.
+3. **Close every PowerShell window** — they hold COM5 exclusively and the AEM plugin cannot open a
+   port another process owns.
+4. **Gauge powered and streaming BEFORE RomRaider launches** — the plugin opens the port and reads
+   its settings only at startup.
+5. Ignition on; engine running if a real AFR is wanted rather than the 99.9 sentinel.
+6. Launch the 32-bit `.bat` (§4).
+7. Logger tab → tick ECU parameters.
+8. **External tab → tick the AEM parameter.** Configuring it in Settings alone does nothing.
+9. Confirm values are moving before relying on anything.
+
+**Standing lesson:** any reboot silently disarms the Openport. Make step 1 the first check for
+*every* "logging stopped working" report from now on.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
