@@ -367,6 +367,44 @@ isolation with the gauge unpowered, before energising anything.
 **If a replacement is needed the spec is now precisely known:** a true RS-232 adapter with a real
 transceiver (negative idle rail on TX), which is what the −5.74 V reading proved the dead one was.
 
+### ADDENDUM 2026-08-11 (5) — re-seat failed; damage mechanism re-weighted
+
+Different USB port, no chime, no COM port. (Chime alone is weak evidence — system sounds may be
+off; the `Get-PnpDevice` output is what counts.) Whether the gauge was powered during clipping is
+**unknown and not retroactively determinable.**
+
+**Re-weighting of the two damage mechanisms, and it matters:**
+
+- **Pin bridging — now considered UNLIKELY to be fatal.** EIA-232 requires a compliant driver to
+  survive a short to any other conductor in the cable, and real transceivers are current-limited
+  accordingly. Bridging pin 3 (−5.74 V) to a neighbour should be survivable.
+- **12 V contact from Connector A — the only plausible fatal path,** and it requires the gauge to
+  have been powered.
+
+**Consequence:** if the gauge was unpowered, no mechanism in evidence should have destroyed the
+adapter, which raises the prior on a **laptop-side** fault (USB port, driver state) over a dead
+chip. Do not buy a replacement until Step 6 discriminates.
+
+**Diagnostic queued (Step 6): try the adapter on a DIFFERENT COMPUTER.** Enumeration happens below
+the driver layer, so a machine that has never had FTDI drivers will still show something if the
+chip is alive. Widened filter:
+
+```powershell
+Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -like "*VID_0403*" -or $_.Status -ne "OK" } | Format-List FriendlyName, Status, Class, InstanceId
+```
+
+The `-or $_.Status -ne "OK"` clause is **load-bearing**: a chip with damaged USB signalling often
+still enumerates but fails its descriptor request, and Windows lists that as *"Unknown USB Device
+(Device Descriptor Request Failed)"* carrying **no vendor ID** — invisible to a `VID_0403` filter.
+Partially-alive and wholly-absent are different diagnoses; the narrow filter conflates them.
+
+- `VID_0403` + `Status : OK` on the other machine → adapter healthy, fault is laptop-side.
+- `Unknown USB Device` / `Status : Error` appearing only on plug-in → chip alive, USB interface damaged.
+- nothing changes on plug/unplug → drawing nothing, dead.
+
+Independent secondary check: put any other USB device in the laptop port that was in use, to
+establish whether that port survived.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
