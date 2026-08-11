@@ -405,6 +405,40 @@ Partially-alive and wholly-absent are different diagnoses; the narrow filter con
 Independent secondary check: put any other USB device in the laptop port that was in use, to
 establish whether that port survived.
 
+### ADDENDUM 2026-08-11 (6) — RESOLVED: adapter was never damaged; a reboot restored it
+
+**Laptop restart → the adapter enumerates again.** The cause was Windows USB/driver enumeration
+state, not physical damage. **No hardware was harmed and no replacement is needed.**
+
+This vindicates the Addendum-(5) re-weighting: the first-principles argument (EIA-232 requires
+drivers to survive a short to any other conductor, so pin bridging should not be fatal; only 12 V
+contact was a plausible kill path) correctly predicted the adapter was alive, and holding the
+purchase was right. **Lesson: on a USB-serial device that vanishes, reboot before concluding
+damage.** Enumeration state is sticky and a re-seat into another port does not clear it.
+
+Watch for COM renumbering after the reboot — `"The port 'COM5' does not exist"` now means a
+renumber, not a dead device. Read the new number from the `FriendlyName` field of the
+`Get-PnpDevice` output and substitute.
+
+### Bypass test — SAFE PROCEDURE (supersedes the bare-clip method)
+
+The gauge **must be powered and displaying AFR** during the test; it is silent otherwise. But make
+every connection cold:
+
+1. Gauge unpowered (key off), USB adapter unplugged from the laptop.
+2. Connect **black → pin 5 FIRST**, then **blue → pin 2**. Ground before signal, so the common
+   reference exists before the signal wire does and the signal has no reason to seek a return path
+   through the electronics.
+3. Visually confirm nothing bridges to a neighbouring pin.
+4. Plug in USB. 5. Power the gauge, let AFR settle. 6. Run the listen command.
+
+**Use insulated female Dupont jumpers over the male D-sub pins, not bare alligator clips** — they
+are insulated to the contact and remove the bridging risk on 0.1" centres.
+
+**Run the laptop on BATTERY, not mains.** Tying laptop ground to car ground via pin 5 is normal
+(the Openport already does this through the OBD port), but adding a mains earth invites a ground
+loop, and this signal is already at marginal RS-232 mark levels.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
