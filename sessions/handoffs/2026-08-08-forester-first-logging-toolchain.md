@@ -646,6 +646,68 @@ downstream symptom — init timeout with no exception, driver wedging while bloc
 never answered — is consistent with an ECU that stopped responding due to voltage sag. **Measure
 before any further software debugging.**
 
+### 2026-08-11 20:15 — clean reboot, charger on battery, SAME HANG. H3 and H4 both eliminated.
+
+Restarted in the correct (bypass) mode; cables replugged, chimes heard, Device Manager solid; a
+**charger pack was put on the battery**. Identical failure. Logger UI: "sending ecu init", forever.
+
+```
+20:15:00,433 loaded protocol SSM: 245 parameters, 172 switches, def v370
+20:15:00,604 J2534 Library names loaded from ./customize/j2534Libraries.properties
+20:15:01,106 Trying PREVIOUS J2534/ISO9141 connection: C:\WINDOWS\SysWOW64\op20pt32.dll
+             <hang>
+```
+
+- **H4 (hung JVM) eliminated** — clean boot, no stale process could exist.
+- **H3 (battery sag) eliminated** — charger pack fitted, no change.
+- The Phidget `ExceptionInInitializerError` is **benign** (optional library absent) and predates the
+  fault; it is not related.
+- **Enumeration is NOT the problem.** The cable is seen; the hang is at the *protocol* layer.
+  Replugging the Openport therefore cannot help and should not be repeated.
+- Note `Trying **PREVIOUS**` (a cached library path from `settings.xml`) vs `Trying **NEW**`
+  (device name) at 19:58 — different code path, library choice is being reused rather than
+  re-enumerated.
+
+### The change-set framing — only THREE things changed since logging worked
+
+1. **The wideband was wired into the laptop** → a *second electrical path between car and PC*.
+2. A reboot → **eliminated** (clean, correct mode, driver loaded).
+3. **Bare wires were poked around a 12 V harness** while clipping to D-sub pins.
+
+Syed's own timing observation — the ECU hang began during the AFR work, *while the AFR itself was
+still broken* — points at (1) or (3). Both are now the queued tests.
+
+### H5 (leading) — ground-loop / second ground path corrupting K-line
+
+The Openport references OBD pins 4/5. The AEM black wire grounds at the gauge's chassis point. With
+both plugged into the laptop those two chassis points are **bridged through the USB grounds**,
+while a wideband heater pulls 1–2 A through that ground path. K-line is a single-wire bus that
+discriminates high/low against ground; shift its reference and init fails while everything still
+*looks* connected.
+
+*Test:* unplug the FTDI adapter **physically** AND untick the AEM parameter on External. Openport
+alone, IGN on, relaunch.
+
+### H6 — OBD port has lost vehicle power (blown fuse)
+
+The Openport is **USB-powered**, so it enumerates perfectly on the laptop with **no vehicle power
+at all** — and cannot drive K-line. This reproduces the symptom exactly: solid in Device Manager,
+hangs forever at init. A short while clipping bare wires near 12 V is the classic cause. **The
+gauge still working proves only that ITS fuse survived, not the one feeding the diagnostic port.**
+
+*Test:* back-probe **OBD pin 16 (batt+) to pin 4 (chassis gnd)** — expect ~12 V. Dead = find a
+fuse, not a software fault.
+
+### H7 — the registered J2534 DLL was silently swapped
+
+```powershell
+Get-Item C:\WINDOWS\SysWOW64\op20pt32.dll | Format-List Name, Length, LastWriteTime, VersionInfo
+```
+§3 records two DLLs (vendor 1.01.4341, official Tactrix 1.02.4870) and Corrections-Log #2 records
+that running the extracted official EcuFlash **did** load its own DLL. If SysWOW64 now holds
+1.02.4870 against a clone cable on vendor firmware 1.17.4877, a connection hang is a known outcome
+— and **Syed's explicit vendor-drivers-only decision would have been silently overridden.**
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
