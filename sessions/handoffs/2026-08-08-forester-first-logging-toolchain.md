@@ -613,6 +613,39 @@ heater at 1–2 A, on a battery previously recorded at 11.2 V. Below ~11.5 V, ch
 chase software — a sagging battery produces precisely this signature (ECU stops answering init,
 no exception, RomRaider waits indefinitely).
 
+### 2026-08-11 late — USB/DRIVER STACK WEDGED (diagnosed)
+
+**Symptom:** no ports active; **unplugged devices do not disappear from Device Manager**; no
+connect/disconnect chime in either direction.
+
+**Cause: a kernel-mode driver holding an uncompleted I/O request.** Windows cannot tear down a
+device object while a driver still references it, so the device node survives physical removal and
+the enumeration path stalls for new arrivals too.
+
+**Causal chain, stated plainly:** the J2534 driver was blocked inside the ECU-init call (hence
+"sending ecu init" with no exception) → the owning JVM was force-killed on my advice →
+**`Stop-Process` cannot cancel a request already stuck in a driver.** The process died; the pending
+IRP did not; the device object was left permanently referenced. **Unplug/replug cannot fix this** —
+the fault is not in the connection, and pending IRPs cannot be cleared from userspace.
+
+**My error to record:** recommending the process kill was right for a hung JVM, but I should have
+flagged that a driver blocked at that level would very likely need a **reboot** afterwards rather
+than a replug. The replug advice was wasted effort and further disturbed the stack.
+
+**Fix — Shift+Restart → Troubleshoot → Advanced options → Startup Settings → Restart → 7.**
+This does both jobs in one pass: clears the wedged driver stack *and* re-arms the
+signature-enforcement bypass `openport.sys` needs, avoiding a Code 39 on return.
+
+**⚠ DO NOT USE "Shut down."** Windows 11 Fast Startup (hiberboot) hibernates the kernel session
+instead of tearing it down, so shutdown-then-power-on can **preserve the wedged driver state**.
+Only "Restart" is a genuine full reboot. This is a standing gotcha for this laptop.
+
+**H3 STILL UNMEASURED and still the leading root cause** of the original ECU-init hang. Hours of
+key-on, engine off, wideband heater at 1–2 A, battery with prior history at 11.2 V. Every
+downstream symptom — init timeout with no exception, driver wedging while blocked on a device that
+never answered — is consistent with an ECU that stopped responding due to voltage sag. **Measure
+before any further software debugging.**
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
