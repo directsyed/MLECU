@@ -573,6 +573,46 @@ first: exceptions present = software; exceptions absent + sagging battery = foun
 
 *Check:* battery voltage at the terminals while the fault is present.
 
+### Console read 2026-08-11 — H2 ELIMINATED; the stall is at ECU init, with NO exception
+
+```
+19:58:07,x   INFO [Thread-4]      - Plugin loaded: PLX SM-AFR / Tech Edge / TXS / Zeitronix ...
+19:58:07,698 INFO [Thread-4]      - loaded protocol SSM: 245 parameters, 172 switches, def v370
+19:58:07,921 INFO [Query Manager] - J2534 Library names loaded from ./customize/j2534Libraries.properties
+19:58:08,538 INFO [Query Manager] - Trying new J2534/ISO9141 connection: Tactrix Inc. - OpenPort 2.0
+                                    <nothing further>
+```
+Logger UI stuck on **"sending ecu init" for ~5 minutes.**
+
+- The `Plugin loaded:` lines are **noise** — RomRaider registers all bundled external datasources
+  at startup regardless of use. **H2 (AEM plugin) is ELIMINATED:** the stall occurs at K-line init,
+  upstream of any external datasource.
+- **No exception, no stack trace.** Nothing crashed. RomRaider is *blocked waiting* on a device
+  that is not answering. Per the Addendum-(5) table, "no exception" points below the software layer.
+
+### H4 (new, leading) — a hung JVM still owns the J2534 device
+
+**Closing the RomRaider window does not terminate the JVM when the logger thread is stuck.** A
+surviving `java.exe` retains the Openport, and every subsequent launch blocks at exactly this line.
+This reproduces the entire observed pattern: first session logs fine → stalls → window closed →
+JVM survives holding the device → all later launches hang at ECU init.
+
+```powershell
+Get-Process java, javaw -ErrorAction SilentlyContinue | Format-List Id, ProcessName, StartTime
+Stop-Process -Name java, javaw -Force -ErrorAction SilentlyContinue
+```
+(`-ErrorAction SilentlyContinue` suppresses the error raised when one name matches nothing.
+`StartTime` is the tell — multiple entries at different times = leftovers.)
+
+**ORDER MATTERS: kill the JVMs BEFORE unplugging the Openport.** Yanking the cable while a process
+still holds the device is how the driver is left in a bad state — very plausibly what produced the
+vanishing-COM-port episode in Addendum (4). Kill → unplug → wait → replug → relaunch.
+
+**H3 (battery sag) remains live and is checked in the same trip:** engine off, key on, wideband
+heater at 1–2 A, on a battery previously recorded at 11.2 V. Below ~11.5 V, charge it rather than
+chase software — a sagging battery produces precisely this signature (ECU stops answering init,
+no exception, RomRaider waits indefinitely).
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
