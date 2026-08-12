@@ -9,6 +9,47 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-11 — WIDEBAND LINK SOLVED, then a ground loop killed ECU comms: both faults were physical, neither was software
+
+Two faults resolved on the car in one session, and **neither lived where its symptoms pointed.**
+
+**Fault 1 — the wideband serial link (open since 2026-08-08).** The prior session's leading
+suspect was a non-compliant USB-serial adapter. It was wrong, and so were the two hypotheses that
+replaced it. Elimination ran: cheap chipset (killed — `VID_0403+PID_6001`, genuine FTDI FT232R
+with a properly programmed serial) → TTL-vs-RS-232 level class (killed — **−5.74 V measured on
+DB9 pin 3**, which only a real transceiver produces; a bare FT232R pin idles at +3.3/+5 V) → the
+PC side including the read method itself (killed — a pin 2↔3 **loopback echoed**) → adapter damage
+(killed — a reboot restored it) → **the hand-crimped DB9 shell, confirmed by bypassing it.**
+Wiring the gauge straight to adapter pins 2/5 returned **301 bytes, ~50 clean `99.9\r\n` samples
+in 5 s** — the gauge's native ~10 Hz with the AEM ASCII protocol decoding correctly at 9600 8N1.
+
+Root cause: **a female DB9 numbers mirror-image when viewed from the wiring side**, and the
+original continuity check was self-consistent with the mirrored assumption used while wiring. It
+proved blue reached *a* pin repeatably; it could not prove the pin was 2. A self-consistent test
+that validates nothing absolute is worse than no test, because it retires a hypothesis that is
+still true.
+
+**Fault 2 — ECU logging then died, and the signature was actively misleading.** RomRaider hung
+forever at `sending ecu init` with **no exception**, in software logs, immediately after a software
+change. Six hypotheses were spent PC-side — driver-signature bypass, the AEM plugin, a hung JVM
+holding the J2534 device, battery sag, a wedged USB driver stack, a silently swapped J2534 DLL —
+before reframing around *what physically changed between working and not*. The answer was a
+**ground loop**: the Openport references chassis via OBD pins 4/5, the AEM black at the gauge's own
+ground point, and plugging both into one laptop bridges those chassis points through the USB
+grounds with the wideband heater's 1–2 A circulating in the loop. The resulting drop shifts the
+reference the Openport's **K-line transceiver** compares against — and K-line discriminates
+high/low against ground, so init fails while every indicator still reads healthy. Unplugging the
+serial adapter restored ECU logging immediately.
+
+**The transferable lesson, recorded in `car/logging/CAPTURE-PROTOCOL.md` as a hardware
+prerequisite:** the isolation test — remove one subsystem, retest — should have been the *first*
+move once "it worked an hour ago" was established, not the seventh. Syed's timing observation
+("this started while we were fixing the AFR, while the AFR was still broken") was the session's
+most valuable evidence and was initially under-weighted in favour of chasing stack traces. The
+protocol now also carries a hard acceptance test: **ECU parameters and `wideband_afr` updating
+simultaneously**, because either stream alone proves nothing — precisely the trap this sequence
+fell into.
+
 ## 2026-08-08 — FIRST CONTACT WITH THE CAR: live SSM2 logging works; ROM read and wideband serial both blocked, both diagnosed
 
 RomRaider connects to the '05 FXT through the Washinglee Openport 2.0 clone and streams live SSM2
@@ -621,3 +662,7 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-08 | SSM2 live logging (real car, first contact) | WORKING — RPM, ECT, battery V streaming | RomRaider via Washinglee OP2 clone, 32-bit JRE `-cp` launcher; ECU ID `3B12504206` |
 | 2026-08-08 | ECU ROM read (EcuFlash, sti05) | BLOCKED at seed/key — unlock refused, nothing written | identical on 1.44.4347/1.44.4870, DLL 1.01/1.02, sti04/sti05; H1 locked ECU vs H2 clone K-line |
 | 2026-08-08 | AEM 30-0300 wideband serial → PC | BLOCKED — COM5 opens, zero bytes | wiring continuity-verified end-to-end; USB-serial chipset unidentified = prime suspect |
+| 2026-08-11 | AEM wideband serial link | **SOLVED** — 301 bytes, ~50 samples in 5 s | gauge's native ~10 Hz, AEM ASCII decoding at 9600 8N1; root cause = hand-crimped DB9 shell on the wrong pin |
+| 2026-08-11 | Wideband fault-elimination chain | 5 hypotheses killed by measurement, incl. all 3 pre-registered | genuine FTDI · −5.74 V on pin 3 · loopback echo · reboot · bypass; every original suspect was wrong |
+| 2026-08-11 | ECU logging with both cables connected | **FAILS** — hangs at `sending ecu init`, no exception | ground loop: Openport (OBD pin 4/5) + AEM gauge ground bridged via laptop USB, heater 1–2 A in the loop |
+| 2026-08-11 | ECU logging, serial adapter unplugged | **WORKS** — isolation test decisive | fix = break the loop (signal-only wire, or ADuM3160-class USB isolator), NOT relocating the ground |

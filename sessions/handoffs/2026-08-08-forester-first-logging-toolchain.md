@@ -708,6 +708,44 @@ that running the extracted official EcuFlash **did** load its own DLL. If SysWOW
 1.02.4870 against a clone cable on vendor firmware 1.17.4877, a connection hang is a known outcome
 — and **Syed's explicit vendor-drivers-only decision would have been silently overridden.**
 
+---
+
+## ★★ H5 CONFIRMED — GROUND LOOP. Both problems now solved.
+
+**Test result: with the serial adapter unplugged, ECU logging works PERFECTLY.** H6 (blown OBD
+fuse) and H7 (swapped J2534 DLL) are **not needed and not tested** — the isolation test settled it.
+
+**This was never a software fault.** Not the driver, not the JVM, not the DLL, not the battery, not
+the plugin. Two ground paths between car and laptop, and the loop current shifted the reference the
+Openport's K-line transceiver compares against. Mechanism and remedies are now written into
+`car/logging/CAPTURE-PROTOCOL.md` as a hardware prerequisite — that is the durable home for it.
+
+**Answer to "should I switch grounds?" — NO.** Relocating the AEM ground changes the *magnitude* of
+the offset while leaving the loop intact; it gambles on the residual being small enough. Break the
+loop instead:
+
+1. **Free:** omit AEM ground from DB9 pin 5, run **signal wire only**. Return path goes via chassis
+   and the Openport's OBD ground. RS-232 margin (~1.4 V threshold vs a 0–5 V swing) absorbs the
+   residual offset. *Caveat: wideband then depends on the Openport for its ground reference.*
+2. **Robust:** **USB isolator** (ADuM3160-class, ~$20–40) between laptop and adapter, or an
+   opto-isolated RS-232 adapter. **Preferred before real capture sessions.**
+
+**ACCEPTANCE TEST — do not skip:** ECU parameters **and** `wideband_afr` updating **simultaneously**.
+Either stream alone now proves nothing; that was the trap this whole sequence fell into.
+
+### Why this took so long — worth reading before the next debug session
+
+The fault had a **misleading signature**: it presented as a software hang, in software logs, on the
+software side of the system, immediately after a software change. Six hypotheses were spent on the
+PC (driver bypass, AEM plugin, hung JVM, battery, wedged USB stack, DLL swap) before the
+change-set framing — *what physically changed between working and not* — pointed at the wiring.
+**The isolation test that solved it (remove one subsystem, retest) should have been the FIRST move
+once "it worked an hour ago" was established, not the seventh.**
+
+Syed's timing observation ("this started while we were fixing the AFR, while the AFR was still
+broken") was the single most valuable piece of evidence in the session and was initially
+under-weighted in favour of chasing stack traces.
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 

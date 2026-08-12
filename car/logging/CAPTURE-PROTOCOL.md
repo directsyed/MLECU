@@ -39,6 +39,36 @@ when it does), but detecting it after a logging session is wasted effort — fin
 Also settle before logging: engine at full operating temperature, closed-loop confirmed (not in
 open-loop warmup enrichment), no active knock, no pending codes that force a limp strategy.
 
+## Hardware prerequisite — the ground loop (learned the hard way, 2026-08-11)
+
+**Running the Openport and the wideband serial link into the same laptop creates a ground loop that
+silently kills ECU communication.** Diagnosed on the car: with both connected, RomRaider hangs
+forever at `sending ecu init` while Device Manager shows every device healthy. Unplug the serial
+adapter and ECU logging works perfectly.
+
+**Mechanism.** The Openport references chassis through OBD pins 4/5; the AEM black wire references
+chassis at the gauge's own ground point. Plugging both into the laptop bridges those two chassis
+points through the USB grounds, and any potential between them circulates current around the loop —
+with the wideband heater's 1–2 A contributing to the offset. The resulting drop across the
+Openport's ground shifts the reference its K-line transceiver compares against. **K-line is a
+single-wire bus that discriminates high/low against ground, so a shifted reference fails init while
+everything still looks connected.**
+
+**Do not "move the ground to a better point."** That changes the magnitude of the offset but leaves
+the loop intact. Break the loop instead:
+
+1. **Free:** omit the AEM ground from DB9 pin 5 — run the **signal wire only**. The return path goes
+   through the chassis and back via the Openport's OBD ground, so the receiver keeps a reference,
+   but no second parallel path exists for loop current. RS-232's margin here (~1.4 V threshold
+   against a 0–5 V swing) absorbs the residual chassis offset easily. *Caveat: the wideband then
+   depends on the Openport being plugged in for its ground reference.*
+2. **Robust:** a **USB isolator** (ADuM3160-class, ~$20–40) between laptop and serial adapter, or an
+   opto-isolated RS-232 adapter. Galvanic separation means no shared ground and no possible loop.
+   **Preferred for real capture sessions** — a dropout mid-pull costs the whole run.
+
+**Acceptance test before any pull: ECU parameters AND `wideband_afr` updating SIMULTANEOUSLY.**
+Either stream working alone proves nothing.
+
 ## The three pulls
 
 Each is a **steady-state hold**, not a sweep. Target ≥20 usable samples per condition
