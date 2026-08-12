@@ -61,25 +61,20 @@ If it is ever attempted it must be **empirically validated** channel by channel 
 `Fuel Injector #1 Pulse Width` agree with the standard `P21`?) — not assumed from adjacency.
 **Do not do this before the ROM read is solved**, since the ROM is what would settle RAM layout.
 
-## ★ Finding 2 — bandwidth is the real constraint
+## ★ Finding 2 — bandwidth: MEASURED, and far better than modelled
 
-The SSM2 protocol block declares `baud="4800"`. That is **480 bytes/sec, total, shared by every
-channel.** Each sample costs roughly `14 + 4.4 × (number of parameters)` bytes:
+**Superseded by real data 2026-08-11.** An earlier version of this file modelled SSM2 throughput as
+`14 + 4.4 x params` bytes per sample against the protocol's declared `baud="4800"`, predicting
+**~4.7 Hz for 20 parameters**.
 
-| params | approx. sample rate |
-|---|---|
-| 10 | ~8 Hz |
-| 15 | ~6 Hz |
-| **20** | **~4.7 Hz** |
-| 25 | ~3.9 Hz |
-| 30 | ~3.3 Hz |
+**The first real log measured 14.49 Hz with 21 parameters + 3 switches** — roughly **3x** the
+prediction. The model was wrong because it assumed a request/response round trip per sample. SSM2
+supports a **continuous read** mode in which the address list is sent once and the ECU streams
+responses, which removes the per-sample request overhead entirely.
 
-Approximate — read the actual rate RomRaider displays and trust that. **Switches are cheap**
-(bit-packed, several share one address byte); parameters are not.
-
-"Log everything" is therefore self-defeating: all 95 standard params would land near ~1 Hz, and
-`GridSpec.min_samples = 20` per cell would need holds several minutes long, during which "steady
-state" stops being true. **Target ~20 parameters.**
+**Use measurement, not the model.** ~14.5 Hz at 21 parameters is the observed baseline on this car.
+Bandwidth is real but far less binding than feared: a 60 s hold yields ~870 samples against
+`GridSpec.min_samples = 20`. There is headroom to add channels if a future question needs them.
 
 ## The profile
 
