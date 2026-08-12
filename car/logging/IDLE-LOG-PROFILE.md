@@ -1,6 +1,6 @@
 # Idle-log parameter profile — what to select in RomRaider, and why
 
-Companion to `CAPTURE-PROTOCOL.md` (which defines the *three pulls*). This file defines the
+Companion to `CAPTURE-PROTOCOL.md` (which defines the *three holds*). This file defines the
 *channels*. Derived 2026-08-12 from the authoritative logger definition in the corpus
 (`ml/data-pipeline/data/raw/SubaruDefs/RomRaider/logger/standard/logger.xml`) — **95 standard
 parameters, 68 switches, 124 extended parameters.**
@@ -9,7 +9,12 @@ parameters, 68 switches, 124 extended parameters.**
 
 RomRaider splits loggable channels in two:
 
-- **Standard parameters** — fixed SSM2 addresses, **available on every SSM2 ECU**, no gating.
+- **Standard parameters** — fixed SSM2 addresses, but **gated by the ECU's own capability
+  bitmap**: 91 of the 95 carry an `ecubyteindex`/`ecubit` pair, and RomRaider hides any parameter
+  whose bit the ECU does not advertise during SSM2 init. *(Corrected 2026-08-12 — an earlier
+  version of this file wrongly said standard params were available on every SSM2 ECU with no
+  gating. **What RomRaider lists is what this ECU actually supports**; treat the tables below as
+  "select if present.")*
 - **Extended parameters (`ecuparam`)** — RAM addresses that differ per calibration, so each is
   gated by an explicit list of ECU IDs.
 
@@ -37,10 +42,10 @@ Among the 57 the nearest sibling gets: `CL/OL Fueling`, `Closed Loop Fueling Tar
 before logging, and that parameter is the direct confirmation — and it is exactly one we cannot
 read. **Workaround: infer closed loop from `A/F Correction #1` actively moving.** In open-loop
 warmup enrichment the correction sits frozen (typically 0.00); once closed loop engages it wanders
-continuously. A frozen correction means the pull is invalid regardless of what else looks right.
+continuously. A frozen correction means the hold is invalid regardless of what else looks right.
 
 `Fuel Injector #1 Latency` is also painful — latency is one of the three unknowns
-`identify.py` fits — but the estimator recovers it from the three pulls rather than reading it, so
+`identify.py` fits — but the estimator recovers it from the three holds rather than reading it, so
 this is a cross-check we lose, not a capability.
 
 ### Can we just add our ECU ID to the definition?
@@ -73,7 +78,7 @@ Approximate — read the actual rate RomRaider displays and trust that. **Switch
 (bit-packed, several share one address byte); parameters are not.
 
 "Log everything" is therefore self-defeating: all 95 standard params would land near ~1 Hz, and
-`GridSpec.min_samples = 20` per cell would need pulls several minutes long, during which "steady
+`GridSpec.min_samples = 20` per cell would need holds several minutes long, during which "steady
 state" stops being true. **Target ~20 parameters.**
 
 ## The profile
@@ -86,7 +91,7 @@ state" stops being true. **Target ~20 parameters.**
 | P12 Mass Airflow | `maf_gs` | |
 | P3 A/F Correction #1 | `af_correction` | **also the closed-loop indicator** — see Finding 1 |
 | P4 A/F Learning #1 | `af_learning` | |
-| P17 Battery Voltage | `battery_v` | **pull 3 is worthless without it** |
+| P17 Battery Voltage | `battery_v` | **hold 3 is worthless without it** |
 | P13 Throttle Opening Angle | `tps` | drives the transient filter |
 | P2 Coolant Temperature | `coolant` | proves full operating temperature |
 | P23 Knock Correction Advance | `knock_retard` | |
@@ -110,7 +115,7 @@ state" stops being true. **Target ~20 parameters.**
 |---|---|
 | P25 Manifold Relative Pressure | idle vacuum — the most direct evidence for Stage 0's leak question |
 | P48 Intake VVT Advance Angle Right | intake AVCS is live on this car and moves VE |
-| P24 Atmospheric Pressure | normalises pulls taken on different days/weather |
+| P24 Atmospheric Pressure | normalises holds taken on different days/weather |
 | P7 Manifold Absolute Pressure | absolute reference alongside P25 |
 
 ### SWITCHES — near-free, take them (4)
@@ -118,11 +123,30 @@ state" stops being true. **Target ~20 parameters.**
 | switch | why |
 |---|---|
 | S5 Idle Switch | confirms the ECU agrees it is at idle |
-| S17 Electrical Load Signal | confirms **pull 3** is actually loading the system |
+| S17 Electrical Load Signal | confirms **hold 3** is actually loading the system |
 | S9 Air Conditioning Switch | AC cycling perturbs idle; lets you discard affected samples |
 | S12 Front O2 Rich Signal | closed-loop activity corroboration |
 
 **Total ≈ 20 parameters + 4 switches → roughly 4–5 Hz.**
+
+## Not offered by this ECU — confirmed 2026-08-12, with substitutes
+
+Four of the above are **absent from Syed's RomRaider parameter list**. That is the capability
+bitmap doing its job, not a configuration error — the ECU did not advertise them.
+
+| missing | why | substitute |
+|---|---|---|
+| **P90 IAM** | `ecubyteindex=55, ecubit=0` | **P29 Learned Ignition Timing** (`ecubyteindex=11`) — the closest available read on what the ECU has learned about timing |
+| **P91 Fine Learning Knock Correction** | `ecubyteindex=55, ecubit=0` — **the same bit as P90**, which is why both vanished together | as above; `P23 Knock Correction Advance` still covers the safety question ("is it knocking *now*") |
+| **S12 Front O2 Rich Signal** | This car's front sensor is a **wideband A/F sensor**, not a narrowband O2 — the rich/lean switch has nothing to key off | **P58 A/F Sensor #1 (AFR)**, already in the list, plus `A/F Correction #1` movement as the closed-loop tell |
+| **S17 Electrical Load Signal** | not advertised | **P46 Alternator Duty** (`ecubyteindex=13`) — arguably better, showing the charging system working harder. And `battery_v` is the measurement hold 3 actually depends on; S17 was only corroboration |
+
+**Net effect: nothing required is lost.** P90/P91 were "useful, not required" in
+`CAPTURE-PROTOCOL.md`; S12 and S17 were corroboration for measurements we take directly. Swap in
+**P29** and **P46** if they are listed, and proceed.
+
+The P90/P91 pairing is worth remembering: parameters sharing a capability bit appear and disappear
+together, so "two related channels both missing" usually means one bit, not two faults.
 
 ## ⚠ Do NOT select these — they collide with required channels
 
@@ -145,13 +169,13 @@ both map to `injector_duty` with different units. **Select only one — P201.** 
 
 ## Duration and session shape
 
-- **60 s of steady hold per pull.** At ~4.7 Hz that is ~280 raw samples against
+- **60 s of steady data per hold.** At ~4.7 Hz that is ~280 raw samples against
   `GridSpec.min_samples = 20`, leaving generous margin after the transient filter discards
   samples. If the observed rate is below 3 Hz, either trim parameters or extend to 90 s.
 - **Warm up fully first** — coolant at operating temperature *and* `A/F Correction #1` visibly
   moving. Neither alone is sufficient.
-- **One file per pull**, named for the condition (`pull1-warm-idle.csv`, `pull2-fast-idle.csv`,
-  `pull3-loaded-idle.csv`). Separate files keep each `Observation` unambiguous.
+- **One file per hold**, named for the condition (`hold1-warm-idle.csv`, `hold2-fast-idle.csv`,
+  `hold3-loaded-idle.csv`). Separate files keep each `Observation` unambiguous.
 - Budget ~20–30 min for the session; the logging itself is only ~3 min of it.
 
 **Before any of it:** Stage 0 smoke/leak test, and the ground-loop remedy from

@@ -2,7 +2,7 @@
 
 **Status: written 2026-08-05, ahead of the wideband. Not yet executed on the car.**
 
-## Why three pulls and not one
+## Why three holds and not one
 
 At a single operating point the observable is scalar and the state is three-dimensional:
 
@@ -10,12 +10,12 @@ At a single operating point the observable is scalar and the state is three-dime
 trim = f( injector_latency , injector_flow , maf_transfer )     # 1 equation, 3 unknowns
 ```
 
-Any one of the three can be moved to null the trim, so **one steady-state pull cannot tell you
+Any one of the three can be moved to null the trim, so **one steady-state hold cannot tell you
 which belief is wrong** — it can only tell you that *something* is. That is not a modelling
 limitation, it is arithmetic, and it is why the closed loop was able to bend the wrong table in
 the 2026-08-04 E4 run while the trim went obediently to zero.
 
-Three pulls make the system identifiable, because each fault has a different *shape* across
+Three holds make the system identifiable, because each fault has a different *shape* across
 conditions:
 
 | fault | at ~2× airflow | at ~12 V |
@@ -26,7 +26,7 @@ conditions:
 | **MAF transfer** belief wrong | flat — *and the logged MAF itself is off vs nominal* |
 
 Latency and leak both shrink with airflow. **Voltage is the only thing that separates them** —
-dead time is voltage-dependent, unmetered air is not. Drop the low-voltage pull and those two
+dead time is voltage-dependent, unmetered air is not. Drop the low-voltage hold and those two
 collapse into each other; there is a test asserting exactly that
 (`car/tests/test_identify.py::test_leak_and_latency_are_degenerate_WITHOUT_the_voltage_probe`).
 
@@ -64,16 +64,16 @@ the loop intact. Break the loop instead:
    depends on the Openport being plugged in for its ground reference.*
 2. **Robust:** a **USB isolator** (ADuM3160-class, ~$20–40) between laptop and serial adapter, or an
    opto-isolated RS-232 adapter. Galvanic separation means no shared ground and no possible loop.
-   **Preferred for real capture sessions** — a dropout mid-pull costs the whole run.
+   **Preferred for real capture sessions** — a dropout mid-hold costs the whole run.
 
-**Acceptance test before any pull: ECU parameters AND `wideband_afr` updating SIMULTANEOUSLY.**
+**Acceptance test before any hold: ECU parameters AND `wideband_afr` updating SIMULTANEOUSLY.**
 Either stream working alone proves nothing.
 
-## The three pulls
+## The three holds
 
 Each is a **steady-state hold**, not a sweep. Target ≥20 usable samples per condition
 (`GridSpec.min_samples = 20`), which at RomRaider's typical rate is a few seconds of genuinely
-steady data — budget 30–60 s per pull to have margin after the transient filter discards
+steady data — budget 30–60 s per hold to have margin after the transient filter discards
 samples.
 
 | # | condition | how | separates |
@@ -106,7 +106,7 @@ mapper will pick them up from a normal RomRaider export:
 `tps`, `coolant`, `knock_retard`
 
 `battery_v` is the one most likely to be left out of a logger profile by habit — **without it
-pull 3 is worthless**, because it is the only channel that distinguishes a latency error from a
+hold 3 is worthless**, because it is the only channel that distinguishes a latency error from a
 vacuum leak.
 
 **Useful, not required:** `injector_duty`, `timing_total`, `iat`, `fine_knock_learn`.
@@ -120,7 +120,7 @@ readings). Defaults in `GridSpec`:
 - `steady_tps_tol = 2.0` — |Δtps/sample| above this is transient
 - `min_samples = 20` per cell before the cell is trusted at all
 
-If a pull comes back low-confidence, the fix is a longer, calmer hold — not lowering the
+If a hold comes back low-confidence, the fix is a longer, calmer hold — not lowering the
 threshold.
 
 ## One caveat specific to THIS engine
