@@ -9,6 +9,41 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-12 — FIRST REAL TELEMETRY: the log->role path works on a real car; wideband channel is dead in the file
+
+1,878 samples over 129.6 s from the test vehicle — the first data this project has ever had that
+did not come from its own simulator. Run through `logparse.parse_romraider_csv` unchanged.
+
+**The parser handled real RomRaider v370 headers on the first attempt**: all 13 canonical roles
+mapped, including the collision fixes made hours earlier the same night. `A/F Sensor #1 (AFR)`
+correctly declined to alias onto `wideband_afr`, keeping the trusted instrument unambiguous by
+design rather than by luck.
+
+**Sample rate 14.49 Hz with 21 parameters — 3x the modelled prediction.** The bandwidth model in
+`IDLE-LOG-PROFILE.md` assumed a request/response round trip per sample against SSM2's declared
+4800 baud and predicted ~4.7 Hz. SSM2 supports a continuous-read mode where the address list is
+sent once and the ECU streams, removing that overhead. Model replaced with the measurement.
+
+**Steady-state quality is excellent: 0.00% of samples exceed either `GridSpec` transient
+tolerance** (|d rpm| mean 8.7 max 79 against a 100 limit; |d tps| max 0.39 against 2.0). A 60 s
+hold yields ~870 usable samples against `min_samples = 20`.
+
+**Closed loop confirmed by the documented workaround** — `A/F Correction #1` std 2.65 %, actively
+wandering rather than frozen. The substitute for the inaccessible `CL/OL Fueling` extended
+parameter works.
+
+**The blocker: `wideband_afr` is a column of zeros.** Exactly one distinct raw value, `0.00`,
+across all 1,878 rows. The engine was running and fuelling normally — the factory A/F sensor read
+12.40-15.16, mean 14.53 — so this is the AEM plugin, not the engine. **The capture protocol cannot
+run without it**; it is a REQUIRED channel and the project's ground-truth instrument.
+
+**First observation about the car, held loosely:** total fuel trim averages **+0.31 %**
+(correction + learning), i.e. closed loop has idle fuelling essentially nailed, while idle speed
+wanders **640-770 rpm** (std 17.6). That points away from idle *fuelling* as the cause of the bad
+idle. Held loosely on purpose: without the wideband there is nothing to check the factory sensor
+against, and if it is lying the trims are meaningless. That is precisely why the wideband is the
+ground-truth instrument.
+
 ## 2026-08-11 — WIDEBAND LINK SOLVED, then a ground loop killed ECU comms: both faults were physical, neither was software
 
 Two faults resolved on the car in one session, and **neither lived where its symptoms pointed.**
@@ -669,3 +704,9 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-11 | Ground-loop fix applied (drop DB9 pin 5) | **BOTH streams live** — AFR matches gauge | signal-wire-only; return path via chassis + Openport OBD ground; zero cost |
 | 2026-08-11 | ECU ID `3B12504206` identity | **CONFIRMED correct part** — 05/USDM/FXT/AT/SH7058/sti05 | 332 defs entries parsed; family gap is 1 uncontributed AT revision, MT twin `3B12584206` present |
 | 2026-08-11 | ROM read retry (charger on, no ground loop) | STILL BLOCKED at seed/key — **but ECU returns a seed** | vendor DLL 1.01.4341, firmware 1.17.4877 unchanged; failure is at KEY validation, weakening the clone-cable hypothesis |
+| 2026-08-12 | First real log: parser on live-car export | **13/13 canonical roles mapped** | real RomRaider v370 headers, unmodified parser; first non-synthetic data in the project |
+| 2026-08-12 | SSM2 sample rate, 21 params (measured) | **14.49 Hz** (model predicted 4.7) | continuous-read mode; model was 3x pessimistic, replaced by measurement |
+| 2026-08-12 | Steady-state quality vs GridSpec | **0.00% of samples transient** | \|d rpm\| mean 8.7/max 79 vs tol 100; \|d tps\| max 0.39 vs tol 2.0 |
+| 2026-08-12 | `wideband_afr` in first log | **DEAD — 1 distinct value (0.00) across 1878 rows** | factory A/F sensor 12.40-15.16 mean 14.53, so engine fine; AEM plugin at fault. BLOCKS capture |
+| 2026-08-12 | Idle fuel trim (corr+learn), closed loop | **+0.31% mean** | idle fuelling essentially correct; provisional until wideband validates the factory sensor |
+| 2026-08-12 | Idle speed stability | 640-770 rpm, std 17.6 | the presenting complaint, quantified for the first time |
