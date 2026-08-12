@@ -161,3 +161,95 @@ last resort to drift into.
 ### 5. Forum, in parallel with all of the above
 
 Post the statement above. Free, asynchronous, and the community has seen this exact signature.
+
+---
+
+## ★ BUDGET-CONSTRAINED PATH (2026-08-12) — no purchases
+
+Syed cannot fund an AccessPort, a replacement ECU, or a standalone just to run a test. Everything
+below costs **zero money**. Ordered by information-per-effort.
+
+### F1. Does EcuFlash even know this ECU? (free, do first)
+
+**Possible root cause nobody has checked.** EcuFlash `1.44.4870` logs `Sending Key [1]...` — an
+**indexed** key, implying a key *table* rather than one universal algorithm. Our ECU ID
+`3B12504206` / `A2WC411D` is missing from the community ROM defs precisely because that AT
+calibration revision was never contributed. **If it is likewise absent from EcuFlash's own
+`rommetadata`, EcuFlash may be selecting a default or wrong key** — which would produce exactly
+"seed accepted, key refused" with a perfectly healthy ECU and a perfectly healthy cable.
+
+```powershell
+Get-ChildItem "C:\Program Files (x86)\OpenECU\EcuFlash\rommetadata" -Recurse -Include *.xml | Select-String -Pattern "3B12504206", "A2WC411" | Format-List Path, LineNumber, Line
+```
+
+If nothing matches but sibling IDs (`3B12504106` / `A2WC410D`) do, that is a strong lead and the
+fix may be **free** — supply metadata for the missing variant.
+
+### F2. Physical and documentary evidence of a prior tune (free)
+
+- **AccessPort traces:** windshield/dash mount, leftover bracket, adhesive residue, an OBD splitter
+  left in the footwell, COBB or tuner-shop stickers. Owners who ran an AP usually leave marks.
+- **Previous owner / service history.** One phone call can settle H1 outright.
+- **DTC pattern.** This car has **TGV deletes, a fully catless exhaust, and an exhaust-AVCS
+  delete** — all of which *should* set codes. Read the DTCs. Codes present ⇒ nobody suppressed
+  them ⇒ consistent with a stock ROM. Codes conspicuously *absent* ⇒ someone disabled monitors in
+  the ROM ⇒ the ROM is tuned. Supporting evidence, not proof, but it is free and immediate.
+
+### F3. Attempt a read on the '04 WRX (free, ASYMMETRIC — understand before spending the time)
+
+The defs show the '04 USDM Impreza WRX is `68HC16Y5` / `wrx04` — **16-bit**, and this clone is
+*documented* to fail on 16-bit K-line.
+
+- **Read SUCCEEDS ⇒ highly decisive.** The clone performs a full reflash-mode unlock, on the
+  protocol it is supposedly worst at. H2 dies; the Forester's ECU is the problem.
+- **Read FAILS ⇒ tells us almost nothing.** Confounded three ways: the clone's known 16-bit
+  limitation, a possibly-married WRX (Syed notes it was modified when purchased), and H2 itself.
+
+Worth the 20 minutes *only* because the success branch is so strong. Note a tuned ROM still reads
+normally unless explicitly locked, so "the WRX was modified" does not by itself predict failure.
+
+### F4. Borrow rather than buy (free, needs a person not a purchase)
+
+A COBB AccessPort states a marriage **explicitly** — it is the only direct diagnosis of H1. Any
+genuine J2534 tool separates cable from ECU. Both are common among independent Subaru shops and
+local enthusiasts; Syed is in the trade. **Borrowing costs nothing; buying is what we are avoiding.**
+
+### F5. If H1 is confirmed — `shbootmode` is the budget answer
+
+**Bench boot mode needs no tool Syed does not already own.** EcuFlash loads `shbootmode` (visible
+in its startup log) and drives it through the Openport. SH boot mode is a **hardware mode of the
+Renesas SH7058 itself**, entered by pin strapping and addressed over SCI, so it talks to the chip's
+own bootloader and **never touches the ECU application's seed/key**. Any software lock — COBB
+marriage, EcuTek security — is irrelevant to it.
+
+Cost: labour and care, not money. Requires removing and opening the ECU and wiring to specific
+pins, and it is unforgiving of mistakes. **The exact SH7058 pin strapping and SCI wiring must come
+from a verified source — do not work from memory or inference.**
+
+## Can a marriage/lock be removed?
+
+Distinguish the two, because they are not the same mechanism:
+
+| | what it locks | removal |
+|---|---|---|
+| **COBB AccessPort "marriage"** | Binds the **AccessPort** to one VIN. Primarily an anti-piracy measure on the *tool*. | Unmarry via the AP that married it; COBB support can sometimes release a unit. **Generally does NOT lock the ECU against third-party reads** — so this is a weaker candidate for our signature than it first appears. |
+| **EcuTek security lock** | A deliberate lock applied **to the ECU** so other tools cannot read the map — tuners use it to protect their work. | Needs EcuTek ProECU and normally the tuner who applied it. Realistically not removable without paying someone. |
+
+**Given the failure is at key validation, an EcuTek-style ECU lock fits better than a COBB
+marriage.** And the practical consequence for a budget build is the same either way: **`shbootmode`
+bypasses both**, because a software lock cannot defend against the silicon's own bootloader.
+
+## Immobilizer — VERIFY BEFORE BUYING ANY ECU
+
+**Unresolved, and it must not be assumed.** If this car has a factory immobilizer, a replacement
+ECU is **not** plug-and-play — the immobilizer and ECU must be matched and the keys re-learned,
+which normally needs a dealer-level tool and can cost more than the ECU. That risk alone can
+eliminate the replacement-ECU option economically.
+
+Free checks, in order:
+1. **Cluster indicator** — a key-shaped or `SECURITY` telltale that blinks with the ignition off.
+2. **Antenna ring** around the ignition lock cylinder (immobilizer transponder coil).
+3. Wiring diagram / fuse-box legend for an immobilizer control module.
+
+Do not buy a used ECU until this is settled and the seller's ECU ID is confirmed to be an AT member
+of the `3B1250xx06` family (see `defs/README.md`) — and that it is not itself married.
