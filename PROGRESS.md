@@ -668,3 +668,4 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-11 | ECU logging, serial adapter unplugged | **WORKS** — isolation test decisive | fix = break the loop (signal-only wire, or ADuM3160-class USB isolator), NOT relocating the ground |
 | 2026-08-11 | Ground-loop fix applied (drop DB9 pin 5) | **BOTH streams live** — AFR matches gauge | signal-wire-only; return path via chassis + Openport OBD ground; zero cost |
 | 2026-08-11 | ECU ID `3B12504206` identity | **CONFIRMED correct part** — 05/USDM/FXT/AT/SH7058/sti05 | 332 defs entries parsed; family gap is 1 uncontributed AT revision, MT twin `3B12584206` present |
+| 2026-08-11 | ROM read retry (charger on, no ground loop) | STILL BLOCKED at seed/key — **but ECU returns a seed** | vendor DLL 1.01.4341, firmware 1.17.4877 unchanged; failure is at KEY validation, weakening the clone-cable hypothesis |

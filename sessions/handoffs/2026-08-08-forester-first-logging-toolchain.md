@@ -746,6 +746,49 @@ Syed's timing observation ("this started while we were fixing the AFR, while the
 broken") was the single most valuable piece of evidence in the session and was initially
 under-weighted in favour of chasing stack traces.
 
+**Fix applied and verified:** DB9 pin 5 (AEM ground) removed, signal wire only. **Both streams now
+live simultaneously — AFR in RomRaider matches the gauge face.** Problem B is fully closed.
+
+---
+
+## Problem A retry 2026-08-11 20:50 — same wall, but the log reframes the hypotheses
+
+Retried under known-good conditions (charger pack on the battery, serial adapter unplugged so no
+ground loop, clean boot). **Identical failure.** Full technical statement, forum-ready, now lives in
+**`car/ecu/ROM-READ-BLOCKER.md`** — that is the durable home; this section is the summary.
+
+**Positives confirmed by this log:**
+- `J2534 DLL Version: 1.01.4341` — the **vendor** DLL is loaded. **H7 (silent DLL swap) is dead**;
+  Syed's vendor-drivers-only decision is intact.
+- `Device Firmware Version: 1.17.4877` — **unchanged**. No firmware flash has occurred; the clone
+  is not bricked and the §8 discipline has held.
+
+**The reading that matters — the ECU RETURNS A SEED.** EcuFlash cannot compute a key without one,
+and it sent the key 47 ms after requesting the seed. **The ECU answered a reflash-mode
+security-access request over K-line** — that is the security handshake, not SSM2 logging traffic.
+**This substantially weakens H2 (clone can't do reflash-mode K-line):** that failure would land at
+or before the seed request, not after a clean seed exchange. The failure is at *key validation*,
+one step deeper than the cable's alleged limitation.
+
+Also note the **662 ms** gap between key and close — that reads as a *timeout awaiting a response*
+rather than an immediate rejection, so "key refused" and "key never answered" are **not yet
+distinguished**.
+
+**Hypotheses now:** H1 (ECU security altered by a COBB marriage / EcuTek flash) leads; H2 weakened
+but alive. **A stock-looking ECU ID does not refute H1** — tuning suites commonly preserve the
+factory calibration ID.
+
+**A WRX cross-check is NOT a useful test.** Syed's other car is an '04 USDM WRX, which the defs show
+is `68HC16Y5` / `wrx04` — **16-bit**. The clone is *documented* to fail on 16-bit K-line, so a
+failure there would be uninformative. Only a success would tell us anything. Do not spend a trip
+on it.
+
+### ★ STRATEGIC: the ROM read is NOT on the critical path — stop treating it as a blocker
+
+It gates the first **write**, which is several stages away. The immediate milestone is the
+three-pull capture, which needs **logging** — and both required streams now work. Pursue the read
+asynchronously (forum post, or a genuine Openport) **while the tuning work proceeds.**
+
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
 
