@@ -85,3 +85,29 @@ def test_binning_drops_transient_samples():
     grid = bin_log(log, spec)
     assert grid.count.sum() == 0            # every sample rejected as transient
     assert weighted_mean_trim(grid) == 0.0  # graceful fallback
+
+
+def test_real_romraider_v370_names_map_correctly():
+    """Regression: the fixture used idealised headers, so these real v370 parameter names
+    were never exercised. Each one collided with a REQUIRED capture channel (2026-08-12)."""
+    # P91's real name has "Learning" between the two words the old pattern required to be adjacent.
+    assert map_header("Fine Learning Knock Correction (degrees)") == "fine_knock_learn"
+    assert map_header("Knock Correction Advance (degrees)") == "knock_retard"
+
+    # Collisions with required channels -> must map to nothing at all.
+    for header in (
+        "Mass Airflow Sensor Voltage (V)",          # was -> maf_gs
+        "Throttle Sensor Voltage (V)",              # was -> tps
+        "Rear O2 Heater Voltage (V)",               # was -> battery_v
+        "A/F Adjustment Voltage (V)",               # was -> battery_v
+        "Differential Pressure Sensor Voltage (V)",  # was -> battery_v
+        "Primary Wastegate Duty Cycle (%)",         # was -> injector_duty
+        "Secondary Wastegate Duty Cycle (%)",       # was -> injector_duty
+    ):
+        assert map_header(header) is None, header
+
+    # ...while the genuine articles still map.
+    assert map_header("Mass Airflow (g/s)") == "maf_gs"
+    assert map_header("Battery Voltage (V)") == "battery_v"
+    assert map_header("Throttle Opening Angle (%)") == "tps"
+    assert map_header("Injector Duty Cycle (%)") == "injector_duty"
