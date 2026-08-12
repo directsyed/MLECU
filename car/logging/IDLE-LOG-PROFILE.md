@@ -141,9 +141,26 @@ bitmap doing its job, not a configuration error — the ECU did not advertise th
 | **S12 Front O2 Rich Signal** | This car's front sensor is a **wideband A/F sensor**, not a narrowband O2 — the rich/lean switch has nothing to key off | **P58 A/F Sensor #1 (AFR)**, already in the list, plus `A/F Correction #1` movement as the closed-loop tell |
 | **S17 Electrical Load Signal** | not advertised | **P46 Alternator Duty** (`ecubyteindex=13`) — arguably better, showing the charging system working harder. And `battery_v` is the measurement hold 3 actually depends on; S17 was only corroboration |
 
-**Net effect: nothing required is lost.** P90/P91 were "useful, not required" in
-`CAPTURE-PROTOCOL.md`; S12 and S17 were corroboration for measurements we take directly. Swap in
-**P29** and **P46** if they are listed, and proceed.
+**Update — the substitutes are unavailable too.** `P29 Learned Ignition Timing` (byte 11) and
+`P46 Alternator Duty` (byte 13) are **also absent** from this ECU's list. **This car's capability
+bitmap is sparse above byte 10.** Confirmed present and streaming: `rpm`, `coolant`,
+`battery_v` — bytes 8–10. Do **not** keep hunting further substitutes; every channel in this
+group was "useful, not required" or corroboration for something measured directly.
+
+**Net effect is still: nothing required is lost.** P90/P91/P29/P46 were all in the
+"useful, not required" tier of `CAPTURE-PROTOCOL.md`; S12 and S17 were corroboration for
+measurements taken directly (`P58` + `A/F Correction` movement, and `battery_v` respectively).
+
+**Where the required nine live:** capability bytes **8, 9 and 10** — the block this ECU
+demonstrably supports. That is why the required set survives a sparse bitmap intact.
+
+**P200 and P201 are safe regardless.** Exactly 4 of the 95 standard parameters carry no capability
+bit, and they are the `P200`–`P203` block — RomRaider *derives* these (load from MAF and rpm,
+injector duty from pulse width and rpm) rather than reading them from the ECU, so no capability bit
+gates them. `load` and `injector_duty` are therefore available even on a sparse ECU.
+
+**Rule going forward: select what is listed, skip what is not, do not chase substitutes.** Only a
+missing *required* channel is worth stopping for.
 
 The P90/P91 pairing is worth remembering: parameters sharing a capability bit appear and disappear
 together, so "two related channels both missing" usually means one bit, not two faults.
