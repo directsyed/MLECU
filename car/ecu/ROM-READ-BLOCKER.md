@@ -87,12 +87,77 @@ cable.
 > *seed returned, key refused* specifically indicate a married/locked ECU, as opposed to a cable
 > limitation? SSM2 logging works flawlessly on this setup; only reflash-mode entry fails.
 
-## Why this is parked
+## ★ Why this IS blocking (correcting an earlier misjudgement)
 
-**The ROM read is not blocking the project.** It gates the first *write*, which is several stages
-away. The immediate milestone — the three-pull capture in `car/logging/CAPTURE-PROTOCOL.md` — needs
-**logging**, and as of 2026-08-11 both required streams work: SSM2 over the Openport and
-`wideband_afr` from the AEM 30-0300.
+An earlier draft called this "parked, not on the critical path." **That was wrong, and Syed
+correctly pushed back.**
 
-Pursue this asynchronously (forum, or a genuine Openport 2.0) while the tuning work proceeds. Do
-not let it hold up data capture.
+**Read and write share the same gate.** Both require the identical seed/key unlock followed by a
+kernel upload; the read is simply the *less* demanding of the two. A seed/key failure therefore
+guarantees the write path is dead — you cannot flash a tune you cannot unlock the ECU to read.
+And because a tune must be *written to be tested*, the whole propose → clamp → converge loop
+terminates in a write. **No write path means no tuning, however good the logs are.**
+
+The read is not a preliminary step that can wait. It is the **first observation of whether this
+project's output can ever reach the car**, and it is currently failing.
+
+### What the logs are still worth — real, but not a substitute
+
+Capture remains worth doing in parallel, for reasons that do not depend on writing:
+
+- **`NOMINAL_MAF_IDLE` must be measured on this engine.** `CAPTURE-PROTOCOL.md` flags the 2.50 g/s
+  figure as a *sim* value, and this car has TGV and exhaust-AVCS deletes. Until it is measured, the
+  estimator's MAF-vs-nominal term — the one separating a MAF error from an injector-flow error — is
+  calibrated against a number never observed on this car.
+- **The deterministic layer is entirely sim-bound.** MVEM is `sim-calibrated-pending`; the estimator
+  is exactly as right as the model until real logs test it. Both sides of the cross-check are
+  currently validated only against simulation.
+- **Archived tuning iterations are literally training examples** for the fine-tune corpus.
+
+All real. **None of it produces a tuned car.** Treat capture as parallel work, not as progress
+against this blocker.
+
+## Resolution ladder — cheapest and most decisive first
+
+### 1. Separate H1 from H2 with a borrowed tool — do this BEFORE spending anything
+
+The single question worth answering: **is it the ECU or the cable?** Two ways, both ~free:
+
+- **A COBB AccessPort will state a marriage explicitly.** Plug one in; if the ECU is married to
+  another AP, it says so. That is a *direct* diagnosis of H1 rather than an inference.
+- **Any genuine J2534 Subaru tool** attempting a read. Success ⇒ H2 (the clone) and the fix is a
+  cable. Identical failure ⇒ H1 (the ECU) and no cable purchase would have helped.
+
+APs and genuine Openports are common among independent Subaru shops and local enthusiasts. **Do not
+buy a genuine Openport (~$170–200, out of production) until this test has run** — if H1 is true it
+buys nothing.
+
+### 2. If H1 is confirmed — replacement ECU
+
+A married/EcuTek-locked ECU generally cannot be unlocked without the tool that locked it. The
+standard remedy is a known-good used ECU, and **the exact correct part is already known** from
+`defs/README.md`: 2005 USDM Forester XT **automatic**, ECU ID `3B12504006` / `4106` / `4206` /
+`4306` (any AT revision of the family), SH7058, `sti05`. Typically $100–200 used. Verify the seller's
+ECU ID before buying, and confirm it is not itself married.
+
+### 3. Bench boot-mode read/write — bypasses ECU security entirely
+
+EcuFlash loads a flashing tool named **`shbootmode`** (visible in the startup log above). SH boot
+mode is a **hardware mode of the Renesas SH7058 itself**, entered by pin strapping and talked to via
+SCI — it addresses the chip's own bootloader and therefore **does not use the ECU application's
+seed/key at all.** This is the community's recovery path for bricked and locked Subaru ECUs.
+
+Requires removing and opening the ECU and wiring to specific pins; more involved than any OBD-port
+method and unforgiving of mistakes. Research the exact SH7058 procedure properly before attempting —
+it is listed here as a genuine option, not a recipe.
+
+### 4. Standalone ECU (rusEFI) — forces an already-open decision
+
+`car/CLAUDE.md` carries this as a standing design question: stay on the OEM ECU with
+RomRaider/EcuFlash, or plan a standalone swap. A permanently unwritable OEM ECU decides it. This
+reshapes the deterministic write-layer interface, so it is a real architectural fork, not a
+last resort to drift into.
+
+### 5. Forum, in parallel with all of the above
+
+Post the statement above. Free, asynchronous, and the community has seen this exact signature.

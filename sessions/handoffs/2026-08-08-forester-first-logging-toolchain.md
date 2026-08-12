@@ -783,11 +783,29 @@ is `68HC16Y5` / `wrx04` — **16-bit**. The clone is *documented* to fail on 16-
 failure there would be uninformative. Only a success would tell us anything. Do not spend a trip
 on it.
 
-### ★ STRATEGIC: the ROM read is NOT on the critical path — stop treating it as a blocker
+### ★ STRATEGIC — CORRECTED: the ROM read IS blocking. My earlier call was wrong.
 
-It gates the first **write**, which is several stages away. The immediate milestone is the
-three-pull capture, which needs **logging** — and both required streams now work. Pursue the read
-asynchronously (forum post, or a genuine Openport) **while the tuning work proceeds.**
+I first wrote that the read was "not on the critical path" because logging works. **Syed pushed
+back and was right.** Read and write pass the **same** seed/key gate — the read is merely the less
+demanding of the two — so a seed/key failure *guarantees* the write path is dead. A tune must be
+written to be tested, and the propose → clamp → converge loop terminates in a write. **No write
+path means no tuning, no matter how good the logs are.**
+
+The read is not a preliminary that can wait; it is the first observation of whether this project's
+output can ever reach the car, and it is failing.
+
+**Capture is still worth running in parallel** — `NOMINAL_MAF_IDLE` must be measured on this engine
+(TGV + exhaust-AVCS deletes make the 2.50 g/s sim value untrustworthy), the whole deterministic
+layer is `sim-calibrated-pending` and untested against real data, and archived iterations are
+training examples. **But none of that produces a tuned car.** Parallel work, not progress against
+the blocker.
+
+**Resolution ladder now lives in `car/ecu/ROM-READ-BLOCKER.md`.** Headline: **separate H1 from H2
+with a BORROWED tool before spending anything** — a COBB AccessPort states a marriage explicitly,
+and any genuine J2534 tool distinguishes cable from ECU. A genuine Openport (~$170–200, out of
+production) buys nothing if H1 is true. Then, in order: replacement ECU (exact correct part already
+known from `defs/README.md`), **bench `shbootmode`** (an SH7058 *hardware* mode that bypasses the
+application seed/key entirely — EcuFlash already loads that tool), or the standalone/rusEFI fork.
 
 ### Measurement Gotcha (IMPORTANT — I gave bad advice here)
 I told the user to expect **−5 to −12V** on the blue wire (true RS-232 idle). They measured **0.5V** and we treated it as a fault.
