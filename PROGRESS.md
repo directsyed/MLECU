@@ -666,3 +666,5 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-11 | Wideband fault-elimination chain | 5 hypotheses killed by measurement, incl. all 3 pre-registered | genuine FTDI · −5.74 V on pin 3 · loopback echo · reboot · bypass; every original suspect was wrong |
 | 2026-08-11 | ECU logging with both cables connected | **FAILS** — hangs at `sending ecu init`, no exception | ground loop: Openport (OBD pin 4/5) + AEM gauge ground bridged via laptop USB, heater 1–2 A in the loop |
 | 2026-08-11 | ECU logging, serial adapter unplugged | **WORKS** — isolation test decisive | fix = break the loop (signal-only wire, or ADuM3160-class USB isolator), NOT relocating the ground |
+| 2026-08-11 | Ground-loop fix applied (drop DB9 pin 5) | **BOTH streams live** — AFR matches gauge | signal-wire-only; return path via chassis + Openport OBD ground; zero cost |
+| 2026-08-11 | ECU ID `3B12504206` identity | **CONFIRMED correct part** — 05/USDM/FXT/AT/SH7058/sti05 | 332 defs entries parsed; family gap is 1 uncontributed AT revision, MT twin `3B12584206` present |
