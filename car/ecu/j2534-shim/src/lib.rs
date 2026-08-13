@@ -10,10 +10,10 @@
 //! NEVER writes to the ECU itself — the real DLL does exactly what it always did. Read-only,
 //! brick-safe. Removing the EcuFlash registration reverts everything; no vendor file is touched.
 //!
-//! Build (32-bit, because EcuFlash is a 32-bit app):
-//!   rustup target add i686-pc-windows-msvc
-//!   cargo build --release --target i686-pc-windows-msvc
-//! Output: target/i686-pc-windows-msvc/release/op20log.dll
+//! Build (32-bit, because EcuFlash is a 32-bit app; GNU toolchain needs no Visual Studio):
+//!   rustup toolchain install stable-i686-pc-windows-gnu
+//!   cargo +stable-i686-pc-windows-gnu build --release
+//! Output: target/i686-pc-windows-gnu/release/op20log.dll
 //!
 //! Config via environment variables (set them in the shell that launches EcuFlash):
 //!   TACTRIX_SHIM_REAL  full path to the genuine DLL (default C:\WINDOWS\SysWOW64\op20pt32.dll)
@@ -37,7 +37,7 @@ extern "system" {
 /// We only ever READ this (bounded by `data_size`) for logging — never hand a self-built one to
 /// the real DLL — so even a harmless layout slip cannot corrupt a transfer.
 #[repr(C)]
-struct PassThruMsg {
+pub struct PassThruMsg {
     protocol_id: u32,
     rx_status: u32,
     tx_flags: u32,
@@ -159,8 +159,10 @@ unsafe fn dump(tag: &str, idx: u32, m: *const PassThruMsg) {
         return;
     }
     let n = ((*m).data_size as usize).min(4128);
-    let bytes = &(*m).data[..n];
-    let hex: Vec<String> = bytes.iter().map(|b| format!("{:02X}", b)).collect();
+    // Read through the raw pointer without creating an intermediate reference to the array
+    // (dangerous_implicit_autorefs): copy byte-by-byte from the computed element addresses.
+    let base = std::ptr::addr_of!((*m).data) as *const u8;
+    let hex: Vec<String> = (0..n).map(|i| format!("{:02X}", *base.add(i))).collect();
     line(&format!("  {}[{}]: proto={} txf=0x{:X} rxs=0x{:X} len={} | {}",
         tag, idx, (*m).protocol_id, (*m).tx_flags, (*m).rx_status, n, hex.join(" ")));
 }
@@ -174,7 +176,7 @@ unsafe fn dump_many(tag: &str, msgs: *const PassThruMsg, count: u32) {
 
 // ============================ exported J2534 v04.04 API ============================
 // Each fn forwards unchanged to the real DLL. extern "system" = stdcall on 32-bit Windows.
-// Undecorated export names come from exports.def.
+// Undecorated export names: exports.def (MSVC) or -Wl,--kill-at (GNU) - see build.rs.
 
 type FOpen = unsafe extern "system" fn(*mut c_void, *mut u32) -> i32;
 type FClose = unsafe extern "system" fn(u32) -> i32;
