@@ -1,0 +1,6 @@
+Windows Registry Editor Version 5.00
+
+; Reverts register-shim.reg by deleting the shim's J2534 device key.
+; The leading "-" on the key path means "delete this key". The real Tactrix device is not touched.
+
+[-HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\PassThruSupport.04.04\Tactrix OpenPort 2.0 (LOG SHIM)]

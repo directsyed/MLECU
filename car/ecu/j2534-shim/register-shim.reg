@@ -1,0 +1,27 @@
+Windows Registry Editor Version 5.00
+
+; Registers the logging shim as a SECOND J2534 device alongside the genuine Tactrix entry.
+; Mirrors Syed's real registry entry (capability flags copied verbatim, 2026-08-13); only the
+; key name, display name, and FunctionLibrary differ. The real Tactrix device is left untouched,
+; so RomRaider keeps working. To revert: delete this one key (see README).
+;
+; PREREQUISITE: copy the built op20log.dll to C:\Openport-shim\op20log.dll  (or edit the path below).
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\PassThruSupport.04.04\Tactrix OpenPort 2.0 (LOG SHIM)]
+"Name"="OpenPort 2.0 (LOG SHIM)"
+"Vendor"="Tactrix Inc. (shim)"
+"ConfigApplication"=""
+"DeviceId"=dword:00000000
+"CAN"=dword:00000001
+"ISO9141"=dword:00000001
+"ISO9141_CH1"=dword:00000001
+"ISO9141_CH2"=dword:00000001
+"ISO9141_CH3"=dword:00000001
+"ISO14230"=dword:00000001
+"ISO14230_CH1"=dword:00000001
+"ISO14230_CH2"=dword:00000001
+"ISO14230_CH3"=dword:00000001
+"ISO15765"=dword:00000001
+"J1850PWM"=dword:00000000
+"J1850VPW"=dword:00000000
+"FunctionLibrary"="C:\\Openport-shim\\op20log.dll"

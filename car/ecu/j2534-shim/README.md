@@ -12,91 +12,100 @@ per session and the ECU still refuses the key → the fault is ECU-side.
 
 **Safety:** it only reads and copies pointers through to the real DLL. It never modifies traffic and
 never issues a write to the ECU. The genuine vendor DLL stays exactly where it is and does all real
-work — this respects the vendor-drivers-only decision. Reverting = remove the EcuFlash registration
-line. Nothing is overwritten.
+work — this respects the vendor-drivers-only decision. Reverting = delete one registry key.
 
 ---
 
-## 1. Build (produces a 32-bit DLL — EcuFlash is a 32-bit app)
+## Step 1 — get the code onto the Windows laptop
 
-You already have `cargo`. Two one-time prerequisites:
+Either clone from GitHub:
+```bash
+git clone https://github.com/directsyed/MLECU.git
+```
+`git clone` — download a full copy of the repository. Then `cd MLECU\car\ecu\j2534-shim`.
+
+…or, since the server's shared drive is mapped on the laptop, just open a terminal in this folder
+directly on the shared drive. (A local clone builds faster and avoids network-drive quirks — prefer
+it.)
+
+## Step 2 — build the DLL (no Visual Studio needed)
+
+You already have `cargo`. Use the **self-contained GNU toolchain** — rustup ships it with its own
+bundled linker, so nothing else to install:
 
 ```bash
-rustup target add i686-pc-windows-msvc
+rustup toolchain install stable-i686-pc-windows-gnu
 ```
-`rustup` — the Rust toolchain manager. `target add` — installs support for compiling to a platform
-other than your machine's default. `i686-pc-windows-msvc` — 32-bit (`i686`) Windows using the MSVC
-linker. **The MSVC linker comes from "Visual Studio Build Tools" with the "Desktop development with
-C++" workload** — if `cargo build` later errors with `link.exe not found`, that's the missing piece
-(free from Microsoft). If you'd rather not install VS Build Tools, use the GNU toolchain instead:
-`rustup target add i686-pc-windows-gnu` and add `--target i686-pc-windows-gnu` below (needs the
-`i686` MinGW, which rustup can fetch).
-
-Then, from this folder:
+`rustup toolchain install` — download a Rust toolchain. `stable-i686-pc-windows-gnu` — the stable
+compiler for 32-bit (`i686`) Windows using the GNU/MinGW linker. 32-bit because EcuFlash is a 32-bit
+app; GNU because rustup bundles that linker, so no Visual Studio Build Tools are required.
 
 ```bash
-cargo build --release --target i686-pc-windows-msvc
+cargo +stable-i686-pc-windows-gnu build --release
 ```
-`cargo build` — compile the project. `--release` — optimized build (also strips debug-assert
-overhead). `--target i686-pc-windows-msvc` — build the 32-bit Windows DLL rather than a binary for
-your host.
+`cargo build` — compile the project. `+stable-i686-pc-windows-gnu` — use that toolchain for this one
+command (its default target is 32-bit Windows GNU, so no `--target` needed). `--release` — optimized
+build.
 
-Output: `target\i686-pc-windows-msvc\release\op20log.dll`
+Output: **`target\i686-pc-windows-gnu\release\op20log.dll`**
 
-**Verify the exports are undecorated** (this is the one thing most likely to go wrong):
-```bash
-dumpbin /exports target\i686-pc-windows-msvc\release\op20log.dll
-```
-`dumpbin` — an MSVC tool that inspects a binary. `/exports` — list exported functions. You want to
-see `PassThruOpen`, `PassThruConnect`, … as **plain names**. If they appear as `_PassThruOpen@8`
-(decorated), EcuFlash won't bind them — tell me and I'll adjust `exports.def`.
-
-## 2. Point the shim at the real driver and a log file
-
-Set two environment variables **in the same shell you launch EcuFlash from**, or system-wide:
+## Step 3 — put the DLL where the registry file expects it
 
 ```bash
-set TACTRIX_SHIM_REAL=C:\WINDOWS\SysWOW64\op20pt32.dll
-set TACTRIX_SHIM_LOG=C:\Users\Syed\Desktop\j2534_shim.log
+mkdir C:\Openport-shim
+copy target\i686-pc-windows-gnu\release\op20log.dll C:\Openport-shim\
 ```
-`set NAME=value` — defines an environment variable for this shell session. `TACTRIX_SHIM_REAL` — the
-genuine DLL the shim forwards to (this is the exact path your EcuFlash task log already prints:
-`C:\WINDOWS\SysWOW64\op20pt32.dll`). `TACTRIX_SHIM_LOG` — where to write the capture; Desktop is a
-guaranteed-writable spot. Both have defaults (SysWOW64 DLL, `%TEMP%\j2534_shim.log`) if unset, but
-setting them explicitly removes all doubt.
+`mkdir` — make the folder. `copy` — copy the built DLL into it. (`register-shim.reg` points at
+`C:\Openport-shim\op20log.dll`; change that path in the .reg if you prefer another location.)
 
-## 3. Register the shim with EcuFlash
+## Step 4 — register the shim as a second J2534 device
 
-EcuFlash chooses its J2534 library from `customize\j2534Libraries.properties` (your task log prints
-`J2534 Library names loaded from file: ./customize/j2534Libraries.properties`). **The exact line
-format differs between EcuFlash builds, so before I give you the precise line, paste me the current
-contents of:**
-
+Double-click **`register-shim.reg`** (in this folder) and accept the UAC / "are you sure" prompts,
+or from an **elevated** terminal:
+```bash
+reg import register-shim.reg
 ```
-C:\Program Files (x86)\OpenECU\EcuFlash\customize\j2534Libraries.properties
+`reg import` — merge a `.reg` file into the registry. This adds one new device,
+**"OpenPort 2.0 (LOG SHIM)"**, next to your real Tactrix entry. The real one is untouched, so
+RomRaider is unaffected. The shim's capability flags are copied verbatim from your real entry.
+
+## Step 5 — choose where the log is written
+
+```bash
+setx TACTRIX_SHIM_LOG "C:\Openport-shim\j2534_shim.log"
 ```
+`setx` — set a **persistent** environment variable (unlike `set`, which lasts only for the current
+window). Programs launched *after* this — including EcuFlash — will inherit it. The shim reads it to
+decide where to write. (If unset it defaults to `%TEMP%\j2534_shim.log`. `TACTRIX_SHIM_REAL`
+defaults to `C:\WINDOWS\SysWOW64\op20pt32.dll`, which matches your real device, so leave it alone.)
 
-It is a tiny text file. I'll hand you back the one line to add pointing at `op20log.dll`, and the
-EcuFlash device-menu entry to pick. (Adding a line is fully reversible — delete it to revert.)
+## Step 6 — capture
 
-## 4. Capture
+1. Fresh key cycle, charger on the battery (the earlier session degraded from repeated attempts +
+   sag — start clean).
+2. **Close and reopen** EcuFlash so it picks up the new env var, then in its interface/device
+   selection choose **OpenPort 2.0 (LOG SHIM)** instead of the plain Tactrix device.
+3. Attempt the read **once**. Let it hit the seed/key wall and stop — don't hammer it.
+4. Close EcuFlash and send me **`C:\Openport-shim\j2534_shim.log`**.
 
-1. Fresh key cycle and a charger on the battery (the earlier session degraded from repeated
-   attempts + sag — start clean).
-2. Launch EcuFlash from the shell where the env vars are set; select the **shim** device.
-3. Confirm the log file appears and its first line reads `==== shim init: real DLL '…' loaded=true`.
-4. Attempt the read **once** (do not hammer it). Let it reach the seed/key wall and stop.
-5. Close EcuFlash and **send me `j2534_shim.log`.**
+## What "good" looks like
 
-## 5. What I'll read from it
-
-The decisive lines are the `TX`/`RX` hex dumps bracketing the seed request. Concretely:
-- the **RX** message right after the seed request — the seed bytes themselves;
-- the **TX** message EcuFlash then sends — the computed key;
-- any **RX** after the key — an explicit reject code vs nothing at all (which resolves the
-  NAK-vs-timeout ambiguity the 662 ms task-log gap left open).
+- `C:\Openport-shim\j2534_shim.log` exists, and its **first line** reads:
+  `==== shim init: real DLL 'C:\WINDOWS\SysWOW64\op20pt32.dll' loaded=true ; log='…' ====`
+  That confirms the shim loaded the real driver and is logging.
+- **EcuFlash behaves identically to before** — same task-log sequence, and the read still fails at
+  the same seed/key wall. That is expected and correct: the shim is transparent, so it does not fix
+  the read, it *records* it. We want the failure, captured byte-for-byte.
+- The log fills with `PassThruConnect` (protocol/baud), `PassThruStartMsgFilter`, and many
+  `TX`/`RX` lines with hex payloads. The decisive ones bracket the seed request: the `RX` right
+  after it is the **seed**; the `TX` after that is the **key**; any `RX` following the key is an
+  explicit reject vs nothing (timeout).
+- If instead EcuFlash errors that it can't load the device or find `PassThruOpen`, the exports came
+  out decorated — run `dumpbin /exports C:\Openport-shim\op20log.dll` (or `objdump -p`) and send me
+  what the export names look like.
 
 ## Reverting
 
-Delete the line you added to `j2534Libraries.properties` (and optionally delete `op20log.dll`).
-No system file, driver, or registry entry was modified.
+Delete the registry key (double-click `unregister-shim.reg`, or
+`reg delete "HKLM\SOFTWARE\WOW6432Node\PassThruSupport.04.04\Tactrix OpenPort 2.0 (LOG SHIM)" /f`).
+No system file, driver, or vendor entry was modified.
