@@ -55,7 +55,7 @@ never answered" are not yet distinguished.
 |---|---|
 | Cable / driver / wiring | RomRaider streams live SSM2 data perfectly (RPM, ECT, battery V) |
 | J2534 DLL registration | EcuFlash reads device firmware + serial on every attempt |
-| EcuFlash version | Identical failure on `1.44.4347` and `1.44.4870` |
+| EcuFlash version | Identical failure on `1.44.4347` and `1.44.4870`. **Also failed on an older build before Syed moved newer as a troubleshooting step** — the newer build was the *reaction* to this failure, not a cause. "Try an older build" is therefore already eliminated. |
 | J2534 DLL version | Identical failure on `1.01.4341` and `1.02.4870` |
 | Flash method | `sti04` and `sti05` both tried — same point of failure |
 | 16-bit vs 32-bit ECU | DBW physically confirmed → 32-bit SH7058 is correct |
@@ -184,6 +184,49 @@ Get-ChildItem "C:\Program Files (x86)\OpenECU\EcuFlash\rommetadata" -Recurse -In
 
 If nothing matches but sibling IDs (`3B12504106` / `A2WC410D`) do, that is a strong lead and the
 fix may be **free** — supply metadata for the missing variant.
+
+### F1b. Metadata result + the A2WC411D file (done 2026-08-12)
+
+EcuFlash's `rommetadata` contains `A2WC411I.xml` — the **MT twin** — but **not** `A2WC411D` (our
+AT build). Same gap as everywhere. Built the missing file: **`car/ecu/defs/ecuflash/A2WC411D.xml`**.
+
+Construction mirrors upstream's *own* pattern: the MT twin `A2WC411I.xml` is a stub that
+`<include>`s `A2WC410I` — i.e. upstream itself asserts rev-41↔42 table-layout identity on the MT
+side. Our file does the same on the AT side (`<include>A2WC410D</include>`), with identity fields
+from the logger-def family table (see `defs/README.md`).
+
+**Install:** copy to `C:\Program Files (x86)\OpenECU\EcuFlash\rommetadata\subaru\Forester XT\`.
+`A2WC410D.xml` must already be in that folder (it is the include target — it ships with EcuFlash).
+On next launch the startup log's "NNN ROM metadata models scanned" count should rise by one.
+
+**Honest expectation — this probably will NOT fix the read.** EcuFlash reads via the generic
+`read_sti05.xml` template (visible in the task log), which is keyed by *memory model*, not by our
+per-calibration file. The per-cal file governs **editing/checksumming a ROM image once you have
+one**, and it matters the moment a read succeeds. It is *worth* having regardless. But if EcuFlash
+selects its seed/key by ECU-ID lookup and falls back to a default on a miss, this file is what
+would let it find the right entry — that is the one way it could bear on the read, and it is
+untested. Free and reversible, so it is in place.
+
+### F1c. J2534 call tracing — capture the actual seed and key bytes
+
+**This is the highest-value diagnostic left.** It resolves the ambiguity the 662 ms
+key→close gap left open: did the ECU **NAK the key** (→ H1, security altered) or **never answer**
+(→ H2/timing/cable)? The task log cannot tell these apart; the wire trace can.
+
+**Authoritative method (Tactrix):** the Openport DLL emits a full call trace via
+`OutputDebugString` **once an application sets the IOCTL** `TX_IOCTL_SET_DLL_DEBUG_FLAGS` with flag
+`TX_IOCTL_DLL_DEBUG_FLAG_J2534_CALLS` (`0x00000001`). Output is captured with SysInternals
+**DebugView** (`Dbgview.exe`). Source: Tactrix KB (see session notes).
+
+**The catch:** EcuFlash does **not** set that IOCTL, so running EcuFlash + DebugView alone **may
+show nothing from the DLL.** Two paths:
+1. **Zero-risk, try first:** run DebugView (as admin, "Capture Win32" on), then attempt the read in
+   EcuFlash. Costs two minutes; if the DLL emits anything unprompted we get it for free.
+2. **Reliable:** a tiny helper that loads `op20pt32.dll`, sets the debug IOCTL, then performs
+   SSM2 init → request seed → send key, logging every call. This is a read-path-only sequence
+   (**never writes**), so it is brick-safe, and it is exactly the kind of scripting to build
+   in-house. **Claude to write this as a ctypes script on request** — deferred to keep the current
+   step (hard-reset read + wideband fix) clean.
 
 ### F2. Physical and documentary evidence of a prior tune (free)
 
