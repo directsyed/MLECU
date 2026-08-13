@@ -1,0 +1,14 @@
+[package]
+name = "op20log"
+version = "0.1.0"
+edition = "2021"
+description = "Transparent J2534 pass-through logging shim for the Tactrix Openport 2.0, to capture the Subaru reflash seed/key exchange. Read-only, brick-safe."
+
+[lib]
+name = "op20log"
+# cdylib => a native DLL that EcuFlash can load as a J2534 library.
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 2
+panic = "abort"   # never unwind across the C ABI boundary back into EcuFlash
