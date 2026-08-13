@@ -18,19 +18,25 @@ this tightly means both can be trusted, and it retroactively validates the facto
 from the 2026-08-12 warm-idle log (the "held loosely" caveat there is now largely discharged for
 the fuel channel).
 
-**What this log is:** a **cold, elevated-idle warm-up shakedown taken right after the ECU hard
-reset** — coolant rising 100->135 F, idle speed ~1137-1550 rpm (mean 1337), MAF ~7.3 g/s (about 2x
-the warm-idle log's 3.5), and `af_learning` flat at 0.00 because the reset wiped it. It is closed
-loop (correction actively moving, holding ~stoich), mechanically healthy (zero knock retard,
-timing 15.5-19 deg, 0.00% transient samples), but it is **NOT a capture-protocol warm-idle hold**
-and must not be fed to the estimator as one. Coincidentally it approximates the protocol's *fast
-idle* condition (~2x airflow), just cold and pre-learning.
+**What this log is (corrected):** a **cold first-start capture, engine cold after sitting ~2 days,
+taken BEFORE the ECU hard reset** — coolant rising 100->135 F, idle ~1137-1550 rpm (mean 1337), MAF
+~7.3 g/s (about 2x the warm-idle log's 3.5). `af_learning` is flat at 0.00 **because this car has
+never been driven** (long-term fuel learning populates from driving across load/rpm cells; it was
+never wiped — it was never accumulated). It is closed loop (correction actively moving, holding
+~stoich), mechanically healthy (zero knock retard, timing 15.5-19 deg, 0.00% transient samples),
+but it is **NOT a capture-protocol warm-idle hold** and must not be fed to the estimator as one.
+Coincidentally it approximates the protocol's *fast idle* condition (~2x airflow), just cold.
+
+**Its real value: a clean PRE-reset baseline.** First start in 2 days, learning genuinely empty —
+a reference point if idle behaviour or trims shift after the reset.
 
 **One reading worth carrying forward, held loosely:** at this cold high-idle point the ECU needs
-**+7.66% fuel correction** to hold stoich with learning wiped, versus the warm-idle log's +0.31%
-total trim. Not comparable operating points (cold vs warm, wiped vs settled learning), so this is
-not evidence of a lean condition yet — it is a number to re-check once a proper warm hold is taken
-with learning settled.
+**+7.66% fuel correction** to hold stoich, versus the warm-idle log's +0.31% total trim. Not
+comparable operating points (cold vs warm; and here the +7.66% is pure short-term correction with
+no learning to share the load). A persistent positive fuel correction is *consistent with* the
+expected MAF/VE mismatch (EJ255 2.5 L calibration on a 2.0 L EJ20X, deleted TGVs) — but a single
+cold non-protocol log is not evidence of it. Re-check on a proper warm hold once the car has been
+driven enough to populate learning.
 
 ## 2026-08-12 — FIRST REAL TELEMETRY: the log->role path works on a real car; wideband channel is dead in the file
 
@@ -735,4 +741,5 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-12 | Idle speed stability | 640-770 rpm, std 17.6 | the presenting complaint, quantified for the first time |
 | 2026-08-13 | Wideband live in-file (AEM plugin fixed) | **real data, 14.40-14.90 AFR** | was a column of zeros on 2026-08-12; capture protocol's ground-truth instrument now works |
 | 2026-08-13 | AEM vs factory A/F sensor agreement | **-0.02 AFR mean diff, std 0.08 (n=1351)** | two independent instruments cross-validate; both trustworthy at idle/stoich |
-| 2026-08-13 | Post-reset cold high-idle shakedown | 1337 rpm mean, coolant 100-135F, 0 knock | healthy warm-up; NOT a protocol warm-idle hold (learning wiped, cold) |
+| 2026-08-13 | PRE-reset cold first-start baseline | 1337 rpm mean, coolant 100-135F, 0 knock, learn 0.00 | first start in 2 days; NOT a protocol warm-idle hold; learning empty (never driven, not wiped) |
+| 2026-08-13 | Cold-idle short-term fuel correction | +7.66% mean (learn 0.00) | pre-reset; consistent-with but not evidence-of the expected MAF/VE lean bias; re-check warm |
