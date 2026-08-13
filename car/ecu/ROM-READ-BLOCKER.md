@@ -228,6 +228,46 @@ show nothing from the DLL.** Two paths:
    in-house. **Claude to write this as a ctypes script on request** — deferred to keep the current
    step (hard-reset read + wideband fix) clean.
 
+### F1d. HARD-RESET RESULT (2026-08-13) — did NOT clear the block. This is decisive.
+
+Battery disconnected ~30 min, reconnected, read attempted as the first action. **Identical
+failure**: SSM2 init → ECU ID `3B12504206` → Requesting Seed → Sending Key → interface close, ~640 ms
+key-to-close. Two clean attempts (18:08, 18:34) both reached the wall.
+
+**This kills the transient-lockout hypothesis.** A failed-attempt security counter is cleared by a
+power cycle; this survived one. What survives a power cycle is a **persistent** state — a genuinely
+altered seed/key relationship. **H1 (ECU security altered: married/EcuTek-locked) is now the strong
+leader; the transient-counter idea is eliminated.**
+
+**Correction to Syed's reading of the later attempts.** After the two clean attempts, later ones
+(18:35 05-Forester, 18:36 04-Forester) showed **`SSM2 init` repeated ~10× then close** — i.e. SSM2
+would no longer even establish. Syed attributed this to switching the vehicle model. It is **not**
+caused by the model choice:
+- **SSM2 init is protocol-level and model-independent** — it happens before any template or security
+  and is identical for 05 STI vs 05 Forester (both resolve to `read_sti05`).
+- The real cause is **comms degradation across a hammered session** — either battery sag (extended
+  key-on/engine-off after a cold start) or an **ECU-side SSM2 lockout after repeated failed security
+  attempts**, which several Subaru ECUs impose. A key cycle + rested/charged battery clears it.
+- The **04-Forester attempt used `read_sti04`, which is the WRONG method for this SH7058 ECU** — its
+  `readback fail` is doubly uninformative (wrong method AND degraded comms). Disregard it.
+
+**Consequence:** hammering more reads has no diagnostic value now. The reset was the last "just
+retry differently" card. Two clean attempts already delivered the verdict.
+
+### F1e. DebugView (passive) — EXHAUSTED
+
+The only line DebugView emitted during the read was an unrelated Chrome crashpad error. **Confirmed:
+EcuFlash does not set the Tactrix debug IOCTL, so the passive route yields nothing.** As predicted,
+the reliable path is the active helper (F1c route 2) — now promoted to the leading software action.
+
+### F1f. Metadata count still 745 — A2WC411D not loaded
+
+The 18:07 startup log still reads `745 ROM metadata models scanned`, not 746, so `A2WC411D.xml` was
+**not** picked up (copied after this session launched, or misplaced). Restart EcuFlash and confirm
+**746**. Note this almost certainly does not affect the read (reads use the memory-model-keyed
+`read_sti05` template, not the per-cal file) — but if key selection is ever suspected, this must be
+loaded to rule it in or out.
+
 ### F2. Physical and documentary evidence of a prior tune (free)
 
 - **AccessPort traces:** windshield/dash mount, leftover bracket, adhesive residue, an OBD splitter
