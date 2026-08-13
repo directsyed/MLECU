@@ -9,6 +9,29 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-13 — WIDEBAND LIVE AND CROSS-VALIDATED: AEM agrees with the factory sensor to 0.02 AFR
+
+Re-logged after fixing the AEM plugin. **`wideband_afr` now carries real data**, and it is
+trustworthy: across all 1,351 samples the AEM reads mean 14.62 AFR while the factory A/F sensor
+reads 14.64 — a **mean difference of -0.02 AFR (std 0.08)**. Two independent instruments agreeing
+this tightly means both can be trusted, and it retroactively validates the factory-sensor trims
+from the 2026-08-12 warm-idle log (the "held loosely" caveat there is now largely discharged for
+the fuel channel).
+
+**What this log is:** a **cold, elevated-idle warm-up shakedown taken right after the ECU hard
+reset** — coolant rising 100->135 F, idle speed ~1137-1550 rpm (mean 1337), MAF ~7.3 g/s (about 2x
+the warm-idle log's 3.5), and `af_learning` flat at 0.00 because the reset wiped it. It is closed
+loop (correction actively moving, holding ~stoich), mechanically healthy (zero knock retard,
+timing 15.5-19 deg, 0.00% transient samples), but it is **NOT a capture-protocol warm-idle hold**
+and must not be fed to the estimator as one. Coincidentally it approximates the protocol's *fast
+idle* condition (~2x airflow), just cold and pre-learning.
+
+**One reading worth carrying forward, held loosely:** at this cold high-idle point the ECU needs
+**+7.66% fuel correction** to hold stoich with learning wiped, versus the warm-idle log's +0.31%
+total trim. Not comparable operating points (cold vs warm, wiped vs settled learning), so this is
+not evidence of a lean condition yet — it is a number to re-check once a proper warm hold is taken
+with learning settled.
+
 ## 2026-08-12 — FIRST REAL TELEMETRY: the log->role path works on a real car; wideband channel is dead in the file
 
 1,878 samples over 129.6 s from the test vehicle — the first data this project has ever had that
@@ -710,3 +733,6 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-12 | `wideband_afr` in first log | **DEAD — 1 distinct value (0.00) across 1878 rows** | factory A/F sensor 12.40-15.16 mean 14.53, so engine fine; AEM plugin at fault. BLOCKS capture |
 | 2026-08-12 | Idle fuel trim (corr+learn), closed loop | **+0.31% mean** | idle fuelling essentially correct; provisional until wideband validates the factory sensor |
 | 2026-08-12 | Idle speed stability | 640-770 rpm, std 17.6 | the presenting complaint, quantified for the first time |
+| 2026-08-13 | Wideband live in-file (AEM plugin fixed) | **real data, 14.40-14.90 AFR** | was a column of zeros on 2026-08-12; capture protocol's ground-truth instrument now works |
+| 2026-08-13 | AEM vs factory A/F sensor agreement | **-0.02 AFR mean diff, std 0.08 (n=1351)** | two independent instruments cross-validate; both trustworthy at idle/stoich |
+| 2026-08-13 | Post-reset cold high-idle shakedown | 1337 rpm mean, coolant 100-135F, 0 knock | healthy warm-up; NOT a protocol warm-idle hold (learning wiped, cold) |
