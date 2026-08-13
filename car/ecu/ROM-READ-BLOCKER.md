@@ -254,6 +254,21 @@ caused by the model choice:
 **Consequence:** hammering more reads has no diagnostic value now. The reset was the last "just
 retry differently" card. Two clean attempts already delivered the verdict.
 
+### F1c-REASSESSED (2026-08-13) — the seed/key helper is LOW value; do not build it
+
+Earlier this file promoted an active seed/key helper as "the leading software action." **Downgraded
+after reconsideration:** the sti05 seed/key is tied to the **flash method**, not the calibration —
+it is the **same key for every sti05 Subaru**. EcuFlash therefore already sends the correct standard
+key, and this ECU rejects it. A helper computing and sending that same standard key would reproduce
+the rejection EcuFlash already gets. Its only residual value is distinguishing NAK from timeout,
+which changes neither the conclusion (locked) nor the remedy. **Not worth building.** The "missing
+metadata → wrong key" idea (F1) is correspondingly weak: key selection is not per-cal.
+
+**Honest standing conclusion: the software read path is effectively exhausted.** The ECU rejects the
+standard unlock and re-sending it by any tool will not change that. What remains is not more
+software against the OBD security layer — it is either bypassing that layer (bench `shbootmode`) or
+addressing the lock at its source (borrow the AP that married it / replacement ECU).
+
 ### F1e. DebugView (passive) — EXHAUSTED
 
 The only line DebugView emitted during the read was an unrelated Chrome crashpad error. **Confirmed:
