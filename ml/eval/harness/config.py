@@ -14,11 +14,23 @@ class LlmCfg:
     base_url: str = "http://127.0.0.1:8080/v1"
     model: str = "qwen3.6-27b-q8_0"        # recorded verbatim into every result row
     temperature: float = 0.0               # eval is measurement, not sampling
-    max_completion_tokens: int = 8192      # thinking model: reasoning + JSON share ONE budget.
+    max_completion_tokens: int = 24576     # thinking model: reasoning + JSON share ONE budget.
                                            # 4096 proved too small overnight 2026-07-09: hard
                                            # E1 cases deliberate past it -> empty content.
-                                           # 8192 = the judge's proven value (config.yaml).
-    request_timeout_s: int = 600
+                                           # 8192 = the judge's proven value (config.yaml), and
+                                           # it in turn truncated Thinking-class models mid-trace
+                                           # on 2026-07-31 (blanks scored as misses, understating
+                                           # them by up to 14pp).
+                                           # 24576 (2026-08-14, Qwen3.8): 3.8 reasons by DEFAULT
+                                           # at reasoning_effort=xhigh. Raised for E4 especially,
+                                           # whose main() takes no --max-tokens flag and would
+                                           # otherwise silently inherit the truncating value.
+                                           # This is a CEILING, not a target: measured E1 worst
+                                           # case used 1,111 tokens (4.5%), all finish_reason=stop.
+    request_timeout_s: int = 1800          # must rise WITH the budget: 600 died mid-cell on
+                                           # 2026-08-01 once tokens hit 16384. At the measured
+                                           # ~44 t/s a full 24576-token completion needs ~560 s,
+                                           # so 600 left no margin at all.
 
 
 @dataclass(frozen=True)
