@@ -7,7 +7,9 @@ description = "Transparent J2534 pass-through logging shim for the Tactrix Openp
 [lib]
 name = "op20log"
 # cdylib => a native DLL that EcuFlash can load as a J2534 library.
-crate-type = ["cdylib"]
+# rlib   => also buildable as a normal Rust lib so `cargo test` can run the seed/key vectors
+#           offline, on any host, with no Windows and no car attached.
+crate-type = ["cdylib", "rlib"]
 
 [profile.release]
 opt-level = 2

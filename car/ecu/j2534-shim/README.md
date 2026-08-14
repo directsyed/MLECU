@@ -1,4 +1,52 @@
-# J2534 logging shim (`op20log.dll`)
+# J2534 shim (`op20log.dll`) — traffic logger + SecurityAccess key fix
+
+> **Licence: GPLv3.** `src/seedkey.rs` ports the seed→key algorithm from
+> [FastECU](https://github.com/miikasyvanen/FastECU) (GPLv3), so this crate is GPLv3 as a whole.
+> No Tactrix software is modified — this supplies a J2534 driver, which is a pluggable interface
+> by design.
+
+## The key-substitution feature (the point of all this)
+
+On the 2005 Forester XT (ECU `3B12504206`) the two available tools fail in **opposite** places:
+
+| | seed/key | kernel upload |
+|---|---|---|
+| **EcuFlash** (`sti05`, documented 2005-2007) | ✗ rejected | presumed OK — never reached |
+| **FastECU** (`sh7058`, documented 2006-2007) | ✓ accepted | ✗ `7F 34 10` generalReject |
+
+EcuFlash is closed source, so the two cannot be merged at source level. **They can be merged at
+the wire level:** this shim watches for the ECU's seed reply, recomputes the key with FastECU's
+(proven-accepted) algorithm, and rewrites EcuFlash's outgoing key. EcuFlash then unlocks and
+proceeds into its own kernel upload. Neither half is guesswork — both are real, working
+implementations.
+
+**It is OPT-IN and off by default.** Without `TACTRIX_SHIM_FIXKEY=1` this DLL is a pure passive
+logger and alters nothing on the wire:
+
+```bash
+setx TACTRIX_SHIM_FIXKEY 1
+```
+
+Guard rails, deliberately narrow: it rewrites **only** an 11-byte frame matching exactly
+`80 .. .. .. 27 02 <4-byte key> <checksum>`, **only** after a real seed has been observed from the
+ECU, and it recomputes the frame checksum. Every other byte of every other message is forwarded
+untouched. It never synthesises a seed and never touches write-service traffic.
+
+### Offline verification (no Windows, no car)
+
+The algorithm is unit-tested against three real captures from the vehicle — **two of which the ECU
+explicitly accepted** (`67 02` positive response):
+
+```bash
+cargo test
+```
+
+`seedkey` is OS-independent and the crate is also built as an `rlib`, so this runs on any host.
+The tests must pass before the DLL is allowed anywhere near the car.
+
+---
+
+# Original function: transparent pass-through logging
 
 A transparent pass-through DLL that sits between EcuFlash and the genuine Tactrix driver
 (`op20pt32.dll`), forwards every J2534 call unchanged, and **logs the exact bytes exchanged with
