@@ -855,3 +855,32 @@ and does not change any bar verdict.
 **Escalation works:** all three vacuum-leak episodes on both models now stop at iteration 4 with
 "no table edit can fix this; human action required (e.g. find the leak)" and ZERO edits, instead
 of bending a table and burning the full budget.
+
+### 2026-08-14 — D18: PERFORMANCE BEATS COMPARABILITY when the two conflict (Syed directive)
+
+Ratified by Syed during the Qwen3.8-27B evaluation. I had justified keeping the certified July-4
+llama.cpp build on the grounds that swapping the inference engine would break comparability with
+existing benchmark numbers. **Syed rejected that framing:** the objective is a car that drives
+correctly, and the model stack is a means to it. If a newer inference engine performs better, use
+it — an equal comparison is not the goal.
+
+**Consequences, standing:**
+1. **Update the inference engine when it is likely to help, and re-baseline.** Do not preserve a
+   stale engine to protect a historical number. The number is a means; performance is the end.
+2. **Re-run the incumbent on the new engine too** — not for tidiness, but because the incumbent may
+   also be faster/better on it, and *that* is the deployment-relevant figure. Comparability is then
+   restored as a side effect rather than pursued as a goal.
+3. Old builds are retained only as **rollback insurance** (zero cost on disk), never as the reason
+   to avoid an upgrade.
+
+**Evidence supporting the upgrade in this instance** (llama.cpp Jul 4 → Aug 14, 561 commits):
+`chat : add qwen3 specialized parser` (#26252) — directly relevant, Qwen3.8 emits `<think>` blocks
+by default and the old build has no specialised parser for them; `model: MTP support for
+Qwen3-Next` (#25589) — our serving config uses `--spec-type draft-mtp`; recurrent-state and
+gated-delta-net fusion work — DeltaNet is the architecture **both** 3.6 and 3.8 use; 45 CUDA
+commits.
+
+**This does NOT license sloppy attribution.** Where a confound exists it is still *disclosed* (as
+with the 2026-08-05 rng confound), and a claim of "model X is better" still requires the like-for-
+like run. The change is one of priority: ship the better-performing configuration first, measure
+the attribution second — not the reverse.
