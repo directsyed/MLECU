@@ -3,11 +3,16 @@
 
 llm:
   base_url: http://127.0.0.1:8080/v1     # llama-server, OpenAI-compatible
-  model: qwen3.6-27b-q8_0                # recorded verbatim into judgment.judge_model
+  model: qwen3.8-27b-q8_0                # recorded verbatim into judgment.judge_model
+                                         # (2026-08-15) swapped from 3.6 — MUST pass re-calibration
+                                         # against the adjudicated set before verdicts count.
                                          # (flip when swapping GGUFs — the audit trail keys on this)
                                          # dense 27B = community-tier judge of record (smoke-10 verdict)
   temperature: 0.0                       # judging is deterministic scoring, not sampling
-  max_completion_tokens: 8192   # thinking model: reasoning + JSON share budget; 1500 starved short
+  max_completion_tokens: 24576  # thinking model: reasoning + JSON share budget; 1500 starved short
+                                # RAISED 2026-08-15: Qwen3.8 reasons at xhigh BY DEFAULT. 8192 is the
+                                # value that truncated Thinking-class models mid-trace (understating
+                                # them ~14pp). A truncated judge emits no verdict at all.
                                 # docs, 4096 truncated long chunks, 6144 still failed 2 monster docs
   json_retries: 2                        # re-asks after a schema-invalid reply (grammar makes this rare)
   request_timeout_s: 600
