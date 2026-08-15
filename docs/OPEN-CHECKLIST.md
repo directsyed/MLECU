@@ -43,6 +43,39 @@ Settled by byte-level J2534 capture (`car/logging/j2534_shim.log`):
 
 ---
 
+## A3. ⚠ MVEM IS MIS-CALIBRATED FOR THIS ENGINE — validated 2026-08-15
+
+**The deterministic layer would misdiagnose this healthy car.** Measured against the first real
+warm-idle log:
+
+| | value |
+|---|---|
+| `NOMINAL_MAF_IDLE` (sim constant) | **2.50 g/s** @ 850 rpm |
+| real car, warm idle | **3.493 g/s** @ **709 rpm** |
+| error | **+40%** (and worse normalised — *lower* rpm should mean *less* air) |
+
+Feeding the real log to `identify.maf_belief_ratio()` returns **1.397** — a confident
+**"MAF believed +39.7% off"** verdict, on a car whose total fuel trim is **+0.31%**, i.e. fuelling
+is essentially correct. That term is the *only* thing separating a MAF fault from an injector-flow
+fault, so today the layer is primed to invent a MAF fault on a healthy engine.
+
+Cause is almost certainly the **TGV deletes** (plus exhaust-AVCS delete) raising idle airflow —
+exactly what `CAPTURE-PROTOCOL.md` predicted when it flagged 2.50 as a sim value that "must be
+established empirically on this engine."
+
+- [ ] **Do NOT simply hardcode 3.49.** One log, one operating point, engine idling poorly, and
+      `rpm` 709 vs the constant's 850 — the baseline must come from the three-hold capture at a
+      known-healthy state, not a single sample.
+- [ ] Re-derive `NOMINAL_MAF_IDLE` (and whether it should be a *function* of rpm rather than a
+      scalar) once Stage 0 + the three holds are done.
+- [ ] Until then, **treat every MAF verdict from the layer as untrusted** on this car.
+
+### ⚠ What this means for every benchmark number
+All of E1/E2/E4 are **sim-bound** — E4's own status string says
+`"sim-calibrated-pending (MVEM not yet validated against the real engine)"`. We now have the first
+evidence the sim's healthy baseline is 40% off for this car. **Chasing eval scores has unproven
+transfer until MVEM is re-grounded.** The real-car data is what makes the numbers mean anything.
+
 ## B. ML / EVAL
 
 ### B1. Qwen3.8-27B evaluation — COMPLETE
