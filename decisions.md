@@ -884,3 +884,50 @@ commits.
 with the 2026-08-05 rng confound), and a claim of "model X is better" still requires the like-for-
 like run. The change is one of priority: ship the better-performing configuration first, measure
 the attribution second — not the reverse.
+
+### 2026-08-15 — D19: the deterministic layer MUST gain VE + timing axes (Syed directive)
+
+Syed: *"the deterministic layer 100 percent needs the VE/timing access, because this is a very
+large part of tuning that is omitted."* Correct, and the evidence is unambiguous.
+
+**What we found.** MVEM's own docstring: *"a cycle-averaged idle FUEL model … we do NOT model
+combustion, knock physics, or transients."* It carries four beliefs — injector latency, injector
+flow, MAF transfer, unmetered air. There is **no VE table, no ignition timing, no compression
+ratio, no boost, no exhaust backpressure** anywhere in it.
+
+**So E1/E2/E4 prove something narrower than they look.** They demonstrate the loop can identify
+idle *fuel* faults in simulation. They say nothing about tuning a VE table or a timing map — which
+is the actual job on this car: 2.0 L EJ20X at 9.5:1 running an EJ255 calibration for 2.5 L at
+8.4:1, plus VF48 and a fully catless exhaust. Every one of those is a VE/timing mismatch with no
+axis in the model.
+
+**Why the idle data looked deceptively good.** Closed loop drives trim to ~0 *regardless* of how
+wrong the airflow model is — that is its function. Measured +0.31% total trim means the feedback
+loop works, not that the calibration is right. Under load the ECU runs **open loop**, fuelling
+straight from the VE/MAF model, and the mismatch appears undisguised. Direct evidence: `af_learning`
+is **0.00 across every cell** because the car has only ever idled — the ECU has learned exactly one
+operating point, and it is the one point feedback can rescue.
+
+**The asymmetry that makes this tractable.** `safety/clamps.py` ALREADY implements
+`knock_auto_abort`, `fuel_before_timing`, `timing_row_ceiling`, `ve_rate_limit` (±3%/iter),
+`boost_gate` and `steady_before_transient` — six guardrails for VE and timing, tested. But
+`algorithms/` proposes only `corrected_flow_scaling / corrected_latency / corrected_maf`. **The
+guardrails exist; nothing generates proposals for them to guard.**
+
+**Design ruling — do NOT answer this with a bigger simulator.**
+1. **VE: data-driven, not simulated.** The one hand-set MVEM constant we validated
+   (`NOMINAL_MAF_IDLE`) was **40% wrong** for this engine. Compounding that into a VE/timing sim
+   multiplies unvalidated assumptions. Real practice is a direct measurement: per load/rpm cell,
+   correct VE by (measured AFR / target AFR) from real logs. The three-hold capture supplies the
+   idle cells; driving supplies the rest.
+2. **Timing: never simulate knock.** Knock depends on CR, IAT, octane, boost and deposits — not
+   modellable at useful fidelity, and MVEM already says its knock is "a scripted state for testing
+   the abort clamp, not physics."
+3. **⚠ TIMING IS A RETREAT MECHANISM, NOT AN OPTIMISER.** The deterministic layer may **remove**
+   timing autonomously on knock feedback. **Adding** timing requires human review. Rationale: a
+   lean miss costs a log; an over-advanced timing cell on 9.5:1 with 93 octane costs a piston.
+   This extends the existing hard constraint rather than relaxing it.
+
+**Sequencing.** Blocked on real data — VE correction needs logged AFR vs target across load/rpm,
+which needs the car driven, which needs the ROM read for a write path. Do NOT build a speculative
+VE model before the capture exists; that is how `NOMINAL_MAF_IDLE = 2.50` happened.
