@@ -1,0 +1,72 @@
+diff --git a/modules/ecu/flash_ecu_subaru_denso_sh705x_kline.cpp b/modules/ecu/flash_ecu_subaru_denso_sh705x_kline.cpp
+index 9937d0d..95842de 100644
+--- a/modules/ecu/flash_ecu_subaru_denso_sh705x_kline.cpp
++++ b/modules/ecu/flash_ecu_subaru_denso_sh705x_kline.cpp
+@@ -1480,25 +1480,65 @@ QByteArray FlashEcuSubaruDensoSH705xKline::send_sid_10_start_diagnostic()
+     return received;
+ }
+ 
++/*
++ * dataFormatIdentifier for SID 0x34 (RequestDownload).
++ *
++ * Hardcoded 0x04 upstream. On a MY2005 Subaru Forester XT (ECU 3B12504206, SH7058, K-Line) the
++ * ECU completes SecurityAccess and grants a programming session, then rejects RequestDownload
++ * with 7F 34 10 (generalReject). The sub_ecu_denso_sh7058 profile is documented 2006-2007, while
++ * EcuFlash's read_sti05 covers 2005-2007 on the same SH7058/sti05 combination -- MY2005 sits in
++ * the coverage gap, so this byte is a prime suspect and needs to be sweepable WITHOUT a rebuild.
++ *
++ * Override with the FASTECU_SID34_FORMAT environment variable (accepts 0x04 or 4). Unset =>
++ * 0x04, i.e. upstream behaviour is the default and this change is inert unless asked for.
++ */
++static bool env_override_active()
++{
++    return !qgetenv("FASTECU_SID34_FORMAT").isEmpty();
++}
++
++static uint8_t sid34_data_format_identifier()
++{
++    const QByteArray env = qgetenv("FASTECU_SID34_FORMAT");
++    if (env.isEmpty())
++        return 0x04;
++    bool ok = false;
++    const uint parsed = env.trimmed().toUInt(&ok, 0);   // base 0 -> honours a 0x prefix
++    if (!ok || parsed > 0xFF)
++        return 0x04;                                    // malformed -> upstream default, never crash
++    return (uint8_t)parsed;
++}
++
+ QByteArray FlashEcuSubaruDensoSH705xKline::send_sid_34_request_upload(uint32_t addr, uint32_t len)
+ {
+     QByteArray output;
+     QByteArray received;
+ 
++    const uint8_t fmt = sid34_data_format_identifier();
++
+     output.clear();
+     output.append((uint8_t)0x34);
+     output.append((uint8_t)(addr >> 16) & 0xFF);
+     output.append((uint8_t)(addr >> 8) & 0xFF);
+     output.append((uint8_t)addr & 0xFF);
+-    output.append((uint8_t)0x04);
++    output.append((uint8_t)fmt);
+     output.append((uint8_t)(len >> 16) & 0xFF);
+     output.append((uint8_t)(len >> 8) & 0xFF);
+     output.append((uint8_t)len & 0xFF);
+     output = add_ssm_header(output, tester_id, target_id, false);
++    emit LOG_I("SID 0x34 request upload: addr=0x" + QString::number(addr, 16)
++               + " len=0x" + QString::number(len, 16)
++               + " dataFormatIdentifier=0x" + QString::number(fmt, 16)
++               + (env_override_active() ? " (ENV OVERRIDE)" : " (default)"), true, true);
++    emit LOG_I("  TX: " + parse_message_to_hex(output), true, true);
+     serial->write_serial_data_echo_check(output);
+     
+     received = serial->read_serial_data(serial_read_extra_long_timeout);
+-    
++    emit LOG_I("  RX: " + parse_message_to_hex(received), true, true);
++    if (received.length() > 5 && (uint8_t)received.at(4) == 0x7F)
++        emit LOG_E("  SID 0x34 REJECTED: service=0x"
++                   + QString::number((uint8_t)received.at(5), 16)
++                   + " NRC=0x" + QString::number((uint8_t)received.at(6), 16), true, true);
+ 
+     return received;
+ }
