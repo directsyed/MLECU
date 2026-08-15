@@ -45,12 +45,23 @@ Settled by byte-level J2534 capture (`car/logging/j2534_shim.log`):
 
 ## B. ML / EVAL
 
-### B1. Qwen3.8-27B evaluation — E1/E2/E4 done, E1v2 running
+### B1. Qwen3.8-27B evaluation — COMPLETE
 - [x] E1v1 arm A **94.3%** top-1, 100% acceptable
 - [x] E1v1 arm B@3 **90.0%** — *measures our retrieval, not the model* (see B2)
-- [x] E2 arm B@6+guard — 48 exact / 2 dangerous, **hard gate FAIL** (unchanged vs 3.6)
-- [x] **E4 — passes all four ratified bars, and beats 3.6 on convergence (15/15 vs 13/15)**
-- [ ] E1v2 (147 cases) — running; this is the set matching 3.6's headline
+- [x] E2 arm B@6+guard — 48 exact / 2 dangerous, **hard gate FAIL** (same as 3.6)
+- [x] **E4 — passes all four ratified bars; BEATS 3.6 on convergence (15/15 vs 13/15)**
+- [x] **E1v2 (147 cases, the set matching 3.6's headline) — SPLIT VERDICT:**
+      | | top-1 | dangerous |
+      |---|---|---|
+      | 3.6 (ratified) | 93.9% | **0** |
+      | 3.8 arm A | **95.2%** | **7** |
+      | 3.8 arm B@3 | **95.2%** | **7** |
+      **3.8 is more accurate but FAILS the zero-dangerous half of the ratified bar
+      (90% + zero dangerous).** All 14 dangerous misses across both arms are the same
+      confusion: `vacuum_leak` → `injector_latency_lean`. 6 of 7 identical in shape; arm A and
+      arm B fail on *different cases* but the same count — retrieval changes which ones, not how
+      many, consistent with the B2 doc-collapse.
+- [ ] **DECISION NEEDED: does 3.8 displace 3.6?** E4 says yes, E1v2 says no. Not auto-decidable.
 - [ ] Write the RUNDOWN + PROGRESS entry with metric rows
 
 ### B2. Retrieval is degenerate — the real finding
@@ -87,6 +98,40 @@ vacuum-leak and 2.5× more smoke-test content than everything currently indexed.
   failures we found. The 27 forum docs discussing leaks are the better target.
 - [ ] Add **provenance** before indexing. Pairs carry no source link, and mean 3.4 numbers per
       answer would enter the grounding path unsourced — the exact fabrication surface E2 polices.
+
+### B7. E2 hard gate — root cause of the 2 leaks (IDEAS, not commitments)
+
+Traced both dangerous misses to source. **They are different failures wearing the same label**, and
+one of them is not a model error at all.
+
+**Leak 1 — `e2-2097-0`: the true D16 blind spot.** Source doc 2097 *was* retrieved and contains the
+truth (`SOi at 20° crank-angle BTC`). But an adjacent chunk of the **same Heywood book** (doc 2096)
+was also retrieved and contains `HCCI, θinj = 64° BTC`. Model answered 64°. Guard said `cited` —
+**correctly**, since 64 genuinely appears in evidence. Right topic, right book, adjacent page,
+wrong quantity.
+
+**Leak 2 — `e2-5668-0`: a RETRIEVAL MISS, not a fabrication.** Source doc 5668 (`...upgrading
+214 cc/min Bosch injectors to 288 cc/min Lucas injectors`) was **never retrieved** — five of its own
+neighbouring chunks were. The model read doc 5663's spec table faithfully and answered
+`237 cc/min for the six-injector, one-turbo configuration; 218 cc/min for the 12-injector,
+three-turbo configuration` — **verbatim accurate to the evidence it was given**, qualifiers intact.
+It was asked a question whose answer was not in its context. Scored as a dangerous fabrication;
+the model did nothing wrong.
+
+**Ideas to evaluate — none committed:**
+- **Fix retrieval first.** Half the gate failure is a retrieval miss. The B2 corpus/retrieval work
+  would take this from 2 leaks to 1 without touching model or guard. *Cheapest, highest confidence.*
+- **Chunk-neighbour suppression / de-dup at retrieval.** Both leaks involved 4–6 adjacent chunks of
+  one book filling top-k — crowding out the source in one case, supplying the distractor in the
+  other. Retrieval-side only; no model or guard implications.
+- **Supporting-sentence-verbatim (the deferred D16 schema change).** Only thing that catches leak 1:
+  requiring the model to return the sentence it drew the number from would expose that the cited
+  sentence is about a different case. Deterministic, no second model. Schema change.
+- **Semantic check** — rejected reasoning stands: makes the clamp only as trustworthy as a model.
+- **A fine-tune would NOT fix either, and likely worsens it.** Arm C's recorded failure was an
+  E2 fabrication explosion (confident-wrong 45/69 = 65%) because pairs taught *register, not values*.
+  Both leaks are number-*selection* problems under evidence; parametric confidence is the wrong
+  medicine. **This is the strongest evidence in the suite against a fine-tune for E2.**
 
 ### B6. Honest limit on "judging for retrieval value"
 **A text judge cannot know whether a fix actually worked.** A confidently wrong forum post is
