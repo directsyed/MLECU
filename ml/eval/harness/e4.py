@@ -19,9 +19,15 @@ emits a number. e4_map turns that token into three weights; propose_idle_correct
 magnitude from the MEASURED trim; safety.apply_proposal clamps it. This is the architecture from
 the root CLAUDE.md exercised end to end, not a test harness that approximates it.
 
-STATUS: sim-calibrated-pending. MVEM has not been validated against the real engine — that needs
-the wideband logs. Until then E4 measures the LOOP, honestly labelled. Every number this
-produces carries that caveat.
+STATUS: sim-calibrated, idle BASELINE validated (2026-08-16). The three-hold real capture confirmed
+MVEM's healthy-idle premise on this engine — airflow ~3.08 g/s @709 rpm and correct fuelling (trims
+±5%, wideband on target, no leak) — and grounded the layer for REAL diagnosis via the measured
+baseline (mvem.MEASURED_MAF_BASELINE_20260816 + logparse.observe). What is STILL model-bound: the
+FAULT DYNAMICS (how trim responds to a seeded fault), because we have no real *faulted* logs yet.
+So E4 measures the LOOP against a sim whose healthy baseline is now real but whose fault response is
+not — honestly labelled. The sim's own NOMINAL_MAF_IDLE (2.50) is left unchanged: it is a
+self-consistent test-harness value, deliberately NOT re-scored to the car (real-data diagnosis runs
+through the bridge, not the sim).
 
 Run (the bridge — ecutune and harness live in different trees and different venvs):
     cd car && PYTHONPATH="$PWD:$PWD/../ml/eval" .venv/bin/python -m harness.e4 --dry-run
@@ -372,7 +378,9 @@ def score_battery(eps: list[Episode]) -> dict:
         "refused_by_crosscheck": sum(e.refused_by_crosscheck for e in eps),
         "blocked_by_stability": sum(e.blocked_by_stability for e in eps),
         "escalated": sum(1 for e in eps if e.escalated),
-        "status": "sim-calibrated-pending (MVEM not yet validated against the real engine)",
+        "status": ("sim-calibrated; idle baseline validated vs the 2026-08-16 real capture "
+                   "(airflow + healthy fuelling); fault dynamics still model-bound (no real "
+                   "faulted logs yet). Real diagnosis runs through logparse.observe, not this sim."),
     }
 
 
