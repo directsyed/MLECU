@@ -931,3 +931,32 @@ guardrails exist; nothing generates proposals for them to guard.**
 **Sequencing.** Blocked on real data — VE correction needs logged AFR vs target across load/rpm,
 which needs the car driven, which needs the ROM read for a write path. Do NOT build a speculative
 VE model before the capture exists; that is how `NOMINAL_MAF_IDLE = 2.50` happened.
+
+### 2026-08-16 — FINDING: the ratified E1v2 `base+RAG@3` headline retrieved THREE CONSTANT DOCS
+
+Not a decision — a measurement that qualifies one. Full tables: `ml/eval/results/DOC-COLLAPSE-2026-08-16.md`;
+tool: `ml/eval/doc_collapse.py` (committed so this is never ad hoc again).
+
+**What was measured.** Over all 147 E1v2 cases, 3.6's ratified arm B (hybrid@3, 93.9% / 0 dangerous,
+2026-07-24) retrieved exactly **3 distinct documents — 5714 (Banish ch.1 page), 621 (rusEFI
+`Fuel-Overview.md`), 5502 (Hartman page) — each on 100% of queries.** Only 2 distinct ordered
+id-tuples exist in the file (dominant ×136). Every 3.6 re-baseline and the 08-02 reverify show the
+identical set, and so does 3.8's E1v2 run. E1v1: the same 4 docs for both models. E2 (arm B@6):
+**325 distinct docs**, max coverage 7% — E2 retrieval works; E1's does not, because E1 prompts are
+simulated *log data* that nothing in a prose corpus is "about".
+
+**What follows.**
+1. Retrieval is a pure function of (prompt, index) → **3.6 and 3.8 saw byte-identical evidence on
+   E1v2.** The 93.9/0 vs 95.2/7 gap is entirely model-side.
+2. The "+RAG@3" was, in effect, a **constant three-page preamble**. It moved 3.6 from 83.7% (arm A,
+   07-15) to 93.9%; six constant pages moved it back to 83.7%; it moved 3.8 by 0.0. A real effect,
+   but a *prompt-prefix* effect — not retrieval supplying case-specific evidence. (Confound: the
+   83.7 arm-A cell predates the 07-25 harness fixes; the arm-B cells were re-verified after them at
+   92.5–93.9. Direction certain, exact delta not.)
+3. So the ratification measured "base + fixed prefix", not "base + RAG". Running arm B remains a
+   fine choice for 3.6 (it helped, cost nothing); the *claim* that retrieval passes the E1 bar is
+   not supported. E2/E4 are unaffected.
+4. Judging more forum docs (tonight's C2) does not by itself change E1 retrieval — `ref_fts` is
+   reference-tier by construction and E1 queries are log-shaped. The levers are the separate
+   community index (Track D, built inert tonight) and a *log-pattern → diagnosis* query
+   representation. **Design question for Syed; not decided tonight.**

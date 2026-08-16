@@ -100,8 +100,13 @@ transfer until MVEM is re-grounded.** The real-car data is what makes the number
 ### B2. Retrieval is degenerate — the real finding
 Only **4 distinct documents** returned across all 70 E1 cases; two appear on **100%** of queries.
 Index is healthy (no stale, no fallback) — this is a **corpus/query-type mismatch**, not a bug.
-- [ ] Re-check whether **3.6's ratified `base+RAG@3` headline** suffers the same doc-collapse.
-      Free — archived result files, no GPU. **If it does, that ratification rests on noise.**
+- [x] **Re-checked 2026-08-16 — 3.6 collapsed WORSE: exactly 3 distinct docs (5714, 621, 5502), each on
+      100% of all 147 E1v2 queries; the SAME three 3.8 got.** Both models saw byte-identical evidence,
+      so the 93.9/0 vs 95.2/7 gap is model-side only. The ratified "+RAG@3" was a constant 3-page
+      preamble (+10 pp for 3.6, 0 for 3.8; 6 pages → back to 83.7). E2 does NOT collapse (325 distinct).
+      Writeup `ml/eval/results/DOC-COLLAPSE-2026-08-16.md`, tool `ml/eval/doc_collapse.py`, decisions
+      2026-08-16 entry. **Fixing it needs a log-pattern → diagnosis query representation and/or the
+      community index — Syed's design call.**
 - [ ] Corpus lacks *differential-diagnosis* content (what separates leak from latency). The
       discriminating fact is in our own `CAPTURE-PROTOCOL.md` but not in the retrieval corpus.
 
