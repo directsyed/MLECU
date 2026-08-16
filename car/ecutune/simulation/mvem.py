@@ -125,6 +125,24 @@ SIM_MAF_BASELINE = MafBaseline(
 # tests). It is the sim baseline at warm idle; its provenance is SIM_MAF_BASELINE.provenance.
 NOMINAL_MAF_IDLE = SIM_MAF_BASELINE.at(IDLE_RPM)      # == 2.50 g/s
 
+# --- MEASURED baseline from the real car (2026-08-16 three-hold capture) ---------------------
+# First real, validated MAF baseline for THIS engine. Two same-voltage steady holds where the
+# closed-loop fuel trim was ~0 and the wideband tracked the 14.7 target — i.e. the airflow the
+# ECU reports when it is fuelling correctly. `validated=True`: measured, not seeded.
+#   warm idle  709 rpm -> 3.08 g/s (trim -0.86%, wb 14.74)   \  logs: car/logging/warm idle.csv
+#   fast idle 1637 rpm -> 6.55 g/s (trim -5.12%, wb 14.55)   /         car/logging/fast idle.csv
+# CAUTION carried in the provenance: the warm-idle point read 3.49 g/s on 2026-08-11 vs 3.08 here
+# — a ~12% cross-session swing (atmospheric/warm-up; the MAF's low-voltage end wanders day to day,
+# cf. reviewed forum doc 6224). So this is a baseline with real variance, not an exact constant;
+# a MAF verdict inside ~+/-12% of nominal is inside the noise floor and must not be called a fault.
+# NOT yet wired as the default the estimator uses — the real-log -> Observation bridge (which sets
+# Observation.nominal_validated=True from this) is the next build; until then identify() still
+# refuses MAF verdicts against SIM_MAF_BASELINE. See car/logging/CAPTURE-PROTOCOL.md.
+MEASURED_MAF_BASELINE_20260816 = MafBaseline.from_capture(
+    [(708.65, 3.08), (1637.14, 6.55)],
+    provenance="three-hold capture 2026-08-16 (warm+fast idle, trim~0, wb on target); "
+               "~12% cross-session variance vs 2026-08-11 (3.49 g/s @709) — treat +/-12% as noise")
+
 
 @dataclass(frozen=True)
 class OperatingPoint:
