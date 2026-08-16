@@ -9,6 +9,54 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-16 — OVERNIGHT AUTONOMOUS RUN: judge calibration gate holds (3.8 fails on one dangerous cell), the ratified RAG headline retrieved three constant pages, the deterministic layer stops trusting an unmeasured baseline
+
+Executed unattended overnight from an approved plan (`sessions/handoffs/2026-08-17-overnight-morning-report.md`
++ `…-overnight-process.md`). Every number below was recomputed from result files, not copied from prose.
+
+**Judge calibration — Qwen3.8 does NOT replace Qwen3.6.** Both models were scored *in memory* through the
+real judging path against the 100 adjudicated `calibration-100` labels (54×2 / 37×3 / 9×4), rubric r2,
+24576-token budget, same Aug-14 llama.cpp build — a like-for-like the July numbers were not. Qwen3.8:
+keep/drop **91.0 %**, within±1 **98.0 %**, **dangerous 1** (doc 1081, truth 2 → judged 4) → **FAILS** the
+pre-registered bar (90/90/**0**). Qwen3.6 on the same engine: **90.0 / 98.0 / 0** → passes, by *zero*
+margin on keep/drop and 3 pp under its July 93.1. Head-to-head 3.8 is slightly more generous (higher on
+21 of the 28 docs they disagree on) — the single promotion of junk is what fails it. Both judges recall
+only **4 of the 9** adjudicated 4s (the same four); keep/drop looks good because 54 % of the truth is 2s
+and both are good at *dropping*. The premise "forums hold content the judge will promote" is thinner
+than assumed. Before any of this could run, `recalibrate.py` was found loading pydantic defaults
+(rubric r1, 1500 tokens) instead of `config.yaml` — fixed, checkpointed, resumable; and the two bar
+sets (DB pre-registration 90/90/0 vs 3.6's achieved 93.1/97.7) were untangled — the runbook had them
+conflated.
+
+**Retrieval — the ratified 93.9 % E1v2 `base+RAG@3` headline retrieved exactly 3 documents on 100 % of
+147 queries** (Banish p., rusEFI `Fuel-Overview.md`, Hartman p.) — the same three Qwen3.8 got, so both
+models saw byte-identical evidence and the 93.9/0 vs 95.2/7 gap is model-side only. The "+RAG" acted as a
+constant three-page preamble (+10 pp for 3.6 vs its 83.7 arm A; six pages → back to 83.7; 0 pp for 3.8),
+not as retrieval. E2 does not collapse (325 distinct docs). Committed counter: `ml/eval/doc_collapse.py`.
+
+**E1 "dangerous" is definition-dependent and it decides the 3.8 verdict.** Under the codified
+`rundown.dangerous_flips()` (2026-08-02) Qwen3.8's E1v2 is **95.2 % / 0 dangerous** in both arms — the
+six `vacuum_leak → injector_latency_lean` misses are lean→lean; the handoff's "7 dangerous" used the
+"edit authorised on a no-table-edit fault" reading the codified rule reserves for `healthy`. Flagged for
+Syed; metric not changed. E4 confirmed 15/15 vs 3.6's 13/15; E2 48/19/2 (retrieval-side leaks).
+
+**Deterministic layer — MAF baseline now carries provenance (D20).** `mvem.MafBaseline` (rpm-indexed
+points, `validated`, `provenance`, `.at(rpm)`, `from_capture()`); the sim seed 2.50 g/s is marked
+UNVALIDATED; `identify()` **refuses** a MAF verdict against an unvalidated baseline, reporting the ratio
+(1.397 on the real log), the band and the trims-only ranking. Sim harness unchanged (E4 18/18). Nothing
+hardcodes 3.49. Car suite 91 → 101.
+
+**Judge pipeline hardening.** `pending_for_judge()` was silently violating the ratified NARROW gone
+policy — 303 of 314 pending community docs were invisible for a month; fixed. `--no-reindex` (a judge run
+must not rebuild the retrieval index as a side effect); dead-server STOP instead of burning docs to
+`failed`. Community retrieval index + per-parent cap built **inert** (all default-off; byte-identical
+default path proven by tests; nothing built on the real corpus). The 95 score-3 community docs reviewed
+under one rubric for retrieval usefulness: **28 keep / 67 drop**, no doc supplies a healthy-idle MAF
+baseline; awaiting Syed's sign-off, nothing indexed. C2 judge run over the 314 pending community docs
+started 13:20 UTC on 3.6 (see the morning report for yield).
+
+Test totals: car 91 → 101 · ml/eval 116 → 124 (+1 gated heavy) · ml/curation 26 → 38 · data-pipeline 37.
+
 ## 2026-08-13 — WIDEBAND LIVE AND CROSS-VALIDATED: AEM agrees with the factory sensor to 0.02 AFR
 
 Re-logged after fixing the AEM plugin. **`wideband_afr` now carries real data**, and it is
@@ -743,3 +791,10 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-13 | AEM vs factory A/F sensor agreement | **-0.02 AFR mean diff, std 0.08 (n=1351)** | two independent instruments cross-validate; both trustworthy at idle/stoich |
 | 2026-08-13 | PRE-reset cold first-start baseline | 1337 rpm mean, coolant 100-135F, 0 knock, learn 0.00 | first start in 2 days; NOT a protocol warm-idle hold; learning empty (never driven, not wiped) |
 | 2026-08-13 | Cold-idle short-term fuel correction | +7.66% mean (learn 0.00) | pre-reset; consistent-with but not evidence-of the expected MAF/VE lean bias; re-check warm |
+| 2026-08-16 | Judge calibration, Qwen3.8 vs calibration-100 (n=100, r2, 24576 tok, Aug-14 build) | keep/drop **91.0 %**, within±1 98.0 %, exact 69.0 %, ρ 0.564, **dangerous 1** | pre-registered bar 90/90/0 → **FAIL** (dangerous); in-memory via judge.recalibrate, 4.0 h GPU, 0 errors |
+| 2026-08-16 | Judge calibration, Qwen3.6 like-for-like (same set/rubric/budget/engine) | keep/drop **90.0 %**, within±1 98.0 %, exact 70.0 %, ρ 0.583, dangerous 0 | PASS by zero margin; July was 93.1/97.7 at n=87 (different n and reference-policy handling) |
+| 2026-08-16 | Judge ≥4 recall on the 9 adjudicated 4s | **4/9 for BOTH judges** (same four docs) | keep/drop agreement is carried by the 54 truth-2 docs; the "keep" side is weak |
+| 2026-08-16 | E1v2 retrieval diversity, 3.6 ratified headline (147 cases, hybrid@3) | **3 distinct docs, each on 100 % of queries**; 2 distinct id-tuples | identical set for 3.8; E1v1 4 docs both models; E2 arm B@6 = 325 distinct (no collapse) |
+| 2026-08-16 | E1v2 Qwen3.8 dangerous under the CODIFIED metric | **0** in both arms (was reported as 7) | 6× vacuum_leak→injector_latency_lean = lean→lean; 1 blank (finish_reason=length) per arm |
+| 2026-08-16 | Community score-3 review (95 docs, retrieval usefulness) | **28 keep / 67 drop**; 2 high, 25 medium; maf_baseline topic 0 docs | rubric-fixed, 8 reviewer batches, 15/95 spot-checked; nothing indexed |
+| 2026-08-16 | Deterministic layer, real-log MAF ratio vs sim baseline | ratio 1.397 → **REFUSAL** (was a confident MAF +39.7 % verdict) | D20; baseline provenance; sim path unchanged (E4 18/18) |
