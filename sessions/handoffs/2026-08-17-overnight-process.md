@@ -45,7 +45,7 @@ scratchpad `recal38.log`; a persistent Monitor watches for `FAILED|Traceback|Llm
 and every 10th doc, and reports process exit. Doc 960 (330 kB, ~14 chunks) is 6th in order —
 that is the ctx-32768 vs 24576-token budget risk; if it errors it stays retryable via `--resume`.
 
-## Track A — MVEM baseline provenance + refusal guard (06:40–06:55 UTC, CPU, commit `58c8ec2`)
+## Track A — MVEM baseline provenance + refusal guard (06:38–06:43 UTC, CPU, commit `58c8ec2`)
 
 **Design decisions (explained so they can be reversed):**
 - The estimator never imported `NOMINAL_MAF_IDLE`; the nominal reaches it only through
@@ -76,7 +76,7 @@ values → refusal naming the baseline; same values validated → guard silent; 
 refused unvalidated / identified validated; default-untrusted; interpolate/clamp;
 `from_capture`); `ml/eval/tests/test_e4.py` 18/18 (consumer of `NOMINAL_MAF_IDLE`).
 
-## Track B — 3.6 doc-collapse (06:55–07:05 UTC, CPU, commit `5636759`)
+## Track B — 3.6 doc-collapse (06:43–06:46 UTC, CPU, commit `5636759`)
 
 Nothing to reuse existed (the 3.8 number had been computed ad hoc), so the counter is now a
 committed module: `ml/eval/doc_collapse.py` — a `collections.Counter` over each row's
@@ -90,7 +90,7 @@ k=6 → 83.7; 3.8 moved 0.0. E2 does not collapse (325 distinct docs). Written u
 `ml/eval/results/DOC-COLLAPSE-2026-08-16.md`, a `decisions.md` FINDING entry (not a decision —
 the query-representation / community-index design is Syed's), checklist B2 ticked.
 
-## C2-fix — judge runner hardening (07:05–07:20 UTC, CPU, commit `7e0c5d5`)
+## C2-fix — judge runner hardening (06:46–06:48 UTC, CPU, commit `7e0c5d5`)
 
 Three things that would have made tonight's 314-doc judge run silently wrong or fragile:
 - **F2 gone filter.** `State.pending_for_judge()` (`ml/data-pipeline/corpus_pipeline/core/state.py`)
@@ -111,7 +111,7 @@ Three things that would have made tonight's 314-doc judge run silently wrong or 
 - Bonus: `cli.py` lacked `from pathlib import Path` (`--harvest --out` NameError).
 Verification: `ml/curation` 33 → **37**; `ml/data-pipeline` 37/37.
 
-## Track D — community index + per-parent cap, INERT (07:20–07:50 UTC, CPU, commit `806ce68`)
+## Track D — community index + per-parent cap, INERT (06:48–06:56 UTC, CPU, commit `806ce68`)
 
 How it wires in (so it can be switched on deliberately later):
 - **Config seam:** `ml/eval/harness/config.py RetrievalCfg` gained `community_fts`,
@@ -145,7 +145,7 @@ snippets *and* meta between a default cfg and one with every new field explicitl
 DB and on the real DB (bm25 mode, real E1v2 prompts); `ml/curation` 37 → **38**. At commit:
 `ref_fts` = 5638, `community_fts` does not exist in the real DB, `ref_dense_v2.npz` sha unchanged.
 
-## C4 (part 1) — the 95 existing score-3 community docs (06:58–07:12 UTC, CPU, commit `33bb379`)
+## C4 (part 1) — the 95 existing score-3 community docs (06:57–07:07 UTC, CPU, commit `33bb379`)
 
 - Pulled all 95 (`SELECT … WHERE tier='community' AND judge_score=3`) with their per-chunk judge
   rationales into scratch files (1.31 M chars; doc 960 alone 330 kB). Wrote ONE fixed rubric
@@ -161,7 +161,7 @@ DB and on the real DB (bm25 mode, real E1v2 prompts); `ml/curation` 37 → **38*
 - Wrote `ml/curation/docs/community-3s-review-2026-08-16.md` (+ raw JSONL). **STOPPED.** Nothing
   indexed. The C2 run's *new* 3s need the same pass later.
 
-## B1 — Qwen3.8 RUNDOWN (07:05–07:12 UTC, commit `33bb379`)
+## B1 — Qwen3.8 RUNDOWN (07:00–07:07 UTC, commit `33bb379`)
 
 Recomputed every number from the jsonl. E4 15/15 (3.6: 13/15) and E2 48/19/2 confirmed. **E1v2
 "7 dangerous" is 0 under the codified `dangerous_flips()`** — the six `vacuum_leak →
