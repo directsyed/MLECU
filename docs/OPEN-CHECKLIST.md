@@ -119,16 +119,15 @@ Index is healthy (no stale, no fallback) — this is a **corpus/query-type misma
 ### B3. Judge — calibration-gated, NOT swapped
 Config reverted to **3.6, the calibrated judge** (2026-07-05: keep/drop 93.1%, ±1 97.7%, dangerous 0).
 - [x] Raise judge `max_completion_tokens` 8192 → 24576 (model-agnostic truncation fix)
-- [ ] **Calibrate 3.8 against the EXISTING 100 adjudicated labels** (`calibration-100`: 54×2, 37×3,
-      9×4 — the "111 / 58-43-10" figure was calibration-100 + smoke-10 combined). Running overnight
-      2026-08-16 via the fixed `judge.recalibrate` (was loading rubric r1 / 1500 tokens — commit
-      `70d9da9`). ⚠ **Bars:** the DB pre-registration is **90/90/0**; 93.1/97.7 are what 3.6
-      *achieved* (n=87). Syed's rule (2026-08-16): swap only if 3.8 clears 90/90/0 AND matches-or-
-      beats 3.6's like-for-like recalibration on the new engine AND dangerous == 0.
-- [ ] 3.6 recalibration on the Aug-14 llama.cpp build (D18 re-baseline) — queued after the 3.8 run.
-- [ ] Then judge the **314 pending** community docs (romraider 125, legacygt 114, msextra 73,
-      forester 2). ⚠ 303 of them were INVISIBLE to `--run` until 2026-08-16 (`gone_at` filter
-      contradicted the ratified NARROW policy — commit `7e0c5d5`). Run with `--no-reindex`.
+- [x] **3.8 calibrated 2026-08-16 (n=100, r2, in-memory): keep/drop 91.0 · within±1 98.0 · dangerous 1
+      (doc 1081) → FAILS the pre-registered 90/90/0. NOT swapped.** `recal-qwen3.8-20260816.json`.
+- [x] **3.6 like-for-like on the Aug-14 build: 90.0 · 98.0 · 0 → PASS by zero margin** (July: 93.1/97.7
+      at n=87). `recal-qwen3.6-newengine-20260816.json`. Both judges recall only 4/9 adjudicated 4s.
+      decisions.md 2026-08-16 calibration entry.
+- [ ] Judge the **314 pending** community docs — **RUNNING since 2026-08-16 13:20 UTC** on 3.6/new
+      engine, `--no-reindex`, sources romraider/legacygt/msextra/forester (303 of them were invisible
+      until the gone-filter fix `7e0c5d5`). Doc-atomic + resumable; yield via
+      `judge.yield_report --since 2026-08-16T13:00`. See the morning report.
 
 ### B4. Community corpus — 637 forum docs invisible to retrieval
 `ref_fts` is **reference-tier by construction**; all forum threads are excluded. They hold 4× more

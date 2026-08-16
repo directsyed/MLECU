@@ -1020,3 +1020,31 @@ safety-relevant asymmetry — and E4 neutralises it (all three 3.8 `vacuum_leak`
 with no edit). **Recommendation: codify the reading explicitly, re-run `rundown.py` over every
 historical E1 file so numbers are comparable, then compare models. Not done tonight — it changes a
 ratified metric.**
+
+### 2026-08-16 — JUDGE CALIBRATION VERDICT: Qwen3.8 does NOT replace Qwen3.6 (1 dangerous cell); incumbent re-baselined on the new engine at 90.0/98.0/0
+
+Rule applied (Syed, ratified 06:2x UTC before the run): a candidate replaces the incumbent only if it
+clears the DB pre-registration `meta['calibration-100:pass_bars']` = **90/90/0** AND matches-or-beats
+the incumbent's LIKE-FOR-LIKE recalibration on the same engine/n/rubric AND has zero dangerous cells.
+(The runbook's "93.1/97.7 pre-registered" was 3.6's *achieved* July numbers at n=87 — corrected in
+`recalibrate.py`, checklist, runbook text.)
+
+| judge (Aug-14 llama.cpp build, ctx 32768, 24576 tok, rubric r2, n=100) | keep/drop | within±1 | exact | ρ | dangerous | verdict |
+|---|---|---|---|---|---|---|
+| Qwen3.8-27B Q8 (Unsloth) | 91.0 | 98.0 | 69.0 | 0.564 | **1** (doc 1081) | **FAIL** — hard bar |
+| Qwen3.6-27B Q8 (incumbent, like-for-like) | **90.0** | 98.0 | 70.0 | 0.583 | 0 | PASS, zero margin |
+
+**Consequences.**
+1. `config.yaml llm.model` stays `qwen3.6-27b-q8_0`; the C2 community judge run used 3.6 on the
+   Aug-14 build (engine change disclosed — D18 says use the better engine and re-baseline; the
+   re-baseline is the row above).
+2. **The incumbent's margin is gone.** 90.0 on a ≥90 bar. Not a failure; not comfortable. Part of the
+   3-pp drop vs July is methodological (n 87 → 100; the 4 reference-tier docs in the set are fully
+   judged by `recalibrate` where the runner auto-passes them — same treatment for both models, but
+   different from July). It should be re-measured if the engine, budget or rubric changes again.
+3. **Both judges recall 4/9 adjudicated 4s** — the same four — and push 960/1031/1088/5773 to 3 and
+   1127 to 2. Keep/drop agreement is carried by the 54 truth-2 docs. So the ≥4 gate is reliably
+   *rejecting* and unreliably *accepting*; that is the honest reading of "the forums hold content the
+   judge will promote", and it is why the score-3 review (28 keep / 67 drop) found value below the bar.
+4. Nothing decides whether 3.8 becomes the *diagnosis* model — E1/E2/E4 are that question and are
+   Syed's (§7), with the E1 dangerous-definition finding above on the table.
