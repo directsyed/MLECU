@@ -1,0 +1,117 @@
+<!-- Recovered ecuparam addresses for 3B12504206 (A2WC411D) — splice each <ecu> line into the
+     matching <ecuparam> of the RomRaider logger def. Conversions are shared, so only
+     the address is added. VALIDATE LIVE before trusting (see extended_param_recovery.py). -->
+<!-- E114 Knock Sum* [high] -->
+<ecu id="3B12504206"><address length="1">0xFF5BF0</address></ecu>
+<!-- E121 Closed Loop Fueling Target (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5610</address></ecu>
+<!-- E122 Closed Loop Fueling Target (2-byte)* [high] -->
+<ecu id="3B12504206"><address length="2">0xFF52A8</address></ecu>
+<!-- E31 IAM (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF267C</address></ecu>
+<!-- E32 Engine Load (4-Byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5030</address></ecu>
+<!-- E33 CL/OL Fueling* [high] -->
+<ecu id="3B12504206"><address length="1">0xFF6EA5</address></ecu>
+<!-- E34 Turbo Dynamics Integral (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4BEC</address></ecu>
+<!-- E35 Boost Error* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4BE0</address></ecu>
+<!-- E36 Target Boost (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4BE4</address></ecu>
+<!-- E37 Turbo Dynamics Proportional (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4BE8</address></ecu>
+<!-- E39 Feedback Knock Correction (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5C18</address></ecu>
+<!-- E40 Knock Correction Advance (IAM only)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5C5C</address></ecu>
+<!-- E50 Fuel Injector #1 Latency (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF59C0</address></ecu>
+<!-- E56 Requested Torque* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5E08</address></ecu>
+<!-- E60 Fuel Injector #1 Pulse Width (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF59AC</address></ecu>
+<!-- E79 Turbo Dynamics Integral (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF527A</address></ecu>
+<!-- E80 Turbo Dynamics Proportional (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF527C</address></ecu>
+<!-- E87 Engine Load (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF528C</address></ecu>
+<!-- E90 Target Boost (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF52A0</address></ecu>
+<!-- E94 Feedback Knock Correction (1-byte)** [high] -->
+<ecu id="3B12504206"><address length="1">0xFF52B4</address></ecu>
+<!-- E96 IAM (1-byte)** [high] -->
+<ecu id="3B12504206"><address length="1">0xFF52B9</address></ecu>
+<!-- E113 Manifold Relative Pressure (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4EB4</address></ecu>
+<!-- E115 Primary Enrichment Final (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF554C</address></ecu>
+<!-- E123 Final Fueling Base (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF551C</address></ecu>
+<!-- E124 Final Fueling Base (2-byte)* [high] -->
+<ecu id="3B12504206"><address length="2">0xFF528A</address></ecu>
+<!-- E38 Throttle Plate Opening Angle (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4F40</address></ecu>
+<!-- E41 Fine Learning Knock Correction (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5C74</address></ecu>
+<!-- E42 Map Ratio (Primary)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF6514</address></ecu>
+<!-- E44 A/F Learning #1 A (Stored)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF2620</address></ecu>
+<!-- E45 A/F Learning #1 B (Stored)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF2628</address></ecu>
+<!-- E46 A/F Learning #1 C (Stored)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF2630</address></ecu>
+<!-- E47 A/F Learning #1 D (Stored)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF2638</address></ecu>
+<!-- E48 A/F Learning #1 (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5710</address></ecu>
+<!-- E49 Idle Speed Map Selection* [high] -->
+<ecu id="3B12504206"><address length="1">0xFF5F84</address></ecu>
+<!-- E51 Manifold Absolute Pressure (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4EB0</address></ecu>
+<!-- E52 Manifold Relative Sea Level Pressure (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4EB0</address></ecu>
+<!-- E53 Ignition Base Timing* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5AE0</address></ecu>
+<!-- E54 Tip-in Throttle* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4F44</address></ecu>
+<!-- E55 Tip-in Enrichment (Last Calculated)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF58D0</address></ecu>
+<!-- E57 Target Throttle Plate Position* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5E04</address></ecu>
+<!-- E58 Fine Learning Table Offset* [high] -->
+<ecu id="3B12504206"><address length="1">0xFF5C7A</address></ecu>
+<!-- E59 Gear (Calculated)* [high] -->
+<ecu id="3B12504206"><address length="1">0xFF5269</address></ecu>
+<!-- E61 A/F Learning Airflow Range (Current)* [high] -->
+<ecu id="3B12504206"><address length="1">0xFF5719</address></ecu>
+<!-- E70 Primary Wastegate Duty Maximum* (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4C08</address></ecu>
+<!-- E77 Primary Wastegate Duty Maximum* (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF4C08</address></ecu>
+<!-- E78 Primary Wastegate Duty Maximum* (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF5278</address></ecu>
+<!-- E81 A/F Correction #1 (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF55C8</address></ecu>
+<!-- E82 A/F Correction #1 (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF5280</address></ecu>
+<!-- E83 A/F Learning #1 (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF5284</address></ecu>
+<!-- E84 Primary Open Loop Map Enrichment (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5780</address></ecu>
+<!-- E85 Primary Open Loop Map Enrichment (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF5286</address></ecu>
+<!-- E88 Manifold Absolute Pressure (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF529A</address></ecu>
+<!-- E89 Manifold Relative Sea Level Pressure (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF529A</address></ecu>
+<!-- E91 A/F Sensor #1 (4-byte)* [high] -->
+<ecu id="3B12504206"><address length="4">0xFF5118</address></ecu>
+<!-- E92 A/F Sensor #1 (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF52A2</address></ecu>
+<!-- E93 Throttle Plate Opening Angle (2-byte)** [high] -->
+<ecu id="3B12504206"><address length="2">0xFF52AA</address></ecu>
+<!-- E95 Fine Learning Knock Correction (1-byte)** [high] -->
+<ecu id="3B12504206"><address length="1">0xFF52B7</address></ecu>

@@ -1,0 +1,1194 @@
+[
+  {
+    "id": "E114",
+    "name": "Knock Sum*",
+    "address": "0xFF5BF0",
+    "length": 1,
+    "votes": {
+      "0xFF5BF0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5BF4": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E121",
+    "name": "Closed Loop Fueling Target (4-byte)*",
+    "address": "0xFF5610",
+    "length": 4,
+    "votes": {
+      "0xFF5610": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5614": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E122",
+    "name": "Closed Loop Fueling Target (2-byte)*",
+    "address": "0xFF52A8",
+    "length": 2,
+    "votes": {
+      "0xFF52A8": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E31",
+    "name": "IAM (4-byte)*",
+    "address": "0xFF267C",
+    "length": 4,
+    "votes": {
+      "0xFF267C": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF2688": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E32",
+    "name": "Engine Load (4-Byte)*",
+    "address": "0xFF5030",
+    "length": 4,
+    "votes": {
+      "0xFF5030": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E33",
+    "name": "CL/OL Fueling*",
+    "address": "0xFF6EA5",
+    "length": 1,
+    "votes": {
+      "0xFF6EA5": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF6EBD": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E34",
+    "name": "Turbo Dynamics Integral (4-byte)*",
+    "address": "0xFF4BEC",
+    "length": 4,
+    "votes": {
+      "0xFF4BEC": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E35",
+    "name": "Boost Error*",
+    "address": "0xFF4BE0",
+    "length": 4,
+    "votes": {
+      "0xFF4BE0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E36",
+    "name": "Target Boost (4-byte)*",
+    "address": "0xFF4BE4",
+    "length": 4,
+    "votes": {
+      "0xFF4BE4": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E37",
+    "name": "Turbo Dynamics Proportional (4-byte)*",
+    "address": "0xFF4BE8",
+    "length": 4,
+    "votes": {
+      "0xFF4BE8": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E39",
+    "name": "Feedback Knock Correction (4-byte)*",
+    "address": "0xFF5C18",
+    "length": 4,
+    "votes": {
+      "0xFF5C18": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5C1C": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E40",
+    "name": "Knock Correction Advance (IAM only)*",
+    "address": "0xFF5C5C",
+    "length": 4,
+    "votes": {
+      "0xFF5C5C": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5C60": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E50",
+    "name": "Fuel Injector #1 Latency (4-byte)*",
+    "address": "0xFF59C0",
+    "length": 4,
+    "votes": {
+      "0xFF59C0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF59C4": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E56",
+    "name": "Requested Torque*",
+    "address": "0xFF5E08",
+    "length": 4,
+    "votes": {
+      "0xFF5E08": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5E0C": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E60",
+    "name": "Fuel Injector #1 Pulse Width (4-byte)*",
+    "address": "0xFF59AC",
+    "length": 4,
+    "votes": {
+      "0xFF59AC": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF59B0": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E79",
+    "name": "Turbo Dynamics Integral (2-byte)**",
+    "address": "0xFF527A",
+    "length": 2,
+    "votes": {
+      "0xFF527A": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E80",
+    "name": "Turbo Dynamics Proportional (2-byte)**",
+    "address": "0xFF527C",
+    "length": 2,
+    "votes": {
+      "0xFF527C": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E87",
+    "name": "Engine Load (2-byte)**",
+    "address": "0xFF528C",
+    "length": 2,
+    "votes": {
+      "0xFF528C": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E90",
+    "name": "Target Boost (2-byte)**",
+    "address": "0xFF52A0",
+    "length": 2,
+    "votes": {
+      "0xFF52A0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E94",
+    "name": "Feedback Knock Correction (1-byte)**",
+    "address": "0xFF52B4",
+    "length": 1,
+    "votes": {
+      "0xFF52B4": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E96",
+    "name": "IAM (1-byte)**",
+    "address": "0xFF52B9",
+    "length": 1,
+    "votes": {
+      "0xFF52B9": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E113",
+    "name": "Manifold Relative Pressure (4-byte)*",
+    "address": "0xFF4EB4",
+    "length": 4,
+    "votes": {
+      "0xFF4EB4": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E115",
+    "name": "Primary Enrichment Final (4-byte)*",
+    "address": "0xFF554C",
+    "length": 4,
+    "votes": {
+      "0xFF554C": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5550": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E123",
+    "name": "Final Fueling Base (4-byte)*",
+    "address": "0xFF551C",
+    "length": 4,
+    "votes": {
+      "0xFF551C": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5520": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E124",
+    "name": "Final Fueling Base (2-byte)*",
+    "address": "0xFF528A",
+    "length": 2,
+    "votes": {
+      "0xFF528A": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E38",
+    "name": "Throttle Plate Opening Angle (4-byte)*",
+    "address": "0xFF4F40",
+    "length": 4,
+    "votes": {
+      "0xFF4F40": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E41",
+    "name": "Fine Learning Knock Correction (4-byte)*",
+    "address": "0xFF5C74",
+    "length": 4,
+    "votes": {
+      "0xFF5C74": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5C78": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E42",
+    "name": "Map Ratio (Primary)*",
+    "address": "0xFF6514",
+    "length": 4,
+    "votes": {
+      "0xFF6514": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF6518": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E44",
+    "name": "A/F Learning #1 A (Stored)*",
+    "address": "0xFF2620",
+    "length": 4,
+    "votes": {
+      "0xFF2620": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF262C": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E45",
+    "name": "A/F Learning #1 B (Stored)*",
+    "address": "0xFF2628",
+    "length": 4,
+    "votes": {
+      "0xFF2628": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF2634": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E46",
+    "name": "A/F Learning #1 C (Stored)*",
+    "address": "0xFF2630",
+    "length": 4,
+    "votes": {
+      "0xFF2630": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF263C": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E47",
+    "name": "A/F Learning #1 D (Stored)*",
+    "address": "0xFF2638",
+    "length": 4,
+    "votes": {
+      "0xFF2638": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF2644": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E48",
+    "name": "A/F Learning #1 (4-byte)*",
+    "address": "0xFF5710",
+    "length": 4,
+    "votes": {
+      "0xFF5710": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5714": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E49",
+    "name": "Idle Speed Map Selection*",
+    "address": "0xFF5F84",
+    "length": 1,
+    "votes": {
+      "0xFF5F84": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5F88": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E51",
+    "name": "Manifold Absolute Pressure (4-byte)*",
+    "address": "0xFF4EB0",
+    "length": 4,
+    "votes": {
+      "0xFF4EB0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E52",
+    "name": "Manifold Relative Sea Level Pressure (4-byte)*",
+    "address": "0xFF4EB0",
+    "length": 4,
+    "votes": {
+      "0xFF4EB0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E53",
+    "name": "Ignition Base Timing*",
+    "address": "0xFF5AE0",
+    "length": 4,
+    "votes": {
+      "0xFF5AE0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5AE4": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E54",
+    "name": "Tip-in Throttle*",
+    "address": "0xFF4F44",
+    "length": 4,
+    "votes": {
+      "0xFF4F44": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E55",
+    "name": "Tip-in Enrichment (Last Calculated)*",
+    "address": "0xFF58D0",
+    "length": 4,
+    "votes": {
+      "0xFF58D0": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF58D4": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E57",
+    "name": "Target Throttle Plate Position*",
+    "address": "0xFF5E04",
+    "length": 4,
+    "votes": {
+      "0xFF5E04": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5E08": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E58",
+    "name": "Fine Learning Table Offset*",
+    "address": "0xFF5C7A",
+    "length": 1,
+    "votes": {
+      "0xFF5C7A": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5C7E": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E59",
+    "name": "Gear (Calculated)*",
+    "address": "0xFF5269",
+    "length": 1,
+    "votes": {
+      "0xFF5269": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E61",
+    "name": "A/F Learning Airflow Range (Current)*",
+    "address": "0xFF5719",
+    "length": 1,
+    "votes": {
+      "0xFF5719": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF571D": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E70",
+    "name": "Primary Wastegate Duty Maximum* (4-byte)*",
+    "address": "0xFF4C08",
+    "length": 4,
+    "votes": {
+      "0xFF4C08": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E77",
+    "name": "Primary Wastegate Duty Maximum* (4-byte)*",
+    "address": "0xFF4C08",
+    "length": 4,
+    "votes": {
+      "0xFF4C08": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E78",
+    "name": "Primary Wastegate Duty Maximum* (2-byte)**",
+    "address": "0xFF5278",
+    "length": 2,
+    "votes": {
+      "0xFF5278": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E81",
+    "name": "A/F Correction #1 (4-byte)*",
+    "address": "0xFF55C8",
+    "length": 4,
+    "votes": {
+      "0xFF55C8": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF55CC": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E82",
+    "name": "A/F Correction #1 (2-byte)**",
+    "address": "0xFF5280",
+    "length": 2,
+    "votes": {
+      "0xFF5280": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E83",
+    "name": "A/F Learning #1 (2-byte)**",
+    "address": "0xFF5284",
+    "length": 2,
+    "votes": {
+      "0xFF5284": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E84",
+    "name": "Primary Open Loop Map Enrichment (4-byte)*",
+    "address": "0xFF5780",
+    "length": 4,
+    "votes": {
+      "0xFF5780": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306"
+      ],
+      "0xFF5784": [
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E85",
+    "name": "Primary Open Loop Map Enrichment (2-byte)**",
+    "address": "0xFF5286",
+    "length": 2,
+    "votes": {
+      "0xFF5286": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E88",
+    "name": "Manifold Absolute Pressure (2-byte)**",
+    "address": "0xFF529A",
+    "length": 2,
+    "votes": {
+      "0xFF529A": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E89",
+    "name": "Manifold Relative Sea Level Pressure (2-byte)**",
+    "address": "0xFF529A",
+    "length": 2,
+    "votes": {
+      "0xFF529A": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E91",
+    "name": "A/F Sensor #1 (4-byte)*",
+    "address": "0xFF5118",
+    "length": 4,
+    "votes": {
+      "0xFF5118": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E92",
+    "name": "A/F Sensor #1 (2-byte)**",
+    "address": "0xFF52A2",
+    "length": 2,
+    "votes": {
+      "0xFF52A2": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E93",
+    "name": "Throttle Plate Opening Angle (2-byte)**",
+    "address": "0xFF52AA",
+    "length": 2,
+    "votes": {
+      "0xFF52AA": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  },
+  {
+    "id": "E95",
+    "name": "Fine Learning Knock Correction (1-byte)**",
+    "address": "0xFF52B7",
+    "length": 1,
+    "votes": {
+      "0xFF52B7": [
+        "3B12504106",
+        "3B12504306",
+        "3B12584206",
+        "3B12584106",
+        "3B12584306",
+        "3B12504006",
+        "3B12584006"
+      ]
+    },
+    "agree_nonoutlier": 5,
+    "confidence": "high",
+    "divergent": false
+  }
+]
