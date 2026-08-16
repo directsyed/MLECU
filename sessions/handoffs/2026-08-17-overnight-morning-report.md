@@ -51,7 +51,25 @@ and C2 ran on 3.6.
 "93.1/97.7" were 3.6's *achieved* numbers, and the "111 labels / 58-43-10" figure was
 `calibration-100` + `smoke-10` combined — recalibrate reads calibration-100 only (n=100, 54/37/9).
 
-### 2. Yield from the 314 (was "310") — <FILL: distribution, honest characterisation, partial?>
+### 2. Yield from the 314 (was "310") — **RUNNING, partial** (see the live block at the bottom)
+
+C2 started **13:20 UTC** on 3.6 / Aug-14 build, `--no-reindex`, `--sources
+forum_romraider,forum_legacygt,forum_msextra,forum_subaruforester`. Doc-atomic and resumable. The count
+is 314, not 310 (the runbook's numbers were the not-gone subset). At ~1–3 min/doc it needs 5–10 h, so
+it will very likely still be running when you read this — that was anticipated in the plan and is
+fine. Prior community state for comparison: **19 × 4 / 95 × 3 / 213 × 2** of 327 (5.8 % ≥ 4).
+
+Refresh the number yourself, read-only:
+```bash
+cd ml/curation && .venv/bin/python -m judge.yield_report --since 2026-08-16T13:00
+```
+(`yield_report` — new tonight — prints the score histogram of everything judged since the timestamp,
+by source, next to the prior distribution and the still-pending counts. Read-only `?mode=ro` open.)
+
+**How to read it honestly when it lands:** the calibration result above says both judges accept only
+44 % of what humans call a 4. If the 314 yield ≥4 at roughly the prior 5.8 % (≈ 18 docs), that is the
+expected rate for *this* judge, not evidence the forums are empty — the C4 review shows real value one
+score lower. If it yields well under that, say so plainly: the premise is weaker than assumed.
 
 ### 3. The 3s review — DONE for the 95 existing: **28 keep / 67 drop**
 `ml/curation/docs/community-3s-review-2026-08-16.md` (+ rubric + raw JSONL). Judged on retrieval
@@ -72,10 +90,25 @@ evidence; the "+RAG@3" was a constant preamble (+10 pp for 3.6, 0 for 3.8; six p
 E2 does not collapse (325 distinct). `ml/eval/results/DOC-COLLAPSE-2026-08-16.md`, tool
 `ml/eval/doc_collapse.py`.
 
-### 6. Decisions I made that you may reverse
-<FILL — see the running list below>
+### 6. Decisions I made that you may reverse — see the list below (nothing hidden in it).
 
-### 7. Checklist + commits — <FILL: commit list>
+### 7. Checklist + commits — `docs/OPEN-CHECKLIST.md` updated (A2/A3/B1/B2/B3/B4/D); commits, oldest first (none pushed):
+
+| commit | what |
+|---|---|
+| `70d9da9` | recalibrate.py: load config.yaml (was r1/1500 tok), checkpoint/--resume, --doc-ids, both bar sets |
+| `58c8ec2` | mvem/identify: MafBaseline + unvalidated-baseline refusal guard (D20), car 91→101 |
+| `5636759` | doc_collapse.py + 3.6 headline retrieved 3 constant docs — writeup |
+| `7e0c5d5` | judge runner: gone-policy propagated, --no-reindex, dead-server STOP |
+| `806ce68` | retrieval: community index + per-parent cap machinery, all off; tier on snippets |
+| `33bb379` | 95 score-3 docs reviewed (28 keep / 67 drop); Qwen3.8 RUNDOWN |
+| `34b6571` | decisions D20 + gone-policy + E1-dangerous finding; checklist |
+| `321166b` | 3.8 calibration result (FAIL, 1 dangerous) |
+| `ab42f8f` | 3.6 like-for-like calibration (90.0/98.0/0) |
+| `949c29b` | judge.yield_report; process-doc timestamps |
+| `211625a` | PROGRESS entry + metric rows |
+| `3360094` | decisions: calibration verdict; checklist B3 |
+| (later) | this report's final refresh + process doc |
 
 ## Decisions I made that you may reverse (running list)
 - **Gate rule applied:** pre-registered 90/90/0 (from DB meta) AND match-or-beat 3.6's like-for-like
@@ -93,7 +126,36 @@ E2 does not collapse (325 distinct). `ml/eval/results/DOC-COLLAPSE-2026-08-16.md
   Under the codified one 3.8's E1v2 is 95.2% / 0 dangerous (passes the bar); under the handoff's
   reading it is 95.2% / 6 (+1 blank). Your call which is ratified — then re-run `rundown.py` on
   every historical E1 file before comparing models.
-- <FILL: anything from T3/T4 — engine used for 3.6, token budget changes, reordering>
+- **Engine for 3.6 / C2:** the Aug-14 llama.cpp build (`/tmp/start_q36_newbuild.sh` = the 3.8 script
+  with the GGUF swapped; ctx 32768, split 3.5,1, draft-mtp). D18 says use the better engine and
+  re-baseline; the re-baseline is the 90.0/98.0/0 row. `config.yaml` tag unchanged (`qwen3.6-27b-q8_0`).
+  The old certified July build was NOT used. If you want C2's verdicts on the July engine instead,
+  restore `data-backups/corpus-pre-c2-20260816-1320.sqlite` and re-run.
+- **Sequencing:** I ran the 3.6 recalibration BEFORE C2 (2.5 h of GPU) rather than after — because C2
+  writes 314 verdicts with that judge on that engine and I wanted its like-for-like number first. It
+  cost C2 those hours; C2 is resumable, nothing lost.
+- **Token budget:** unchanged (24576). No context-size errors occurred on either recal (the 330 kB
+  doc 960 = 15 chunks went through both times). Cost: runaway-thinking outliers (one 3-chunk doc took
+  1643 s on 3.8) — the budget was used, not exceeded.
+- **`recalibrate` scores the 4 reference-tier docs in the calibration set under full policy** (the
+  runner would auto-pass e.g. doc 332). Same for both models tonight; different from July. Noted, not
+  changed.
 
-## What is still running / what to do first
-<FILL>
+## What is still running / what to do first (live block — refreshed at the end of my run)
+
+- **RUNNING:** C2 judge run, python PID **2353503** (`ps -eo pid,args | grep "judge.cli --run"` — do
+  not `pkill -f`, it matches your own shell), llama-server 3.6 PID **2049185** on :8080. Log:
+  session scratchpad `c2.log`. Progress: `judge.cli --status` (community/pending decreasing) or the
+  `yield_report` command above. **I did NOT kill llama-server** because C2 was still running when I
+  wrote this; kill both by PID when it finishes (or let it finish — it stops by itself and leaves the
+  server up).
+- If C2 stopped early ("RUN STOPPED EARLY" in the log = server died): restart the server with
+  `/tmp/start_q36_newbuild.sh`, then re-run the same `judge.cli --run --no-reindex --sources …`
+  command — it resumes automatically. `--retry-failed` first if any doc landed `failed`.
+- **First decisions for you (in this order):** (1) sign off / edit the 28 keeps in
+  `ml/curation/docs/community-3s-review-2026-08-16.md`; (2) rule on the E1 "dangerous" definition
+  (codified lean/rich flip vs "edit on a no-edit fault") — it decides 3.8's E1 verdict; (3) whether to
+  reindex `ref_fts` (+11 reference docs) and rebuild the dense npz; (4) when the C2 yield is in, the
+  new 3s need the same review pass; (5) whether/when to build the community index (machinery ready).
+- Test suites at end of run: car 101 · ml/eval 124 (+1 gated) · ml/curation 38 · data-pipeline 37 —
+  all green from the right venvs. `git status` clean, 0 pushed.
