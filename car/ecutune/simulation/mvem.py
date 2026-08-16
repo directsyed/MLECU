@@ -135,9 +135,11 @@ NOMINAL_MAF_IDLE = SIM_MAF_BASELINE.at(IDLE_RPM)      # == 2.50 g/s
 # — a ~12% cross-session swing (atmospheric/warm-up; the MAF's low-voltage end wanders day to day,
 # cf. reviewed forum doc 6224). So this is a baseline with real variance, not an exact constant;
 # a MAF verdict inside ~+/-12% of nominal is inside the noise floor and must not be called a fault.
-# NOT yet wired as the default the estimator uses — the real-log -> Observation bridge (which sets
-# Observation.nominal_validated=True from this) is the next build; until then identify() still
-# refuses MAF verdicts against SIM_MAF_BASELINE. See car/logging/CAPTURE-PROTOCOL.md.
+# Consumed by the real-log->Observation bridge (`logparse/observe.py`, `cli.py --diagnose`), which
+# sets Observation.nominal_validated from this baseline's flag. NOTE it is self-referential for the
+# capture that DEFINED it — the bridge's `maf_term=False` mode drops the (tautological) MAF term
+# there; it becomes informative for a re-log compared against this stored baseline.
+# See car/logging/CAPTURE-PROTOCOL.md.
 MEASURED_MAF_BASELINE_20260816 = MafBaseline.from_capture(
     [(708.65, 3.08), (1637.14, 6.55)],
     provenance="three-hold capture 2026-08-16 (warm+fast idle, trim~0, wb on target); "

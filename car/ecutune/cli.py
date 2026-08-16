@@ -109,6 +109,93 @@ def _score_eval(path: str, baseline: str, seed: int) -> int:
     return 0
 
 
+_STAGE2_TRIM_TOL = 0.05   # +/-5% == the ROADMAP Stage-2 idle gate; within it, no change warranted
+
+# identify() fault -> which fuel scalar the correction is attributed to (the "split" the proposer
+# uses). None = not a table fix (a leak is mechanical; healthy needs no edit).
+def _split_for_fault(fault_id: str):
+    from .algorithms.fueling import ScalarSplit
+    from .core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_TRANSFER
+    knob = {"maf_low": SENSOR_MAF_TRANSFER, "maf_high": SENSOR_MAF_TRANSFER,
+            "injector_flow_lean": FUEL_INJECTOR_FLOW, "injector_flow_rich": FUEL_INJECTOR_FLOW,
+            "injector_latency_lean": FUEL_INJECTOR_LATENCY}.get(fault_id)
+    if knob is None:
+        return None
+    return ScalarSplit(w_latency=float(knob == FUEL_INJECTOR_LATENCY),
+                       w_flow=float(knob == FUEL_INJECTOR_FLOW),
+                       w_maf=float(knob == SENSOR_MAF_TRANSFER))
+
+
+def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> int:
+    """The log->layer bridge as a command: real CSV holds -> the deterministic layer's OWN diagnosis
+    (and, only if it finds an actionable out-of-tolerance fault, the clamped proposal it would make).
+    Claude does not read the logs here — `identify()` does."""
+    import numpy as np
+
+    from .algorithms import AlgoState, propose_idle_correction
+    from .algorithms.identify import identify
+    from .core.models import ClampContext
+    from .logparse.binning import GridSpec, bin_log
+    from .logparse.observe import observations_from_logs
+    from .safety import apply_proposal
+    from .simulation.mvem import MEASURED_MAF_BASELINE_20260816 as BASELINE
+    from .simulation.mvem import EngineParams
+    from .simulation.rom_seed import DEFAULT_ROM, fxt_rom_into_ej20x
+
+    rom_path = rom if (rom and rom != "DEFAULT") else str(DEFAULT_ROM)
+    believed, _truth, _op, _rep = fxt_rom_into_ej20x(rom_path)
+    obs = observations_from_logs(holds, BASELINE, maf_term=independent_baseline)
+    est = identify(believed, obs, EngineParams())
+
+    print("=" * 74)
+    print(f"DIAGNOSE — {len(holds)} holds, baseline {'INDEPENDENT' if independent_baseline else 'SELF-REFERENTIAL'} "
+          f"({'; MAF-vs-flow resolvable' if independent_baseline else 'MAF term OFF — see caveat'})")
+    print(f"{'hold':>18} {'air_scale':>10} {'volts':>7} {'trim%':>8} {'maf g/s':>8} {'nominal':>8}")
+    for h, o in zip(holds, obs):
+        nom = "—" if np.isnan(o.nominal_maf) else f"{o.nominal_maf:.2f}"
+        print(f"{Path(h).stem:>18} {o.air_scale:>10.3f} {o.voltage:>7.2f} {o.trim*100:>8.2f} "
+              f"{o.maf_reading:>8.2f} {nom:>8}")
+    ranked = sorted(est.residuals.items(), key=lambda kv: kv[1])[:4]
+    print("\nlayer verdict: fault=" + repr(est.fault_id) + f"  identifiable={est.identifiable}"
+          + f"  margin={est.margin:.2f}")
+    if est.reason:
+        print("  reason: " + est.reason)
+    print("  hypothesis ranking (residual, lower=better): "
+          + ", ".join(f"{k} {v:.2e}" for k, v in ranked))
+
+    max_trim = max(abs(o.trim) for o in obs)
+    print(f"\nidle vs Stage-2 gate (±{_STAGE2_TRIM_TOL*100:.0f}% trim): worst |trim| = {max_trim*100:.2f}% "
+          + ("→ WITHIN gate" if max_trim <= _STAGE2_TRIM_TOL else "→ OUT of gate"))
+    if not independent_baseline:
+        print("  CAVEAT: baseline was derived from THIS capture, so MAF-vs-injector-flow is not "
+              "separable here\n          (the ratio is 1.0 by construction). Resolve with an "
+              "independent baseline or a 3rd airflow point.")
+
+    split = _split_for_fault(est.fault_id) if est.identifiable else None
+    if est.identifiable and max_trim > _STAGE2_TRIM_TOL and split is not None:
+        from .logparse.observe import _as_logtable
+        cfg = load_config()
+        warm_lt = _as_logtable(holds[0])
+        warm_rpm = float(np.nanmean(warm_lt.get("rpm")))
+        grid = bin_log(warm_lt, GridSpec(x_role="maf_gs", x_breaks=(obs[0].maf_reading,),
+                                         y_breaks=(warm_rpm,)))
+        prop, _ = propose_idle_correction(grid, believed, AlgoState(), cfg.algo, split,
+                                          provenance="algorithm:idle_global_scalar",
+                                          metadata={"fault": est.fault_id})
+        ctx = ClampContext(believed, cfg.safety, fault_estimate=est)
+        new_tables, res = apply_proposal(believed, prop, ctx)
+        print("\nPIPELINE PROPOSAL (clamped; nothing written — for Syed's review):")
+        print(f"  ok={res.ok}  aborted_by={res.aborted_by or '—'}")
+        for e in prop.edits:
+            print(f"    {e.table_id}: → {e.new_value:.4f}   ({e.reason})")
+    else:
+        print("\nPIPELINE PROPOSAL: none — " + (
+            "idle within the Stage-2 gate; no change warranted" if max_trim <= _STAGE2_TRIM_TOL
+            else "verdict is not an actionable single-table fault (leak/healthy/not-identifiable)"))
+    print("=" * 74)
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="ecutune", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -121,6 +208,12 @@ def main(argv=None) -> int:
                    help="read + cross-validate the semantic table set from the ROM and print it")
     p.add_argument("--rom-diff", nargs=2, metavar=("ROM_A", "ROM_B"),
                    help="table-level + byte-level diff of two ROM images (exit 2 if they differ)")
+    p.add_argument("--diagnose", nargs="+", metavar="HOLD_CSV",
+                   help="the log->layer bridge: real RomRaider hold CSVs (warm first) -> the "
+                        "deterministic layer's own diagnosis + any clamped proposal")
+    p.add_argument("--independent-baseline", action="store_true",
+                   help="with --diagnose: the MAF baseline is independent of these holds, so the "
+                        "MAF-vs-flow term is trusted (default: self-referential, MAF term off)")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (default 0)")
     p.add_argument("--status", action="store_true", help="show config + active clamps/stages")
     p.add_argument("--generate-eval-cases", type=int, metavar="N",
@@ -144,6 +237,8 @@ def main(argv=None) -> int:
         return _rom_report(args.rom)
     if args.rom_diff:
         return _rom_diff(args.rom_diff[0], args.rom_diff[1])
+    if args.diagnose:
+        return _diagnose(args.diagnose, args.rom, args.independent_baseline)
     if args.generate_eval_cases:
         return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out,
                               args.eval_version)
