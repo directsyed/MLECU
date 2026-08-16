@@ -204,3 +204,17 @@ bar and it is Syed's to rule on (§7). Also: one `finish_reason=length` row per 
   own wrapper shell and briefly made the 3.6 recal look dead). Log `c2.log` in scratchpad; Monitor
   reports failures/STOP and every 20 docs. First log lines confirm: server up, *reindex SKIPPED
   (5638 vs 5649)*.
+
+## C2 close-out, part-2 review, wrap-up (19:40–20:xx UTC, commit `b1ec161` + final)
+
+- C2 finished 19:40: 314 judged, 0 failed, 391 chunks → 206/93/15. `judge.yield_report` (new, read-only)
+  is the reproducible view. llama-server killed by PID 19:43 (Syed's ruling); GPUs 0 MiB.
+- **Part-2 review**: exported the 93 new 3s + all 34 fours (127 docs, 1.0 M chars) with rationales,
+  10 batches, same rubric. Syed asked mid-run which model the reviewers use — verified from the subagent
+  transcripts (`"model":"claude-fable-5"` in every one, both rounds); batches 7–9 (and the relaunched
+  1–6, which the interrupt had killed) were re-launched with `model: fable` pinned explicitly.
+  Spot-checked 20/127 incl. every score-4 "drop" I could reach: those are mostly NEED-FIT verdicts on
+  rubric-correct 4s (MegaSquirt threads), not judge errors — the aggregation labels them so and marks the
+  6 genuine arc-missing cases ✱. Result 46 keep / 81 drop; 16 high-value keeps.
+- Final integrity: `ref_fts` 5638, no `community_fts`, npz sha unchanged; suites car 101 / eval 124+1 /
+  curation 38 / data-pipeline 37 all green. Commits, no push.

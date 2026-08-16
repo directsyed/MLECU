@@ -51,31 +51,40 @@ and C2 ran on 3.6.
 "93.1/97.7" were 3.6's *achieved* numbers, and the "111 labels / 58-43-10" figure was
 `calibration-100` + `smoke-10` combined — recalibrate reads calibration-100 only (n=100, 54/37/9).
 
-### 2. Yield from the 314 (was "310") — **RUNNING, partial** (see the live block at the bottom)
+### 2. Yield from the 314 (was "310") — **DONE 19:40 UTC: 2 × 206 · 3 × 93 · 4 × 15 (4.8 % ≥ 4)**
 
-C2 started **13:20 UTC** on 3.6 / Aug-14 build, `--no-reindex`, `--sources
-forum_romraider,forum_legacygt,forum_msextra,forum_subaruforester`. Doc-atomic and resumable. The count
-is 314, not 310 (the runbook's numbers were the not-gone subset). At ~1–3 min/doc it needs 5–10 h, so
-it will very likely still be running when you read this — that was anticipated in the plan and is
-fine. Prior community state for comparison: **19 × 4 / 95 × 3 / 213 × 2** of 327 (5.8 % ≥ 4).
+C2 ran 13:20–19:40 UTC on 3.6 / Aug-14 build, `--no-reindex`, `--sources
+forum_romraider,forum_legacygt,forum_msextra,forum_subaruforester`: **314 judged, 0 failed, 391 chunks**.
+By source: legacygt 114 (7 fours) · msextra 73 (7) · **romraider 125 (1)** · forester 2 (0). Prior state
+was 19 × 4 / 95 × 3 / 213 × 2 (5.8 % ≥ 4); the community tier is now **fully judged: 641 docs, 34 ≥ 4,
+188 at 3**. Reproduce: `cd ml/curation && .venv/bin/python -m judge.yield_report --since 2026-08-16T13:00`.
 
-Refresh the number yourself, read-only:
-```bash
-cd ml/curation && .venv/bin/python -m judge.yield_report --since 2026-08-16T13:00
-```
-(`yield_report` — new tonight — prints the score histogram of everything judged since the timestamp,
-by source, next to the prior distribution and the still-pending counts. Read-only `?mode=ro` open.)
+**Honest read.** The ≥4 yield (4.8 %) is at this judge's normal rate — and the calibration says this
+judge accepts under half of what humans call a 4. So the number is what *this judge* yields, not proof
+the forums are empty: the review pass (§3) found 74 keep-worthy docs across the 3s and 4s, 18 of them
+high-value, most of them scored 3. The premise "forums hold diagnostic content the reference corpus
+lacks" holds; the premise "the ≥4 bar will surface it" does not. Romraider in particular is 105/125
+twos — mostly definition requests and file swaps.
 
-**How to read it honestly when it lands:** the calibration result above says both judges accept only
-44 % of what humans call a 4. If the 314 yield ≥4 at roughly the prior 5.8 % (≈ 18 docs), that is the
-expected rate for *this* judge, not evidence the forums are empty — the C4 review shows real value one
-score lower. If it yields well under that, say so plainly: the premise is weaker than assumed.
+### 3. The review — DONE for the whole community tier: **222 docs, 74 keep** (both parts in
+`ml/curation/docs/community-3s-review-2026-08-16.md`, raw JSONL alongside)
 
-### 3. The 3s review — DONE for the 95 existing: **28 keep / 67 drop**
-`ml/curation/docs/community-3s-review-2026-08-16.md` (+ rubric + raw JSONL). Judged on retrieval
-usefulness for the current gaps, markers of verifiability only. Needs census: MegaSquirt/generic
-dominate; **no doc supplies a healthy-idle MAF baseline**. New 3s from the C2 run need the same pass.
-**Waiting on your sign-off — nothing indexed.**
+- **Part 1** (95 pre-existing 3s): 28 keep / 67 drop.
+- **Part 2** (93 new 3s + all 34 fours): 46 keep / 81 drop. Of the 34 fours, **17 recommended NOT to
+  index** — labelled honestly: mostly need-fit (MegaSquirt threads that are rubric-correct 4s but useless
+  to this car), 6 flagged as genuine arc-missing over-promotions (the doc-1081 pattern).
+- **Part 2 is where the value is — 16 high-value keeps vs 2 in part 1:** 884 + 944 (EJ20X/Y swapped
+  into an LGT running the EJ255 ECU — the closest real-world analogues of your car), **5793 (a 2005
+  Forester ROM read that failed on Openport until the `sti05` method + green test connectors — read
+  this before the next sweep)**, 5818 (05 FXT / VF48 / TGV-delete: AVCS transitions, knock-control load
+  floor, per-injector comps), 891 (EJ255 vacuum/boost-leak location guide + DIY smoke tester with
+  before/after trims), 5891 (first EJ255 healthy-idle MAF datum in the corpus: **4 g/s @ 850 rpm,
+  2.05 ms IPW**, new OEM Denso MAF — a *reference point*, not a baseline: 2.5 L, TGVs intact, one
+  poster), 5777 / 1085 / 5873 (trims → MAF vs injector vs latency separation on Subaru ROMs), 886
+  (a 299-post knock-control primer), 5910 (higher-CR JDM block on a stock USDM cal — how it shows in
+  knock feedback / IAM). Reviewer subagents ran on **Fable 5** (verified from transcripts); 35 of 222
+  verdicts spot-checked against source text by me, all held.
+- **Waiting on your sign-off — nothing indexed.**
 
 ### 4. MVEM — guard + rpm-indexed baseline built; car suite 91 → 101 (commit `58c8ec2`, D20)
 `mvem.MafBaseline` (points, `validated`, `provenance`, `.at(rpm)`, `from_capture()`), sim seed marked
@@ -141,26 +150,21 @@ E2 does not collapse (325 distinct). `ml/eval/results/DOC-COLLAPSE-2026-08-16.md
   runner would auto-pass e.g. doc 332). Same for both models tonight; different from July. Noted, not
   changed.
 
-## What is still running / what to do first (live block — refreshed at the end of my run)
+## Final state (20:xx UTC) — nothing running
 
-**Yield snapshot 17:23 UTC — 160 / 314 judged:** 2 × 93 · 3 × 58 · **4 × 9** (5.6 % ≥ 4, vs prior
-5.8 %) · 0 failed. By source: legacygt 108 (7 fours), msextra 19 (2), romraider 32 (0), forester 1 (0).
-Pending: legacygt 6, msextra 54, romraider 93, forester 1. Pace ~1.2 min/doc → finish ≈ 20:30 UTC.
-(Earlier: 60/314 at 15:25 = 37/19/4.)
+- **C2 finished 19:40** (0 failed). **llama-server killed** (PID 2049185) at 19:43 on your instruction;
+  GPUs at 0 MiB. No background processes of mine remain.
+- Verified at the end: `ref_fts` = 5638 (meta 5638), `community_fts` does not exist,
+  `ref_dense_v2.npz` sha `9ad0c5a4…` unchanged, `document` tiers 641 community / 5649 reference.
+- Test suites, final: **car 101 · ml/eval 124 (+1 gated heavy) · ml/curation 38 · data-pipeline 37** — all
+  green from the right venvs. `git status` clean, **0 pushed**.
+- Yield history: 60/314 @15:25 (37/19/4) → 160 @17:23 (93/58/9) → 314 @19:40 (206/93/15).
 
-- **RUNNING:** C2 judge run, python PID **2353503** (`ps -eo pid,args | grep "judge.cli --run"` — do
-  not `pkill -f`, it matches your own shell), llama-server 3.6 PID **2049185** on :8080. Log:
-  session scratchpad `c2.log`. Progress: `judge.cli --status` (community/pending decreasing) or the
-  `yield_report` command above. **I did NOT kill llama-server** because C2 was still running when I
-  wrote this; kill both by PID when it finishes (or let it finish — it stops by itself and leaves the
-  server up).
-- If C2 stopped early ("RUN STOPPED EARLY" in the log = server died): restart the server with
-  `/tmp/start_q36_newbuild.sh`, then re-run the same `judge.cli --run --no-reindex --sources …`
-  command — it resumes automatically. `--retry-failed` first if any doc landed `failed`.
-- **First decisions for you (in this order):** (1) sign off / edit the 28 keeps in
-  `ml/curation/docs/community-3s-review-2026-08-16.md`; (2) rule on the E1 "dangerous" definition
-  (codified lean/rich flip vs "edit on a no-edit fault") — it decides 3.8's E1 verdict; (3) whether to
-  reindex `ref_fts` (+11 reference docs) and rebuild the dense npz; (4) when the C2 yield is in, the
-  new 3s need the same review pass; (5) whether/when to build the community index (machinery ready).
-- Test suites at end of run: car 101 · ml/eval 124 (+1 gated) · ml/curation 38 · data-pipeline 37 —
-  all green from the right venvs. `git status` clean, 0 pushed.
+**First decisions for you, in order:** (1) sign off / edit the **74 keeps** (both parts of the review
+file) — and read 5793 before the next ROM-read attempt; (2) rule on the E1 "dangerous" definition
+(codified lean/rich flip → 3.8 is 95.2 %/0; "edit on a no-edit fault" → 95.2 %/6) — it decides 3.8's E1
+verdict; (3) `judge.cli --reindex` (+11 reference docs) and rebuild the dense npz, or not; (4) whether /
+when to build the community index (machinery ready, off) and how the reviewed keeps get in without
+rewriting `tier`/`judge_score` (proposal in the review file: a `human_label` row the predicate ORs into);
+(5) whether the ≥4 bar is still the right promotion gate for community docs given both judges recall
+4/9 adjudicated 4s — a rubric conversation, not a bar-lowering one.

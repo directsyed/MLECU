@@ -27,6 +27,8 @@ Settled by byte-level J2534 capture (`car/logging/j2534_shim.log`):
       Plan: `~/.claude/plans/rebuild-the-fastecu-plan-velvety-anchor.md`
 - [ ] File the upstream bug report — `car/ecu/FASTECU-SH7058-KLINE-BUG.md` is written and ready.
       **Do this in parallel from day one**, not as a last resort.
+- [ ] **Read corpus doc 5793 first** (05 Forester XS, RomRaider forum): Openport read failed until the
+      `sti05` read method + green test connectors — same year/platform family; surfaced by the 2026-08-16 review.
 - [ ] Last resort only (Syed's call): bench `shbootmode` (Renesas boot mode bypasses OBD security).
 
 ### A2. Data capture — UNBLOCKED, do in parallel
@@ -124,19 +126,20 @@ Config reverted to **3.6, the calibrated judge** (2026-07-05: keep/drop 93.1%, �
 - [x] **3.6 like-for-like on the Aug-14 build: 90.0 · 98.0 · 0 → PASS by zero margin** (July: 93.1/97.7
       at n=87). `recal-qwen3.6-newengine-20260816.json`. Both judges recall only 4/9 adjudicated 4s.
       decisions.md 2026-08-16 calibration entry.
-- [ ] Judge the **314 pending** community docs — **RUNNING since 2026-08-16 13:20 UTC** on 3.6/new
-      engine, `--no-reindex`, sources romraider/legacygt/msextra/forester (303 of them were invisible
-      until the gone-filter fix `7e0c5d5`). Doc-atomic + resumable; yield via
-      `judge.yield_report --since 2026-08-16T13:00`. See the morning report.
+- [x] **314 pending community docs judged 2026-08-16 13:20–19:40 UTC** on 3.6/new engine, `--no-reindex`,
+      0 failed: **2 × 206 · 3 × 93 · 4 × 15 (4.8 % ≥ 4; prior 5.8 %)**; romraider 1 four in 125. Community
+      tier fully judged: 641 docs, 34 ≥ 4, 188 at 3. `judge.yield_report --since 2026-08-16T13:00`.
 
 ### B4. Community corpus — 637 forum docs invisible to retrieval
 `ref_fts` is **reference-tier by construction**; all forum threads are excluded. They hold 4× more
 vacuum-leak and 2.5× more smoke-test content than everything currently indexed.
 - [ ] **Keep the ≥4 bar unchanged** (Syed). Do NOT lower it.
-- [x] **The 95 threes reviewed 2026-08-16** — `ml/curation/docs/community-3s-review-2026-08-16.md`:
-      **28 keep / 67 drop** on retrieval usefulness (markers of verifiability, not correctness);
-      needs census: MegaSquirt/generic dominate, `maf_baseline` = 0 docs. New 3s from the C2 run
-      need the same pass. **Awaiting Syed's sign-off — nothing indexed.**
+- [x] **Whole community tier reviewed 2026-08-16** — `ml/curation/docs/community-3s-review-2026-08-16.md`:
+      part 1 (95 old 3s) 28 keep / 67 drop; part 2 (93 new 3s + all 34 fours) 46 keep / 81 drop →
+      **222 docs, 74 keep, 18 high-value** (884/944 EJ20X-in-EJ255-ECU swaps, 5793 05-Forester ROM-read
+      recipe, 5818 05 FXT/VF48/TGV-delete, 891 leak guide + smoke tester, 5891 first EJ255 idle-MAF datum
+      4 g/s @850). 17 of the 34 fours recommended NOT to index (need-fit; 6 genuine over-promotions).
+      Fable-5 reviewers, 35/222 spot-checked. **Awaiting Syed's sign-off — nothing indexed.**
 - [ ] Review ALL docs before anything enters the corpus (Syed) — nothing indexed unreviewed.
 - [x] Index-coverage machinery built INERT 2026-08-16 (commit `806ce68`): SEPARATE `community_fts`
       + `community_dense_v2.npz`, tier-tagged `RefSnippet`, `RetrievalCfg.community_*` all default

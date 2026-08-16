@@ -53,7 +53,11 @@ must not rebuild the retrieval index as a side effect); dead-server STOP instead
 default path proven by tests; nothing built on the real corpus). The 95 score-3 community docs reviewed
 under one rubric for retrieval usefulness: **28 keep / 67 drop**, no doc supplies a healthy-idle MAF
 baseline; awaiting Syed's sign-off, nothing indexed. C2 judge run over the 314 pending community docs
-started 13:20 UTC on 3.6 (see the morning report for yield).
+ran 13:20–19:40 UTC on 3.6: **314 judged, 0 failed → 2 × 206 / 3 × 93 / 4 × 15 (4.8 % ≥ 4)**; the community
+tier is now fully judged (641 docs, 34 ≥ 4). A second review pass over the 93 new 3s and all 34 fours
+(same rubric, Fable-5 reviewers) brought the sign-off list to **222 docs / 74 keeps / 18 high-value** —
+including two EJ20X-into-EJ255-ECU swap threads, a 2005 Forester ROM-read recipe, and the corpus's first
+EJ255 healthy-idle MAF datum (4 g/s @ 850 rpm). Nothing indexed pending Syed's sign-off.
 
 Test totals: car 91 → 101 · ml/eval 116 → 124 (+1 gated heavy) · ml/curation 26 → 38 · data-pipeline 37.
 
@@ -798,3 +802,5 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-16 | E1v2 Qwen3.8 dangerous under the CODIFIED metric | **0** in both arms (was reported as 7) | 6× vacuum_leak→injector_latency_lean = lean→lean; 1 blank (finish_reason=length) per arm |
 | 2026-08-16 | Community score-3 review (95 docs, retrieval usefulness) | **28 keep / 67 drop**; 2 high, 25 medium; maf_baseline topic 0 docs | rubric-fixed, 8 reviewer batches, 15/95 spot-checked; nothing indexed |
 | 2026-08-16 | Deterministic layer, real-log MAF ratio vs sim baseline | ratio 1.397 → **REFUSAL** (was a confident MAF +39.7 % verdict) | D20; baseline provenance; sim path unchanged (E4 18/18) |
+| 2026-08-16 | C2 judge run, 314 pending community docs (3.6, Aug-14 build, --no-reindex) | 2 × 206 · 3 × 93 · **4 × 15 (4.8 % ≥ 4)**, 0 failed, 391 chunks, 6.3 h | prior 5.8 %; romraider 1/125; community tier fully judged (641; 34 ≥ 4) |
+| 2026-08-16 | Community review, complete tier (95 old 3s + 93 new 3s + 34 fours) | **222 reviewed → 74 keep (18 high)**; fours: 17 keep / 17 not-for-MLECU | Fable-5 reviewers, 35/222 spot-checked; nothing indexed |
