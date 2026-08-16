@@ -165,19 +165,26 @@ class State:
     def pending_for_judge(self, limit: int = 100,
                           sources: tuple[str, ...] | None = None) -> list[sqlite3.Row]:
         """Next docs awaiting the judge, oldest first. `sources` filters in SQL — filtering
-        after the fetch would starve the batch when the low ids are all other sources."""
+        after the fetch would starve the batch when the low ids are all other sources.
+
+        NO `gone_at` filter — deliberately (fixed 2026-08-16). The gone-sweep policy ratified
+        2026-07-22 (decisions.md, "NARROW") says gone-ness affects SCRAPING only, never judging,
+        retrieval or pair-mining: archived text is first-class corpus material forever. This
+        query still carried `AND gone_at IS NULL`, which hid 303 of the 314 pending community
+        docs (all gone-marked by the 2026-06-26 sweep) from every judge run for a month.
+        """
         if sources:
             marks = ",".join("?" * len(sources))
             return self.conn.execute(
                 f"""SELECT * FROM document
-                    WHERE gate_status='kept' AND judgment_status='pending' AND gone_at IS NULL
+                    WHERE gate_status='kept' AND judgment_status='pending'
                       AND source IN ({marks})
                     ORDER BY id LIMIT ?""",
                 (*sources, limit),
             ).fetchall()
         return self.conn.execute(
             """SELECT * FROM document
-               WHERE gate_status='kept' AND judgment_status='pending' AND gone_at IS NULL
+               WHERE gate_status='kept' AND judgment_status='pending'
                ORDER BY id LIMIT ?""",
             (limit,),
         ).fetchall()

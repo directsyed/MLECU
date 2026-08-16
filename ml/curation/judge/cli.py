@@ -14,6 +14,7 @@ import argparse
 import logging
 import sys
 import textwrap
+from pathlib import Path          # was missing: `--harvest --out X` raised NameError
 
 from corpus_pipeline.core.state import State
 
@@ -27,12 +28,19 @@ def _state(cfg) -> State:
 
 def _status(cfg) -> int:
     s = _state(cfg)
+    # No gone_at filter: gone-ness affects scraping only (decisions.md 2026-07-22, NARROW).
+    # Counting only not-gone docs here under-reported the pending pool by ~300 (2026-08-16).
     rows = s.conn.execute(
         """SELECT judgment_status, COUNT(*) FROM document
-           WHERE gate_status='kept' AND gone_at IS NULL GROUP BY judgment_status""").fetchall()
+           WHERE gate_status='kept' GROUP BY judgment_status""").fetchall()
     print("judge — corpus curation status")
     for st, n in rows:
         print(f"  {st:10s}: {n}")
+    tiers = s.conn.execute(
+        """SELECT tier, judgment_status, COUNT(*) FROM document
+           WHERE gate_status='kept' GROUP BY tier, judgment_status ORDER BY tier, judgment_status"""
+    ).fetchall()
+    print("  by tier:", ", ".join(f"{t}/{st}={n}" for t, st, n in tiers))
     hist = s.conn.execute(
         """SELECT judge_score, COUNT(*) FROM document
            WHERE judge_score IS NOT NULL GROUP BY judge_score ORDER BY judge_score""").fetchall()
@@ -48,12 +56,18 @@ def _status(cfg) -> int:
 def _run(cfg, args) -> int:
     s = _state(cfg)
     sources = set(args.sources.split(",")) if args.sources else None
-    stats = runner.run(cfg, s, limit=args.limit, sources=sources, dry_run=args.dry_run)
+    stats = runner.run(cfg, s, limit=args.limit, sources=sources, dry_run=args.dry_run,
+                       reindex=not args.no_reindex)
     print(f"run complete: judged={stats.judged} auto_passed={stats.auto_passed} "
           f"failed={stats.failed} chunks={stats.chunks}")
     if stats.score_hist:
         print(f"scores: {dict(sorted(stats.score_hist.items()))}")
+    if stats.stopped:
+        print(f"RUN STOPPED EARLY: {stats.stopped} — remaining docs left 'pending'; "
+              f"re-run to continue")
     s.close()
+    if stats.stopped:
+        return 2
     return 0 if stats.failed == 0 else 1
 
 
@@ -112,6 +126,9 @@ def main(argv=None) -> int:
     p.add_argument("--sources")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--reindex", action="store_true")
+    p.add_argument("--no-reindex", action="store_true",
+                   help="with --run: do NOT rebuild ref_fts even if the reference count moved "
+                        "(leaves the retrieval index exactly as it is; logs the delta)")
     p.add_argument("--retry-failed", action="store_true")
     p.add_argument("--sample", action="store_true")
     p.add_argument("--label", action="store_true")

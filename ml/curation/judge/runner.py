@@ -30,9 +30,18 @@ class RunStats:
     failed: int = 0
     chunks: int = 0
     score_hist: dict[int, int] = field(default_factory=dict)
+    stopped: str = ""        # non-empty => the run ended EARLY for this reason (server death)
 
     def record(self, score: int) -> None:
         self.score_hist[score] = self.score_hist.get(score, 0) + 1
+
+
+def _server_alive(cfg: Config) -> bool:
+    try:
+        llm.health_check(cfg.llm)
+        return True
+    except llm.LlmError:
+        return False
 
 
 def _doc_synopsis(cfg: Config, pack: PromptPack, doc, first_chunk_text: str) -> str:
@@ -74,21 +83,34 @@ def _judge_chunk(cfg: Config, pack: PromptPack, state: State, doc, ch: chunker.C
 
 
 def run(cfg: Config, state: State, *, limit: int | None = None,
-        sources: set[str] | None = None, dry_run: bool = False) -> RunStats:
+        sources: set[str] | None = None, dry_run: bool = False,
+        reindex: bool = True) -> RunStats:
     served = llm.health_check(cfg.llm)
     log.info("llama-server up, serving %s", served)
-    retrieval.ensure_index(state, cfg)
+    if reindex:
+        retrieval.ensure_index(state, cfg)
+    else:
+        # --no-reindex (2026-08-16): leave ref_fts exactly as it is, but say what was skipped so
+        # the operator can decide (`judge.cli --reindex`) with the delta in front of them.
+        stamped = state.get_meta("ref_fts_doc_count")
+        live = state.reference_kept_count()
+        log.info("reindex SKIPPED by request: ref_fts stamped %s vs reference-kept %d%s",
+                 stamped, live, "" if str(live) == str(stamped) else "  <-- index is behind")
     pack = load_prompt_pack(cfg.resolve(cfg.judge.prompts_dir))
     audit = AuditLog(cfg.resolve(cfg.audit.dir))
     stats = RunStats()
 
     while limit is None or stats.judged + stats.auto_passed < limit:
+        if stats.stopped:
+            break
         batch = state.pending_for_judge(cfg.judge.batch_size,
                                         sources=tuple(sorted(sources)) if sources else None)
         if not batch:
             break
         for doc in batch:
             if limit is not None and stats.judged + stats.auto_passed >= limit:
+                break
+            if stats.stopped:
                 break
             policy = cfg.judge.policy_for(doc["source"], doc["tier"])
             try:
@@ -146,6 +168,14 @@ def run(cfg: Config, state: State, *, limit: int | None = None,
                 log.info("judged doc %s (%s) score=%d chunks=%d",
                          doc["id"], (doc["title"] or "")[:48], doc_score, len(chunks))
             except Exception as e:
+                # A DEAD SERVER IS NOT A BAD DOCUMENT (2026-08-16). llm.chat retries transport
+                # errors 3x then raises LlmError; marking that doc 'failed' and moving on would
+                # burn the whole pending pool into 'failed' at ~35 s/doc. Re-check the server:
+                # if it is gone, STOP — the doc stays 'pending' and the next run re-picks it.
+                if isinstance(e, llm.LlmError) and not _server_alive(cfg):
+                    stats.stopped = f"llama-server unreachable while judging doc {doc['id']}: {e}"
+                    log.error("STOPPING RUN — %s (doc left pending)", stats.stopped)
+                    break
                 log.error("doc %s failed: %s", doc["id"], e)
                 if not dry_run:
                     state.mark_judge_failed(doc["id"], str(e))
