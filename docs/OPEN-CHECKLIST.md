@@ -186,3 +186,26 @@ another's confidence.
 - `pgrep`/`pkill -f` match **your own shell** — kill by PID.
 - Token budget and timeout must rise **together**; 8192/600s truncated thinking-models and
   understated them by up to 14pp.
+
+---
+
+## D. TONIGHT — runnable with Syed asleep (no human input needed)
+- [ ] **3.6 doc-collapse re-check.** Free, no GPU, archived result files. Does 3.6's ratified
+      `base+RAG@3` headline show the same 4-document collapse? If yes, that ratification rests on
+      noise. **Highest value-per-effort item open.**
+- [ ] **Judge calibration of 3.8** against the existing 100 adjudicated labels. Syed re-labels
+      NOTHING. ⚠ Mechanical blocker unsolved: the runner skips docs already `judged`, so this needs
+      a force path or a status reset for those doc-ids — **solve it before running, or it silently
+      no-ops.** Backup exists: `data-backups/corpus-pre-3.8-judge-20260815.sqlite`.
+- [ ] **File the FastECU upstream bug report** — `car/ecu/FASTECU-SH7058-KLINE-BUG.md`, ready to post.
+
+## E. NEEDS SYED PHYSICALLY (car)
+- [ ] **The 5-value SID 0x34 sweep** — everything is built and verified; see handoff §1 for the
+      exact commands. Control run first (unset ⇒ must still fail `7F 34 10`).
+- [ ] Stage 0 smoke/leak test · DTC re-read after a drive cycle · DB9 shell rebuild ·
+      the three-hold capture.
+
+## F. NEEDS SYED'S DECISION (do not decide unilaterally)
+- [ ] **Does 3.8 displace 3.6?** E4 says yes (15/15 vs 13/15); E1v2 says no (7 dangerous vs 0).
+- [ ] **Retrain QLoRA on 3.8?** Arms C/D can't run — the adapter is welded to Qwen3.6. My read is
+      *not yet* (the pilot failed on data, not base model), but it's his call.
