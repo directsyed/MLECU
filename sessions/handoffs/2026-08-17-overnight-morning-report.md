@@ -143,6 +143,10 @@ E2 does not collapse (325 distinct). `ml/eval/results/DOC-COLLAPSE-2026-08-16.md
 
 ## What is still running / what to do first (live block — refreshed at the end of my run)
 
+**Yield snapshot 15:25 UTC — 60 / 314 judged (all legacygt so far, id order):** 2 × 37 · 3 × 19 ·
+**4 × 4** (6.7 % ≥ 4, vs prior 5.8 %) · 0 failed. Pending: legacygt 54, msextra 73, romraider 125,
+forester 2. Pace ~2 min/doc → finish ≈ 00:00 UTC 08-17.
+
 - **RUNNING:** C2 judge run, python PID **2353503** (`ps -eo pid,args | grep "judge.cli --run"` — do
   not `pkill -f`, it matches your own shell), llama-server 3.6 PID **2049185** on :8080. Log:
   session scratchpad `c2.log`. Progress: `judge.cli --status` (community/pending decreasing) or the
