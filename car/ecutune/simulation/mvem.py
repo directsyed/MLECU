@@ -52,20 +52,13 @@ class EngineParams:
         return self.fuel_density / 60000.0
 
 
-@dataclass(frozen=True)
-class OperatingPoint:
-    rpm: float = 850.0
-    maf_gs: float = 2.5
-    load_grev: float = 0.30
-
-
 # --- the multi-point probe protocol -------------------------------------------------------
 # CANONICAL HOME for these (2026-08-05). They were defined in evals/cases.py, which made them
 # look like an eval detail; they are not. They are the operating points that make the fault
 # IDENTIFIABLE, and both the deterministic estimator and the real-car capture protocol are
 # built around them. evals/cases.py now re-exports these so existing imports keep working and
 # there is one source of truth.
-NOMINAL_MAF_IDLE = 2.50      # g/s reading on a healthy warm idle (this 2.0 L at 850 rpm)
+IDLE_RPM = 850.0
 FAST_AIR_SCALE = 2.0         # "fast idle" probe (~1500 rpm): separates LEAK (trim halves)
                              # from flow/MAF errors (trim flat)
 FAST_IDLE_RPM = 1500.0
@@ -74,6 +67,70 @@ LOW_VOLTAGE = 12.0           # electrical-load probe: separates LATENCY (trim gr
 
 # (air_scale, voltage_or_None) — voltage None means "at v_ref".
 PROBE_POINTS = ((1.0, None), (FAST_AIR_SCALE, None), (1.0, LOW_VOLTAGE))
+
+
+@dataclass(frozen=True)
+class MafBaseline:
+    """Healthy-engine MAF reading (g/s) as a function of rpm — the reference the estimator's
+    MAF-vs-nominal term is judged against.
+
+    WHY THIS IS A CLASS AND NOT A NUMBER (2026-08-16). The old scalar `NOMINAL_MAF_IDLE = 2.50`
+    was a simulation seed that had never been measured on the car. The first real warm-idle log
+    read 3.49 g/s at 709 rpm (+40%, worse normalised for rpm — TGV + exhaust-AVCS deletes raise
+    idle airflow), and `identify.maf_belief_ratio()` turned that into a confident "MAF +39.7%"
+    verdict on an engine whose total fuel trim was +0.31%. The number was wrong AND nothing
+    recorded that it was unverified.
+
+    So the baseline now carries its own PROVENANCE. `validated` is True ONLY when the points come
+    from a real capture on a known-healthy engine (`from_capture`); the seeded sim baseline says
+    False, and `identify()` refuses to issue a MAF verdict against an unvalidated baseline.
+    Do NOT paste a single measured value in here — one log, one operating point, an engine that
+    idles poorly, and rpm mismatch against the constant's own assumption is not a baseline.
+    Populate it from the three-hold capture (`car/logging/CAPTURE-PROTOCOL.md`).
+    """
+    points: tuple[tuple[float, float], ...]      # (rpm, g/s), ascending rpm, >= 1 point
+    validated: bool                              # provenance flag — see class docstring
+    provenance: str
+
+    def __post_init__(self) -> None:
+        if not self.points:
+            raise ValueError("MafBaseline needs at least one (rpm, g/s) point")
+        rpms = [p[0] for p in self.points]
+        if rpms != sorted(rpms) or len(set(rpms)) != len(rpms):
+            raise ValueError("MafBaseline points must be strictly ascending in rpm")
+
+    def at(self, rpm: float) -> float:
+        """Nominal g/s at `rpm`: linear interpolation, clamped to the end points (no
+        extrapolation — a baseline should never invent airflow it never saw)."""
+        rpms = [p[0] for p in self.points]
+        gs = [p[1] for p in self.points]
+        return float(np.interp(rpm, rpms, gs))
+
+    @classmethod
+    def from_capture(cls, points, provenance: str) -> "MafBaseline":
+        """A VALIDATED baseline — only ever built from real, healthy-engine measurements."""
+        return cls(points=tuple(sorted((float(r), float(g)) for r, g in points)),
+                   validated=True, provenance=provenance)
+
+
+# The SIMULATION's healthy baseline. Consistent with the sim world (synth_log builds maf_gs from
+# it, `harness.collect_observations` compares against it), so inside the sim it IS the truth —
+# but it has never been measured on this engine, hence `validated=False`.
+SIM_MAF_BASELINE = MafBaseline(
+    points=((IDLE_RPM, 2.50), (FAST_IDLE_RPM, 2.50 * FAST_AIR_SCALE)),
+    validated=False,
+    provenance="simulation seed (2026-08-05); never measured on the EJ20X — see MafBaseline")
+
+# Scalar kept for the sim/eval consumers that import it (evals/cases.py, ml/eval/harness/e4.py,
+# tests). It is the sim baseline at warm idle; its provenance is SIM_MAF_BASELINE.provenance.
+NOMINAL_MAF_IDLE = SIM_MAF_BASELINE.at(IDLE_RPM)      # == 2.50 g/s
+
+
+@dataclass(frozen=True)
+class OperatingPoint:
+    rpm: float = IDLE_RPM
+    maf_gs: float = NOMINAL_MAF_IDLE     # one source of truth for the sim's idle airflow
+    load_grev: float = 0.30
 
 
 def _scalar(tables: TableSet, table_id: str) -> float:

@@ -36,7 +36,8 @@ def observe(believed, truth: EngineParams) -> list[Observation]:
     return [Observation(air_scale=a, voltage=v,
                         trim=steady_trim(believed, truth, air_scale=a, voltage=v),
                         maf_reading=NOMINAL_MAF_IDLE * a * maf_ratio,
-                        nominal_maf=NOMINAL_MAF_IDLE * a)
+                        nominal_maf=NOMINAL_MAF_IDLE * a,
+                        nominal_validated=True)      # sim world: the baseline is the truth
             for a, v in pts]
 
 

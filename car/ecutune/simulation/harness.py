@@ -65,7 +65,12 @@ def collect_observations(tables, params, op: OperatingPoint, rng,
         obs.append(Observation(air_scale=air_scale, voltage=volts,
                                trim=weighted_mean_trim(grid) / 100.0,
                                maf_reading=maf,
-                               nominal_maf=NOMINAL_MAF_IDLE * air_scale))
+                               nominal_maf=NOMINAL_MAF_IDLE * air_scale,
+                               # inside the SIM the seeded baseline IS the truth by construction
+                               # (synth_log builds maf_gs from it) — so it is validated *for
+                               # this world*. A real-log loader must NOT copy this line; it
+                               # takes `MafBaseline.validated` from the capture instead.
+                               nominal_validated=True))
     return obs
 
 

@@ -84,6 +84,12 @@ class Observation:
     trim: float               # measured steady-state trim, FRACTION (not %)
     maf_reading: float = float("nan")   # ECU-reported g/s at this point
     nominal_maf: float = float("nan")   # healthy-baseline g/s at this air_scale
+    # PROVENANCE of `nominal_maf` (2026-08-16). True only when the baseline was measured on a
+    # known-healthy engine (`mvem.MafBaseline.validated`). Defaults to False — "unvalidated unless
+    # stated" — because the sim seed 2.50 g/s was 40% off the real car and the estimator turned
+    # that into a confident MAF-fault verdict on a healthy engine. The sim harness sets True
+    # (inside the sim the baseline is the truth by construction).
+    nominal_validated: bool = False
 
 
 @dataclass(frozen=True)
@@ -123,7 +129,18 @@ def _believed_with(base: TableSet, table_id: str, value: float) -> TableSet:
                                      hard_min=t.hard_min, hard_max=t.hard_max)})
 
 
-def _sse(believed: TableSet, params: EngineParams, obs: list[Observation]) -> float:
+def _has_maf_baseline(o: Observation) -> bool:
+    return bool(o.nominal_maf) and not math.isnan(o.maf_reading) and not math.isnan(o.nominal_maf)
+
+
+def baseline_validated(obs: list[Observation]) -> bool:
+    """True iff every observation that carries a MAF baseline says that baseline is validated.
+    Observations without a baseline do not vote (there is nothing to validate)."""
+    return all(o.nominal_validated for o in obs if _has_maf_baseline(o))
+
+
+def _sse(believed: TableSet, params: EngineParams, obs: list[Observation],
+         use_maf_term: bool = True) -> float:
     """Squared residuals of everything the hypothesis predicts: the trim at each probe point
     AND the airflow the ECU would report.
 
@@ -136,12 +153,17 @@ def _sse(believed: TableSet, params: EngineParams, obs: list[Observation]) -> fl
     Found the hard way: scoring trims alone recovered 15/21 seeded faults through the real
     log->bin path, and every miss was a MAF fault scored as the corresponding flow fault, with
     the tie decided by sensor noise.
+
+    `use_maf_term=False` drops the reading term for EVERY hypothesis. Used when the baseline is
+    unvalidated: a term measured against a number that was never verified on this engine is not
+    evidence, and leaving it in would poison `healthy` and every other hypothesis alike (the
+    2026-08-16 finding — sim seed 2.50 vs 3.49 measured).
     """
     total = 0.0
     for o in obs:
         pred = steady_trim(believed, params, air_scale=o.air_scale, voltage=o.voltage)
         total += (pred - o.trim) ** 2
-        if o.nominal_maf and not math.isnan(o.maf_reading) and not math.isnan(o.nominal_maf):
+        if use_maf_term and _has_maf_baseline(o):
             # this hypothesis implies the ECU over/under-reports airflow by exactly this ratio
             pred_ratio = _scalar_of(believed, SENSOR_MAF_TRANSFER) / params.maf_scaling_true
             total += (pred_ratio - o.maf_reading / o.nominal_maf) ** 2
@@ -195,7 +217,7 @@ def matched_params(believed: TableSet, params: EngineParams) -> EngineParams:
 
 
 def _fit_hypothesis(fault_id: str, believed: TableSet, base: EngineParams,
-                    obs: list[Observation]) -> tuple[float, float]:
+                    obs: list[Observation], use_maf_term: bool = True) -> tuple[float, float]:
     """(best_parameter, residual) for one single-fault hypothesis.
 
     `base` must be the matched world from `matched_params`. The hypothesis is always "my BELIEF
@@ -205,14 +227,14 @@ def _fit_hypothesis(fault_id: str, believed: TableSet, base: EngineParams,
     from dataclasses import replace
 
     if fault_id == "healthy":
-        return 0.0, _sse(believed, base, obs)
+        return 0.0, _sse(believed, base, obs, use_maf_term)
 
     lo, hi = _BOUNDS[fault_id]
 
     if fault_id == "vacuum_leak":
         # Every belief correct; unmetered air is the only free parameter.
         def cost(leak: float) -> float:
-            return _sse(believed, replace(base, leak_air_g=float(leak)), obs)
+            return _sse(believed, replace(base, leak_air_g=float(leak)), obs, use_maf_term)
         return _golden_min(cost, lo, hi)
 
     knob = FAULT_KNOB[fault_id]
@@ -227,7 +249,7 @@ def _fit_hypothesis(fault_id: str, believed: TableSet, base: EngineParams,
         else:
             # latency_slope scales with belief/truth inside mvem, so only latency_true moves
             p = replace(base, latency_true=true_val)
-        return _sse(believed, p, obs)
+        return _sse(believed, p, obs, use_maf_term)
 
     return _golden_min(cost, lo, hi)
 
@@ -253,11 +275,18 @@ def identify(believed: TableSet, obs: list[Observation],
     latency-vs-voltage slope). Its flow/latency/maf "true" fields are placeholders that each
     hypothesis overrides while fitting; the caller does NOT need to know ground truth.
 
-    Refuses in two distinct ways, and the distinction matters to the operator:
+    Refuses in three distinct ways, and the distinction matters to the operator:
       * `margin` too small     -> two hypotheses explain the data equally well. More/other probe
                                   points are needed. Not a fault report.
       * best residual too big  -> NO single-fault hypothesis fits. Multiple simultaneous faults,
                                   or something the model does not represent. Escalate.
+      * MAF baseline unvalidated -> the reported-airflow evidence is measured against a nominal
+                                  that was never verified on THIS engine (`Observation.
+                                  nominal_validated`). The MAF term is dropped from every
+                                  hypothesis; if the verdict would still rest on it (the ratio sits
+                                  in a MAF-fault band, or the trims-only best is a MAF fault) the
+                                  layer refuses rather than guess. Populate the baseline from the
+                                  three-hold capture and it identifies as before.
     """
     params = params or EngineParams()
     if len(obs) < 2:
@@ -265,37 +294,56 @@ def identify(believed: TableSet, obs: list[Observation],
                              f"need >=2 probe points to identify, got {len(obs)}",
                              len(obs), tuple(obs))
 
+    # THE BASELINE GUARD (2026-08-16). A refusal is visible; a silent down-weight is not.
+    trust_maf = baseline_validated(obs)
+    ratio = maf_belief_ratio(obs)          # computed regardless — reported in the refusal
+
     base = matched_params(believed, params)
     residuals: dict[str, float] = {}
     fits: dict[str, float] = {}
     for fault_id in FAULT_KNOB:
         if fault_id in ("maf_low", "maf_high"):
             continue                    # handled below, using the direct MAF observation
-        best_param, sse = _fit_hypothesis(fault_id, believed, base, obs)
+        best_param, sse = _fit_hypothesis(fault_id, believed, base, obs, use_maf_term=trust_maf)
         residuals[fault_id] = sse
         fits[fault_id] = best_param
 
     # MAF hypotheses: the reported airflow gives the ratio directly, so we fit nothing and just
-    # score the implied world. Falls back to the generic search when no baseline is logged.
-    ratio = maf_belief_ratio(obs)
+    # score the implied world. Falls back to the generic search when no baseline is logged —
+    # or when the baseline is unvalidated (then the ratio is NOT evidence).
+    ratio_in_band = None                   # which MAF band the (untrusted) ratio would have hit
     for fault_id in ("maf_low", "maf_high"):
         lo, hi = _BOUNDS[fault_id]
-        if ratio is not None and lo <= ratio <= hi:
+        if ratio is not None and lo <= ratio <= hi and not trust_maf:
+            ratio_in_band = fault_id
+        if trust_maf and ratio is not None and lo <= ratio <= hi:
             from dataclasses import replace
             p = replace(base, maf_scaling_true=_scalar_of(believed, SENSOR_MAF_TRANSFER) / ratio)
             residuals[fault_id] = _sse(believed, p, obs)
             fits[fault_id] = ratio
-        elif ratio is not None:
+        elif trust_maf and ratio is not None:
             residuals[fault_id] = float("inf")      # direct observation rules this one out
             fits[fault_id] = ratio
         else:
-            best_param, sse = _fit_hypothesis(fault_id, believed, base, obs)
+            best_param, sse = _fit_hypothesis(fault_id, believed, base, obs,
+                                              use_maf_term=trust_maf)
             residuals[fault_id] = sse
             fits[fault_id] = best_param
 
     order = sorted(residuals, key=lambda k: residuals[k])
     best = order[0]
     r_best = residuals[best]
+
+    if not trust_maf and ratio is not None and (ratio_in_band or best in ("maf_low", "maf_high")):
+        ranking = ", ".join(f"{k}={residuals[k]:.2e}" for k in order[:3])
+        return FaultEstimate(best, fits[best], residuals, 0.0, False,
+                             f"MAF verdict withheld: the nominal MAF baseline is UNVALIDATED on "
+                             f"this engine (sim-derived; see mvem.MafBaseline) and the MAF "
+                             f"reading is {ratio:.3f}x nominal"
+                             + (f" — inside the {ratio_in_band} band" if ratio_in_band else "")
+                             + f". Trims-only ranking: {ranking}. Populate the baseline from the "
+                             f"three-hold capture (car/logging/CAPTURE-PROTOCOL.md) before "
+                             f"trusting any MAF-vs-nominal verdict.", len(obs), tuple(obs))
 
     # The margin is measured against the best competitor that would take a DIFFERENT ACTION.
     # Two hypotheses routing to the same knob are operationally identical — `maf_low` vs

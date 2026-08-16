@@ -110,10 +110,12 @@ def to_markdown(rep: dict) -> str:
 
     if d["observations"]:
         out += ["", "### Observations it fitted", "",
-                "| air_scale | voltage | trim | MAF reading | nominal MAF |", "|---|---|---|---|---|"]
+                "| air_scale | voltage | trim | MAF reading | nominal MAF | baseline validated |",
+                "|---|---|---|---|---|---|"]
         for o in d["observations"]:
             out.append(f"| {o.get('air_scale')} | {o.get('voltage')} | {_fmt(o.get('trim', 0))} "
-                       f"| {o.get('maf_reading')} | {o.get('nominal_maf')} |")
+                       f"| {o.get('maf_reading')} | {o.get('nominal_maf')} "
+                       f"| {o.get('nominal_validated', '?')} |")
 
     out += ["", "## LLM side — the evidence it was given", ""]
     if "WARNING" in llm:
