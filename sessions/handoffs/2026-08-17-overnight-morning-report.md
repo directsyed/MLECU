@@ -19,18 +19,33 @@ Plan that was approved: `~/.claude/plans/read-the-newest-checklist-bright-sunbea
 
 | metric | Qwen3.8 | pre-registered bar (DB meta, 2026-07-05) | 3.6 achieved July (n=87) | 3.6 like-for-like tonight |
 |---|---|---|---|---|
-| keep/drop @≥4 | **91.0 %** | ≥ 90 ✓ | 93.1 | <FILL> |
-| within ±1 | **98.0 %** | ≥ 90 ✓ | 97.7 | <FILL> |
-| **dangerous** (truth ≤2, judged ≥4) | **1** — doc 1081 "Dyno sheets" (subaruforester) | **= 0 ✗** | 0 | <FILL> |
-| exact / Spearman | 69.0 % / 0.564 | — | — | <FILL> |
+| keep/drop @≥4 | **91.0 %** | ≥ 90 ✓ | 93.1 | **90.0 %** (exactly on the bar) |
+| within ±1 | **98.0 %** | ≥ 90 ✓ | 97.7 | **98.0 %** |
+| **dangerous** (truth ≤2, judged ≥4) | **1** — doc 1081 "Dyno sheets" (subaruforester) | **= 0 ✗** | 0 | **0** |
+| exact / Spearman | 69.0 % / 0.564 | — | — | 70.0 % / 0.583 |
+
+(3.6 like-for-like: `recal-qwen3.6-newengine-20260816.json`, same 100 docs, same rubric, same
+budget, Aug-14 build, 2.55 h GPU, 0 errors.)
 
 Verdict under your ratified rule (pre-reg AND match-or-beat 3.6 like-for-like AND dangerous 0):
-**FAIL on the hard bar** (1 dangerous) and below the incumbent on keep/drop. Nothing to negotiate;
-`ml/curation/config.yaml` still says `qwen3.6-27b-q8_0`. Character of the miss: 3.8 is a *harsher*
-judge — it scored five adjudicated-4 docs at 3 or 2 (960, 1031, 1088, 5773 → 3; 1127 → 2) and 17
-adjudicated-2 docs at 3 — but the one promotion of junk is the bar that protects the corpus.
-(Cross-check worth noting: 960, 1088, 5773 are exactly docs my C4 review recommends *keep* — humans
-and the review agree, both judges under-score them.)
+**3.8 FAILS on the hard bar** (1 dangerous). Head-to-head it actually *edges* 3.6 on keep/drop
+(91.0 vs 90.0) and ties within±1 — the single promotion of junk is what fails it, and that is the bar
+that protects the corpus. Nothing to negotiate; `ml/curation/config.yaml` stays `qwen3.6-27b-q8_0`
+and C2 ran on 3.6.
+
+**Two things you should not gloss over:**
+- **The incumbent cleared the pre-registration with ZERO margin** (90.0 on a ≥90 bar) on the engine
+  it now runs on, and is 3 pp below its July 93.1 (n=87 → n=100, and the 4 reference docs are fully
+  judged in this harness rather than auto-passed — same treatment for both models, but different from
+  July). Not a failure, but not the comfortable margin the July number implied.
+- **Both judges recall only 4 of the 9 adjudicated 4s** — the same four (1085, 1099, 1114, 2285) —
+  and both push 960 / 1031 / 1088 / 5773 down to 3 (or 2) and 1127 to 2. Keep/drop looks fine
+  because 54 of 100 truth labels are 2s and both judges are good at *dropping*; on *keeping* they
+  agree with the humans 44 % of the time. That is the premise of the whole community-corpus effort
+  ("forums hold content the judge will promote") wearing thin — and it is exactly why the C4 review
+  found value at score 3 (960, 1088, 5773 are C4 keeps).
+- The two judges disagree on 28/100 docs; where they differ 3.8 is higher on 21 (a slightly more
+  generous judge — hence the one dangerous cell — not a harsher one as I first wrote in the process doc).
 
 **Two corrections to what the runbook said about the bars:** the DB pre-registration is 90/90/0;
 "93.1/97.7" were 3.6's *achieved* numbers, and the "111 labels / 58-43-10" figure was

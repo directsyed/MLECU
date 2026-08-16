@@ -176,7 +176,7 @@ bar and it is Syed's to rule on (§7). Also: one `finish_reason=length` row per 
   (doc 1081 "Dyno sheets", subaruforester, truth 2 → judged 4). Against the pre-registered 90/90/0:
   PASS/PASS/**FAIL** → **FAIL**. Against 3.6's July numbers: 91.0 < 93.1 as well. Judge stays 3.6 —
   decided without needing the like-for-like. Aside: 3.8 under-scores adjudicated 4s (960/1031/1088/
-  5773 → 3, 1127 → 2); three of those are C4 keeps.
+  5773 → 3, 1127 → 2) — and so does 3.6, identically (see T3 close-out); three of those are C4 keeps.
 - Killed the 3.8 server by PID (1446703); VRAM 0/0. Started `/tmp/start_q36_newbuild.sh` (same
   flags as the 3.8 script, GGUF swapped; llama.cpp Aug-14 build; ctx 32768; split 3.5,1; draft-mtp).
   Note: my error-grep tripped on the benign `W common_fit_params: … n_gpu_layers already set` line —
@@ -188,3 +188,19 @@ bar and it is Syed's to rule on (§7). Also: one `finish_reason=length` row per 
   dangerous cell, C2 should run on the certified July build instead. Syed's choice was to recalibrate
   3.6 too; sequencing it first is the honest order even though it pushes C2 later.
 
+
+## T3 close-out + T4 launch (13:19–13:21 UTC)
+
+- **3.6 like-for-like on the new engine finished 13:18** (2.55 h, 0 errors, n=100): exact 70.0 ·
+  within±1 98.0 · Spearman 0.583 · keep/drop **90.0** · dangerous **0** → PASS pre-registered (by zero
+  margin), below its July 93.1. Head-to-head vs 3.8: 90.0/98.0/0 vs 91.0/98.0/1. Judges disagree on
+  28/100 (3.8 higher on 21). Both recall the same 4 of 9 adjudicated 4s.
+- **Judge for C2 = 3.6 on the Aug-14 build** (passes the hard bar; config tag `qwen3.6-27b-q8_0` ==
+  served `Qwen3.6-27B-Q8_0.gguf`; engine change disclosed — D18).
+- Backup before the first write: `sqlite3 … ".backup data-backups/corpus-pre-c2-20260816-1320.sqlite"`
+  (integrity ok, 6290 docs, ref_fts 5638). `--status` before: community/pending = 314.
+- Launched 13:20: `judge.cli --run --no-reindex --sources forum_romraider,forum_legacygt,forum_msextra,
+  forum_subaruforester` (python PID 2353503 — found via `ps`, NOT `pgrep -f`, which earlier matched my
+  own wrapper shell and briefly made the 3.6 recal look dead). Log `c2.log` in scratchpad; Monitor
+  reports failures/STOP and every 20 docs. First log lines confirm: server up, *reindex SKIPPED
+  (5638 vs 5649)*.

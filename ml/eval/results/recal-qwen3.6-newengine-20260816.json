@@ -1,0 +1,1922 @@
+{
+  "model_tag": "qwen3.6-27b-q8_0",
+  "served_model": "ml/curation/data/models/Qwen3.6-27B-Q8_0.gguf",
+  "rubric_version": "rubric-r2",
+  "max_completion_tokens": 24576,
+  "label_set": "calibration-100",
+  "truth_rater": "adjudicated",
+  "started_at": "2026-08-16T10:45:18+00:00",
+  "finished_at": "2026-08-16T13:18:04+00:00",
+  "complete": true,
+  "n_truth": 100,
+  "n_scored": 100,
+  "bars_preregistered": {
+    "keep_agree_pct": 90.0,
+    "within1_pct": 90.0,
+    "dangerous_max": 0,
+    "source": "meta['calibration-100:pass_bars'] registered 2026-07-05 pre-results"
+  },
+  "bars_incumbent": {
+    "keep_agree_pct": 93.1,
+    "within1_pct": 97.7,
+    "dangerous_max": 0,
+    "note": "3.6 achieved 2026-07-05 (rubric r2, n=87) \u2014 beat-the-incumbent, NOT the pre-registration"
+  },
+  "passed_preregistered": true,
+  "passed_incumbent": false,
+  "passed": true,
+  "agreement": {
+    "n": 100,
+    "exact_pct": 70.0,
+    "within1_pct": 98.0,
+    "spearman": 0.5829923688173168,
+    "confusion": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        45,
+        9,
+        0,
+        0
+      ],
+      [
+        0,
+        11,
+        21,
+        5,
+        0
+      ],
+      [
+        0,
+        2,
+        3,
+        4,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "keep_agree_pct": 90.0,
+    "dangerous": 0,
+    "pairs": [
+      [
+        332,
+        3,
+        3
+      ],
+      [
+        880,
+        2,
+        2
+      ],
+      [
+        881,
+        3,
+        2
+      ],
+      [
+        882,
+        2,
+        2
+      ],
+      [
+        883,
+        3,
+        2
+      ],
+      [
+        884,
+        3,
+        2
+      ],
+      [
+        960,
+        4,
+        3
+      ],
+      [
+        961,
+        3,
+        3
+      ],
+      [
+        962,
+        3,
+        2
+      ],
+      [
+        963,
+        2,
+        2
+      ],
+      [
+        964,
+        2,
+        2
+      ],
+      [
+        965,
+        3,
+        3
+      ],
+      [
+        966,
+        3,
+        3
+      ],
+      [
+        967,
+        2,
+        2
+      ],
+      [
+        1024,
+        3,
+        3
+      ],
+      [
+        1025,
+        3,
+        3
+      ],
+      [
+        1026,
+        3,
+        2
+      ],
+      [
+        1027,
+        2,
+        2
+      ],
+      [
+        1028,
+        3,
+        3
+      ],
+      [
+        1029,
+        2,
+        2
+      ],
+      [
+        1030,
+        2,
+        2
+      ],
+      [
+        1031,
+        4,
+        2
+      ],
+      [
+        1032,
+        3,
+        3
+      ],
+      [
+        1033,
+        2,
+        2
+      ],
+      [
+        1034,
+        3,
+        3
+      ],
+      [
+        1035,
+        3,
+        3
+      ],
+      [
+        1036,
+        2,
+        2
+      ],
+      [
+        1037,
+        2,
+        2
+      ],
+      [
+        1038,
+        2,
+        2
+      ],
+      [
+        1039,
+        2,
+        2
+      ],
+      [
+        1040,
+        2,
+        2
+      ],
+      [
+        1041,
+        3,
+        3
+      ],
+      [
+        1042,
+        2,
+        2
+      ],
+      [
+        1043,
+        3,
+        3
+      ],
+      [
+        1044,
+        3,
+        3
+      ],
+      [
+        1081,
+        2,
+        2
+      ],
+      [
+        1082,
+        3,
+        4
+      ],
+      [
+        1083,
+        2,
+        3
+      ],
+      [
+        1084,
+        3,
+        2
+      ],
+      [
+        1085,
+        4,
+        4
+      ],
+      [
+        1086,
+        3,
+        3
+      ],
+      [
+        1087,
+        2,
+        2
+      ],
+      [
+        1088,
+        4,
+        3
+      ],
+      [
+        1089,
+        2,
+        2
+      ],
+      [
+        1090,
+        3,
+        2
+      ],
+      [
+        1091,
+        2,
+        2
+      ],
+      [
+        1092,
+        3,
+        2
+      ],
+      [
+        1093,
+        2,
+        2
+      ],
+      [
+        1094,
+        2,
+        2
+      ],
+      [
+        1095,
+        2,
+        2
+      ],
+      [
+        1096,
+        2,
+        2
+      ],
+      [
+        1097,
+        3,
+        4
+      ],
+      [
+        1098,
+        3,
+        3
+      ],
+      [
+        1099,
+        4,
+        4
+      ],
+      [
+        1100,
+        2,
+        3
+      ],
+      [
+        1101,
+        2,
+        2
+      ],
+      [
+        1102,
+        2,
+        2
+      ],
+      [
+        1103,
+        2,
+        2
+      ],
+      [
+        1104,
+        2,
+        3
+      ],
+      [
+        1105,
+        2,
+        2
+      ],
+      [
+        1106,
+        2,
+        2
+      ],
+      [
+        1107,
+        2,
+        2
+      ],
+      [
+        1108,
+        2,
+        3
+      ],
+      [
+        1109,
+        3,
+        3
+      ],
+      [
+        1110,
+        3,
+        3
+      ],
+      [
+        1111,
+        3,
+        2
+      ],
+      [
+        1112,
+        2,
+        2
+      ],
+      [
+        1113,
+        2,
+        2
+      ],
+      [
+        1114,
+        4,
+        4
+      ],
+      [
+        1115,
+        2,
+        2
+      ],
+      [
+        1116,
+        2,
+        2
+      ],
+      [
+        1117,
+        2,
+        3
+      ],
+      [
+        1118,
+        2,
+        2
+      ],
+      [
+        1119,
+        2,
+        2
+      ],
+      [
+        1120,
+        2,
+        2
+      ],
+      [
+        1121,
+        2,
+        3
+      ],
+      [
+        1122,
+        3,
+        3
+      ],
+      [
+        1123,
+        3,
+        3
+      ],
+      [
+        1124,
+        2,
+        2
+      ],
+      [
+        1125,
+        3,
+        2
+      ],
+      [
+        1126,
+        2,
+        2
+      ],
+      [
+        1127,
+        4,
+        2
+      ],
+      [
+        1128,
+        2,
+        2
+      ],
+      [
+        1129,
+        3,
+        3
+      ],
+      [
+        1130,
+        2,
+        2
+      ],
+      [
+        1131,
+        3,
+        4
+      ],
+      [
+        1132,
+        2,
+        2
+      ],
+      [
+        1133,
+        2,
+        2
+      ],
+      [
+        1134,
+        2,
+        3
+      ],
+      [
+        1135,
+        2,
+        3
+      ],
+      [
+        1136,
+        2,
+        2
+      ],
+      [
+        1137,
+        2,
+        3
+      ],
+      [
+        1138,
+        2,
+        2
+      ],
+      [
+        1139,
+        2,
+        2
+      ],
+      [
+        2285,
+        4,
+        4
+      ],
+      [
+        3319,
+        3,
+        4
+      ],
+      [
+        3609,
+        3,
+        4
+      ],
+      [
+        5772,
+        3,
+        3
+      ],
+      [
+        5773,
+        4,
+        3
+      ],
+      [
+        5774,
+        3,
+        2
+      ]
+    ]
+  },
+  "scores": {
+    "332": 3,
+    "880": 2,
+    "881": 2,
+    "882": 2,
+    "883": 2,
+    "884": 2,
+    "960": 3,
+    "961": 3,
+    "962": 2,
+    "963": 2,
+    "964": 2,
+    "965": 3,
+    "966": 3,
+    "967": 2,
+    "1024": 3,
+    "1025": 3,
+    "1026": 2,
+    "1027": 2,
+    "1028": 3,
+    "1029": 2,
+    "1030": 2,
+    "1031": 2,
+    "1032": 3,
+    "1033": 2,
+    "1034": 3,
+    "1035": 3,
+    "1036": 2,
+    "1037": 2,
+    "1038": 2,
+    "1039": 2,
+    "1040": 2,
+    "1041": 3,
+    "1042": 2,
+    "1043": 3,
+    "1044": 3,
+    "1081": 2,
+    "1082": 4,
+    "1083": 3,
+    "1084": 2,
+    "1085": 4,
+    "1086": 3,
+    "1087": 2,
+    "1088": 3,
+    "1089": 2,
+    "1090": 2,
+    "1091": 2,
+    "1092": 2,
+    "1093": 2,
+    "1094": 2,
+    "1095": 2,
+    "1096": 2,
+    "1097": 4,
+    "1098": 3,
+    "1099": 4,
+    "1100": 3,
+    "1101": 2,
+    "1102": 2,
+    "1103": 2,
+    "1104": 3,
+    "1105": 2,
+    "1106": 2,
+    "1107": 2,
+    "1108": 3,
+    "1109": 3,
+    "1110": 3,
+    "1111": 2,
+    "1112": 2,
+    "1113": 2,
+    "1114": 4,
+    "1115": 2,
+    "1116": 2,
+    "1117": 3,
+    "1118": 2,
+    "1119": 2,
+    "1120": 2,
+    "1121": 3,
+    "1122": 3,
+    "1123": 3,
+    "1124": 2,
+    "1125": 2,
+    "1126": 2,
+    "1127": 2,
+    "1128": 2,
+    "1129": 3,
+    "1130": 2,
+    "1131": 4,
+    "1132": 2,
+    "1133": 2,
+    "1134": 3,
+    "1135": 3,
+    "1136": 2,
+    "1137": 3,
+    "1138": 2,
+    "1139": 2,
+    "2285": 4,
+    "3319": 4,
+    "3609": 4,
+    "5772": 3,
+    "5773": 3,
+    "5774": 2
+  },
+  "detail": [
+    {
+      "doc_id": 332,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Subaru Tribeca 09 (DZ1E402B) \u2014 ECUFlash definition",
+      "source": "romraider_defs",
+      "tier": "reference",
+      "latency_s": 39.6
+    },
+    {
+      "doc_id": 880,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Ej20X Base Map After Swap",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 42.5
+    },
+    {
+      "doc_id": 881,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Base Map Needed",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 38.9
+    },
+    {
+      "doc_id": 882,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "EJ20X Swap",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 33.4
+    },
+    {
+      "doc_id": 883,
+      "score": 2,
+      "chunk_scores": [
+        2,
+        3,
+        3,
+        3
+      ],
+      "n_chunks": 4,
+      "title": "EJ20X swap?!",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 333.0
+    },
+    {
+      "doc_id": 884,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Legacy GT EJ20X/Y Swap",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 47.4
+    },
+    {
+      "doc_id": 960,
+      "score": 3,
+      "chunk_scores": [
+        5,
+        3,
+        4,
+        5,
+        4,
+        4,
+        4,
+        5,
+        4,
+        4,
+        4,
+        4,
+        3,
+        4,
+        4,
+        3
+      ],
+      "n_chunks": 16,
+      "title": "Tuning for Fuel Economy",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 1587.1
+    },
+    {
+      "doc_id": 961,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Retune after injector swap?",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 52.1
+    },
+    {
+      "doc_id": 962,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Learning view and reliability tuning",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 48.9
+    },
+    {
+      "doc_id": 963,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Whats New at Cryotune Performance - Pics,dynosheets,updates etc",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 41.6
+    },
+    {
+      "doc_id": 964,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Can't open Rom in Romraider",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 55.7
+    },
+    {
+      "doc_id": 965,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Deleting CEL and etune options",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 41.3
+    },
+    {
+      "doc_id": 966,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Fine Knock learn+DAM questions",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 50.1
+    },
+    {
+      "doc_id": 967,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Recommend pro tuners?",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 45.2
+    },
+    {
+      "doc_id": 1024,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "COP Ignition on Datsun L24",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 45.7
+    },
+    {
+      "doc_id": 1025,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Rotax 912A (80HP) with BMW R1100 throttle bodies/injectors to replace Bing64 car",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 48.3
+    },
+    {
+      "doc_id": 1026,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Question about speeduino ignition control for Chrysler 318 V8",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 41.3
+    },
+    {
+      "doc_id": 1027,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Beginner Mode for VETuner",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 44.1
+    },
+    {
+      "doc_id": 1028,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "How to test the dead time of fuel injectors?",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 50.5
+    },
+    {
+      "doc_id": 1029,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Injectors and Coil packs RECOMMENDATIONS?",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 42.5
+    },
+    {
+      "doc_id": 1030,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Wheelie Control by Knock Settings",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 45.7
+    },
+    {
+      "doc_id": 1031,
+      "score": 2,
+      "chunk_scores": [
+        4,
+        3,
+        3,
+        3,
+        3,
+        2,
+        3,
+        3,
+        3,
+        4
+      ],
+      "n_chunks": 10,
+      "title": "Free VE Table Corrections \u2014 Drop Your MSQ and a Datalog, I'll Do the Rest",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 840.4
+    },
+    {
+      "doc_id": 1032,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "MS2 closed loop idle behaving strangely",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 70.4
+    },
+    {
+      "doc_id": 1033,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Rpm sync loss when cranking",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 55.7
+    },
+    {
+      "doc_id": 1034,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "HEI 8 pin timing issues",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 63.0
+    },
+    {
+      "doc_id": 1035,
+      "score": 3,
+      "chunk_scores": [
+        4,
+        3
+      ],
+      "n_chunks": 2,
+      "title": "Boost tuning and blow off valves",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 195.6
+    },
+    {
+      "doc_id": 1036,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "2005 Forester XT 4EAT stock ROM map",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 45.8
+    },
+    {
+      "doc_id": 1037,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "READ FIRST BEFORE POSTING!!! 'Tuning Discussion' Forum Rules",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 36.0
+    },
+    {
+      "doc_id": 1038,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "\"Analyze my Log\" Minimum Posting Requirements",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 44.0
+    },
+    {
+      "doc_id": 1039,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "2020 STI Fueling- CL/OL Transition",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 47.2
+    },
+    {
+      "doc_id": 1040,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Need stock ROM for 2015 WRX 6MT - ID LF75404S",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 39.6
+    },
+    {
+      "doc_id": 1041,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Help getting idle dialed in on fresh tune",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 80.6
+    },
+    {
+      "doc_id": 1042,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "subaru 2015 sti VAB jdm speed limiter fuel cut issue",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 53.5
+    },
+    {
+      "doc_id": 1043,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Big Injector Idle Tuning",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 69.8
+    },
+    {
+      "doc_id": 1044,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "OL/CL logic changes on 2017 STI/ disabling AF3?",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 73.4
+    },
+    {
+      "doc_id": 1081,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Dyno sheets",
+      "source": "forum_subaruforester",
+      "tier": "community",
+      "latency_s": 67.2
+    },
+    {
+      "doc_id": 1082,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "MAF calibration needed on stock intake",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 85.3
+    },
+    {
+      "doc_id": 1083,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "5EAT tune for a higher idle?",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 53.3
+    },
+    {
+      "doc_id": 1084,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Accessport Screen Flicker During WOT",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 60.3
+    },
+    {
+      "doc_id": 1085,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "AFR Corrections do not make sense - log attached",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 70.6
+    },
+    {
+      "doc_id": 1086,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "(NZ) About to go get my 2010 legacy GT tuned at torque performance.",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 73.7
+    },
+    {
+      "doc_id": 1087,
+      "score": 2,
+      "chunk_scores": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "n_chunks": 5,
+      "title": "Official Interest In COBB Flex-Fuel for the Legacy GT Platform - Please speak up",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 255.7
+    },
+    {
+      "doc_id": 1088,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "How to address lean condition in open loop",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 68.5
+    },
+    {
+      "doc_id": 1089,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Boost leak",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 62.7
+    },
+    {
+      "doc_id": 1090,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "TS  perform automatic calibration and tuning using a narrowband oxygen sensor?",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 41.1
+    },
+    {
+      "doc_id": 1091,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "speeduino doesn't show up in device manager nor tunerstudio",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 46.8
+    },
+    {
+      "doc_id": 1092,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "SpeedUino to calibrate the VE table, should it be done under cold-engine conditi",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 51.8
+    },
+    {
+      "doc_id": 1093,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Installing Tuner Studio on a Raspberry PI for Dummies",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 37.0
+    },
+    {
+      "doc_id": 1094,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Deactivate the temperature sensors and injector outputs",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 42.9
+    },
+    {
+      "doc_id": 1095,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Do you have a simple ignition coil driver circuit diagram?",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 50.1
+    },
+    {
+      "doc_id": 1096,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "GM 3.4L Tuning",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 35.8
+    },
+    {
+      "doc_id": 1097,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "tuning my 2.9 v6",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 106.3
+    },
+    {
+      "doc_id": 1098,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Idle stumble on cold start within first 3 seconds",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 66.2
+    },
+    {
+      "doc_id": 1099,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "Struggling getting stable Idle mode",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 58.6
+    },
+    {
+      "doc_id": 1100,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Possible to somehow change target boost for boost by gear?",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 55.7
+    },
+    {
+      "doc_id": 1101,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Innovate Lc-2 Wideband with MSPNP2",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 58.2
+    },
+    {
+      "doc_id": 1102,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Unable to read an 2018 USDM WRX",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 44.5
+    },
+    {
+      "doc_id": 1103,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "04 WRXs send me datalogs for practice! :D",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 41.3
+    },
+    {
+      "doc_id": 1104,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "2002 wrx sti singapore model",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 53.5
+    },
+    {
+      "doc_id": 1105,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Innovate LM-1 logging into Logger",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 53.4
+    },
+    {
+      "doc_id": 1106,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "SUBARU 2006 definition 2.0 AT",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 43.9
+    },
+    {
+      "doc_id": 1107,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Base Map Request: 2004 JDM WRX w ej20x longblock",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 55.2
+    },
+    {
+      "doc_id": 1108,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Tuning help baja MT ez30/36R lost",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 59.8
+    },
+    {
+      "doc_id": 1109,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "04 forester not making expected power, what am i doing wrong",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 65.8
+    },
+    {
+      "doc_id": 1110,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Datalog discussion thread",
+      "source": "forum_subaruforester",
+      "tier": "community",
+      "latency_s": 81.7
+    },
+    {
+      "doc_id": 1111,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Street Tuner n00b Tuning Primer",
+      "source": "forum_iwsti",
+      "tier": "community",
+      "latency_s": 66.5
+    },
+    {
+      "doc_id": 1112,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "'99 GT-B tuning 300 - 320bhp?",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 41.5
+    },
+    {
+      "doc_id": 1113,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "05 Legacy GT limited  V2 Accespoort",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 58.1
+    },
+    {
+      "doc_id": 1114,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "thinking out loud... FPR and Tune question...",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 62.1
+    },
+    {
+      "doc_id": 1115,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Cobb AP vs Open Source Pros and cons",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 44.2
+    },
+    {
+      "doc_id": 1116,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "ProFlex Commander - E85/pump gas learning",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 57.4
+    },
+    {
+      "doc_id": 1117,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Tuning Question",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 51.6
+    },
+    {
+      "doc_id": 1118,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Cobb AP V3 cel delete",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 48.1
+    },
+    {
+      "doc_id": 1119,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Ecuflash or RomRaider defs for 2013+ LGT/OBX?",
+      "source": "forum_legacygt",
+      "tier": "community",
+      "latency_s": 41.4
+    },
+    {
+      "doc_id": 1120,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Volvo B230f timing map",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 56.1
+    },
+    {
+      "doc_id": 1121,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Please anaylize this tune MSQ file,from a commercial SPeeduino ECU",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 49.5
+    },
+    {
+      "doc_id": 1122,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "0.3 version board not support the idle control motor?",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 51.9
+    },
+    {
+      "doc_id": 1123,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "How does Gemini do with working out idle tune",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 57.8
+    },
+    {
+      "doc_id": 1124,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "have a simple, reliable, and easy-to-use wideband oxygen sensor board?",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 43.8
+    },
+    {
+      "doc_id": 1125,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Ignition only conversion of 1970's motorcycle engine?",
+      "source": "forum_speeduino",
+      "tier": "community",
+      "latency_s": 63.8
+    },
+    {
+      "doc_id": 1126,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Fuel Injector Sizing Calculators giving low HP figures?",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 54.8
+    },
+    {
+      "doc_id": 1127,
+      "score": 2,
+      "chunk_scores": [
+        2,
+        3,
+        3,
+        2,
+        2,
+        2,
+        2
+      ],
+      "n_chunks": 7,
+      "title": "VE Table Not Dialed? Send Me Your Datalog.",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 386.5
+    },
+    {
+      "doc_id": 1128,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "AFR Numbers off MS3",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 45.4
+    },
+    {
+      "doc_id": 1129,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Low engine power despite rich AFR?",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 67.1
+    },
+    {
+      "doc_id": 1130,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Injectors for a turbo 383 Mopar burning E-85",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 65.9
+    },
+    {
+      "doc_id": 1131,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "oscillting TPS signal at idle",
+      "source": "forum_msextra",
+      "tier": "community",
+      "latency_s": 76.9
+    },
+    {
+      "doc_id": 1132,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "2010 STI AZ1G701I Merp SD / Flex",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 57.3
+    },
+    {
+      "doc_id": 1133,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Can anyone check my carberry rom",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 46.0
+    },
+    {
+      "doc_id": 1134,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Quick question regarding cold idle",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 52.9
+    },
+    {
+      "doc_id": 1135,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Why is my Final Fueling Base running 17AFR's in closed loop",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 47.2
+    },
+    {
+      "doc_id": 1136,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "2006 wrx merpmod patch installed questions",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 39.2
+    },
+    {
+      "doc_id": 1137,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "Want to install a 3 port on a 2016 VA JDM STI",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 58.3
+    },
+    {
+      "doc_id": 1138,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "FXT 04r  2.0 177 td04l  log check",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 44.6
+    },
+    {
+      "doc_id": 1139,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Need help finding ECU ROM for ADM Subaru WRX Tuned By STI 07",
+      "source": "forum_romraider",
+      "tier": "community",
+      "latency_s": 49.0
+    },
+    {
+      "doc_id": 2285,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "John B. Heywood - Internal combustion Engine Fundamentals (2018, McGrowHill) - l",
+      "source": "local_pdf",
+      "tier": "reference",
+      "latency_s": 33.0
+    },
+    {
+      "doc_id": 3319,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "Robert Bosch GmbH - Automotive Handbook (2022, Wiley) - libgen.li \u2014 p327/2046",
+      "source": "local_pdf",
+      "tier": "reference",
+      "latency_s": 47.3
+    },
+    {
+      "doc_id": 3609,
+      "score": 4,
+      "chunk_scores": [
+        4
+      ],
+      "n_chunks": 1,
+      "title": "Robert Bosch GmbH - Automotive Handbook (2022, Wiley) - libgen.li \u2014 p625/2046",
+      "source": "local_pdf",
+      "tier": "reference",
+      "latency_s": 45.8
+    },
+    {
+      "doc_id": 5772,
+      "score": 3,
+      "chunk_scores": [
+        3
+      ],
+      "n_chunks": 1,
+      "title": "05 Forester XT build help",
+      "source": "forum_nasioc",
+      "tier": "community",
+      "latency_s": 51.7
+    },
+    {
+      "doc_id": 5773,
+      "score": 3,
+      "chunk_scores": [
+        3,
+        4,
+        3,
+        3,
+        3,
+        3
+      ],
+      "n_chunks": 6,
+      "title": "Let's talk AVCS tuning.....anyone...?",
+      "source": "forum_nasioc",
+      "tier": "community",
+      "latency_s": 611.7
+    },
+    {
+      "doc_id": 5774,
+      "score": 2,
+      "chunk_scores": [
+        2
+      ],
+      "n_chunks": 1,
+      "title": "Logging AFR with AP v3 and AEM UEGO - How to wire it up.",
+      "source": "forum_nasioc",
+      "tier": "community",
+      "latency_s": 54.4
+    }
+  ]
+}
