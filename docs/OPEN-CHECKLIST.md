@@ -1,6 +1,6 @@
 # MLECU — open checklist
 
-Live tracker of every open thread, both halves of the project. Updated 2026-08-15.
+Live tracker of every open thread, both halves of the project. Updated 2026-08-16 (overnight run).
 Ordered by **what blocks the car**, because that is the actual objective.
 
 ---
@@ -37,8 +37,9 @@ Settled by byte-level J2534 capture (`car/logging/j2534_shim.log`):
       stationary test, not for a real capture. (Original crimp landed on the wrong pin.)
 - [ ] Run the **three-hold capture** (`car/logging/CAPTURE-PROTOCOL.md`) — warm idle / fast idle /
       loaded idle. Channels per `car/logging/IDLE-LOG-PROFILE.md`.
-- [ ] **Measure `NOMINAL_MAF_IDLE` on THIS engine.** The 2.50 g/s in `mvem.py` is a sim value and
-      this car has TGV + exhaust-AVCS deletes. Until measured, MAF verdicts are provisional.
+- [ ] **Measure the MAF baseline on THIS engine** and populate `mvem.MafBaseline.from_capture()`.
+      2026-08-16: the sim seed is now `SIM_MAF_BASELINE` (`validated=False`) and the estimator
+      REFUSES MAF verdicts against it (D20) — so this is no longer "provisional", it is "withheld".
 - [ ] Ground-loop remedy stays in force: DB9 **pin 5 omitted**, signal wire only.
 
 ---
@@ -63,12 +64,13 @@ Cause is almost certainly the **TGV deletes** (plus exhaust-AVCS delete) raising
 exactly what `CAPTURE-PROTOCOL.md` predicted when it flagged 2.50 as a sim value that "must be
 established empirically on this engine."
 
-- [ ] **Do NOT simply hardcode 3.49.** One log, one operating point, engine idling poorly, and
-      `rpm` 709 vs the constant's 850 — the baseline must come from the three-hold capture at a
-      known-healthy state, not a single sample.
-- [ ] Re-derive `NOMINAL_MAF_IDLE` (and whether it should be a *function* of rpm rather than a
-      scalar) once Stage 0 + the three holds are done.
-- [ ] Until then, **treat every MAF verdict from the layer as untrusted** on this car.
+- [x] **Do NOT simply hardcode 3.49** — nothing does (D20, commit `58c8ec2`).
+- [x] rpm-indexed baseline exists: `mvem.MafBaseline` (points, `validated`, `provenance`; `.at(rpm)`);
+      the sim seed is marked UNVALIDATED. Populate via `MafBaseline.from_capture()` after Stage 0 +
+      the three holds. **The value is still unmeasured** — that is the open item, above in A2.
+- [x] Until then the layer **refuses** MAF verdicts on unvalidated data (`identify()` returns
+      `identifiable=False` with the ratio + trims-only ranking; `clamp_diagnosis_agreement` blocks
+      writes). Bluntness note for Syed: any ratio outside 0.999–1.001 refuses — widen if desired.
 
 ### ⚠ What this means for every benchmark number
 All of E1/E2/E4 are **sim-bound** — E4's own status string says
@@ -95,7 +97,11 @@ transfer until MVEM is re-grounded.** The real-car data is what makes the number
       arm B fail on *different cases* but the same count — retrieval changes which ones, not how
       many, consistent with the B2 doc-collapse.
 - [ ] **DECISION NEEDED: does 3.8 displace 3.6?** E4 says yes, E1v2 says no. Not auto-decidable.
-- [ ] Write the RUNDOWN + PROGRESS entry with metric rows
+- [x] RUNDOWN written 2026-08-16: `ml/eval/results/RUNDOWN-2026-08-16-qwen38.md` — every number
+      recomputed. **⚠ E1v2 "7 dangerous" is 0 under the codified `dangerous_flips()`** (the six
+      leak→latency misses are lean→lean); the handoff used an unwritten "edit on a no-edit fault"
+      reading. Which reading is ratified decides the E1 verdict — see F below. PROGRESS entry: with
+      the overnight morning report.
 
 ### B2. Retrieval is degenerate — the real finding
 Only **4 distinct documents** returned across all 70 E1 cases; two appear on **100%** of queries.
@@ -113,21 +119,33 @@ Index is healthy (no stale, no fallback) — this is a **corpus/query-type misma
 ### B3. Judge — calibration-gated, NOT swapped
 Config reverted to **3.6, the calibrated judge** (2026-07-05: keep/drop 93.1%, ±1 97.7%, dangerous 0).
 - [x] Raise judge `max_completion_tokens` 8192 → 24576 (model-agnostic truncation fix)
-- [ ] **Calibrate 3.8 against the EXISTING 100 adjudicated labels** (`calibration-100`).
-      **No new human labelling required** — the labels exist (58×2, 43×3, 10×4).
-      Metric: exact / ±1 / Spearman / keep-drop @≥4 / **dangerous (truth≤2 judged≥4)**.
-- [ ] Swap the judge **only if 3.8 beats 3.6 on that set**. Nothing else is evidence for the
-      judging role — E1/E2/E4 measure diagnosis and value lookup, not judging.
-- [ ] Then judge the **310 pending** community docs (romraider 122, legacygt 114, msextra 72, forester 2)
+- [ ] **Calibrate 3.8 against the EXISTING 100 adjudicated labels** (`calibration-100`: 54×2, 37×3,
+      9×4 — the "111 / 58-43-10" figure was calibration-100 + smoke-10 combined). Running overnight
+      2026-08-16 via the fixed `judge.recalibrate` (was loading rubric r1 / 1500 tokens — commit
+      `70d9da9`). ⚠ **Bars:** the DB pre-registration is **90/90/0**; 93.1/97.7 are what 3.6
+      *achieved* (n=87). Syed's rule (2026-08-16): swap only if 3.8 clears 90/90/0 AND matches-or-
+      beats 3.6's like-for-like recalibration on the new engine AND dangerous == 0.
+- [ ] 3.6 recalibration on the Aug-14 llama.cpp build (D18 re-baseline) — queued after the 3.8 run.
+- [ ] Then judge the **314 pending** community docs (romraider 125, legacygt 114, msextra 73,
+      forester 2). ⚠ 303 of them were INVISIBLE to `--run` until 2026-08-16 (`gone_at` filter
+      contradicted the ratified NARROW policy — commit `7e0c5d5`). Run with `--no-reindex`.
 
 ### B4. Community corpus — 637 forum docs invisible to retrieval
 `ref_fts` is **reference-tier by construction**; all forum threads are excluded. They hold 4× more
 vacuum-leak and 2.5× more smoke-test content than everything currently indexed.
 - [ ] **Keep the ≥4 bar unchanged** (Syed). Do NOT lower it.
-- [ ] **Review the 95 threes with Claude** to recover value without moving the bar.
+- [x] **The 95 threes reviewed 2026-08-16** — `ml/curation/docs/community-3s-review-2026-08-16.md`:
+      **28 keep / 67 drop** on retrieval usefulness (markers of verifiability, not correctness);
+      needs census: MegaSquirt/generic dominate, `maf_baseline` = 0 docs. New 3s from the C2 run
+      need the same pass. **Awaiting Syed's sign-off — nothing indexed.**
 - [ ] Review ALL docs before anything enters the corpus (Syed) — nothing indexed unreviewed.
-- [ ] **Then** fix the index-coverage gap so promoted community docs are actually reachable.
-      (Scoring them ≥4 achieves nothing if `ref_fts` still excludes them.)
+- [x] Index-coverage machinery built INERT 2026-08-16 (commit `806ce68`): SEPARATE `community_fts`
+      + `community_dense_v2.npz`, tier-tagged `RefSnippet`, `RetrievalCfg.community_*` all default
+      off, `ensure_community_index()` tested on a tmp DB only. Per-parent cap (`max_per_parent`,
+      B7 idea) also built, OFF. Switch-on recipe in the 2026-08-17 process doc.
+- [ ] **Syed:** decide whether/when to build the community index on the real corpus, and how the
+      reviewed 3s get in without rewriting `tier`/`judge_score` (proposal: a `human_label` row the
+      predicate ORs into).
 
 ### B5. Fine-tune pairs as RAG content — viable, sequenced second
 242 train + 28 val pairs, format `symptom → diagnosis → change → expected result`.
@@ -195,14 +213,12 @@ another's confidence.
 ---
 
 ## D. TONIGHT — runnable with Syed asleep (no human input needed)
-- [ ] **3.6 doc-collapse re-check.** Free, no GPU, archived result files. Does 3.6's ratified
-      `base+RAG@3` headline show the same 4-document collapse? If yes, that ratification rests on
-      noise. **Highest value-per-effort item open.**
-- [ ] **Judge calibration of 3.8** against the existing 100 adjudicated labels. Syed re-labels
-      NOTHING. ⚠ Mechanical blocker unsolved: the runner skips docs already `judged`, so this needs
-      a force path or a status reset for those doc-ids — **solve it before running, or it silently
-      no-ops.** Backup exists: `data-backups/corpus-pre-3.8-judge-20260815.sqlite`.
-- [ ] **File the FastECU upstream bug report** — `car/ecu/FASTECU-SH7058-KLINE-BUG.md`, ready to post.
+- [x] **3.6 doc-collapse re-check — DONE 2026-08-16: collapsed worse (3 constant docs, 100% coverage,
+      same as 3.8).** See B2.
+- [x] **Judge calibration of 3.8** — running 2026-08-16 (in-memory via `judge.recalibrate`, no DB
+      mutation; the "skips judged docs" blocker never applied to this path). Results in the
+      2026-08-17 morning report.
+- [ ] **File the FastECU upstream bug report** — Syed chose to skip it on 2026-08-16; still ready.
 
 ## E. NEEDS SYED PHYSICALLY (car)
 - [ ] **The 5-value SID 0x34 sweep** — everything is built and verified; see handoff §1 for the

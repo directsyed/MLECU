@@ -960,3 +960,63 @@ simulated *log data* that nothing in a prose corpus is "about".
    reference-tier by construction and E1 queries are log-shaped. The levers are the separate
    community index (Track D, built inert tonight) and a *log-pattern → diagnosis* query
    representation. **Design question for Syed; not decided tonight.**
+
+### 2026-08-16 — D20: the MAF baseline carries PROVENANCE, and the estimator refuses MAF verdicts against an unvalidated one
+
+Executed overnight on Syed's ruling ("guard + make nominal rpm-dependent; do NOT guess the value").
+Commit `58c8ec2`.
+
+**Problem.** `NOMINAL_MAF_IDLE = 2.50 g/s` was a simulation seed. The first real warm-idle log read
+3.493 g/s @709 rpm (+40%); `identify.maf_belief_ratio()` returned 1.397 and the estimator would have
+issued a confident *"MAF +39.7%"* verdict on a car whose total fuel trim is +0.31%. The number was
+wrong AND nothing recorded that it was unverified.
+
+**Design.**
+1. `mvem.MafBaseline(points=((rpm, g/s), …), validated: bool, provenance: str)` — `.at(rpm)`
+   interpolates and clamps; `from_capture()` is the *only* validated constructor. `SIM_MAF_BASELINE`
+   seeds 2.50@850 / 5.00@1500 with `validated=False`. `NOMINAL_MAF_IDLE` remains the scalar the
+   sim/evals import (= baseline at 850). **Nothing hardcodes 3.49** — one log at one point on a
+   poorly-idling car is a measurement, not a baseline; the three-hold capture populates it.
+2. `identify.Observation.nominal_validated` (default **False** — untrusted unless stated). The sim
+   harness and test fixture set True (inside the sim the seed *is* the truth by construction), so E4
+   is unchanged. A real-log loader must take the flag from `MafBaseline.validated`.
+3. When the baseline is unvalidated the MAF-reading term is dropped from **every** hypothesis'
+   residual (it was poisoning `healthy` too), and if the verdict would still rest on it — ratio inside
+   a `maf_low`/`maf_high` band, or trims-only best is a MAF fault — `identify()` returns
+   `identifiable=False` with a reason naming the ratio, the band, the trims-only ranking and the
+   capture protocol. Same shape as the two existing refusals; `clamp_diagnosis_agreement` blocks the
+   write. **A refusal is visible; a down-weight is not** — that was the requirement.
+
+**Consequence Syed may want to reverse:** the MAF bands are tight (0.70–0.999 / 1.001–1.40), so with
+the seeded baseline *any* real log with a MAF ratio ≠ 1 ± 0.001 refuses. Until the capture exists the
+layer effectively issues no MAF verdicts on this car — which is what the checklist already said in
+prose. Widening a tolerance around 1.0 is a one-line change if he prefers.
+
+Tests: `car/tests/test_maf_baseline.py` (10); car suite 91 → 101; `ml/eval` E4 tests 18/18.
+
+### 2026-08-16 — the ratified gone-sweep policy is now enforced in judge selection (was silently violated)
+
+Commit `7e0c5d5`. `State.pending_for_judge()` and `judge.cli --status` filtered `gone_at IS NULL`.
+The 2026-07-22 ratification ("NARROW: gone-ness affects scraping only — never judging, retrieval or
+pair-mining") had never been propagated: 303 of the 314 pending community docs (gone-marked by the
+2026-06-26 sweep) were invisible to every judge run for a month, `--status` reported 11 pending, and
+doc 5781 — which the ratification itself said should "ride the next routine judge batch" — sat
+unjudged. Filter removed in exactly those two places. **Same gap, not fixed tonight, listed for Syed:**
+`calibrate.py:33,38` (sampling), `pairgen.py:80`, `e2gen.py:78` still filter `gone_at`. Also added:
+`--no-reindex` (a judge run must not silently rebuild `ref_fts`; the operator reindexes deliberately)
+and a dead-server STOP instead of burning the pending pool to `failed`.
+
+### 2026-08-16 — FINDING: the E1 "dangerous" count depends on an unwritten reading; it decides the 3.8-vs-3.6 verdict
+
+Not a decision — Syed's to make (handoff §7). Recomputed from the jsonl
+(`ml/eval/results/RUNDOWN-2026-08-16-qwen38.md`): Qwen3.8's E1v2 "7 dangerous" per arm is **0**
+under the *codified* `rundown.dangerous_flips()` (2026-08-02) — the six `vacuum_leak →
+injector_latency_lean` misses are lean→lean, which the codified metric explicitly calls a miss. The
+handoff applied the "edit authorised on a no-table-edit fault" reading, which the codified rule
+applies only to `healthy`. The definition is internally inconsistent about `vacuum_leak` (it is both
+a lean signature and a no-edit fault) and no model had failed on exactly that pair before. What is
+not in dispute: 3.8 errs toward "edit latency" on leak cars, 3.6 errs toward "no edit" — the
+safety-relevant asymmetry — and E4 neutralises it (all three 3.8 `vacuum_leak` episodes escalate
+with no edit). **Recommendation: codify the reading explicitly, re-run `rundown.py` over every
+historical E1 file so numbers are comparable, then compare models. Not done tonight — it changes a
+ratified metric.**
