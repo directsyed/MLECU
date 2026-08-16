@@ -5,6 +5,33 @@ Ordered by **what blocks the car**, because that is the actual objective.
 
 ---
 
+
+## ⏭ SYED'S NEXT ACTIONS (parked 2026-08-16 20:xx UTC while he runs the SID 0x34 sweep at the car)
+
+**At the car (now):** the 5-value `FASTECU_SID34_FORMAT` sweep — control (unset ⇒ must still fail
+`7F 34 10`), then `0x00`, `0x01`, `0x02`, `0x03`; key-cycle between attempts; save FastECU's log +
+`C:\Openport-shim\j2534_shim.log` after each. If every value rejects: repeat control + `0x00` with the
+**green test-mode connectors joined** (weak but cheap lead from corpus doc 5793 — an 05 Forester XS
+whose Openport read only worked "sti05 method + test connector"; our own blocker doc had ruled the
+connectors "not applicable to 2005 DBW" — that ruling was reasoning, not a test). Procedure text is
+in the 2026-08-16 session (this file's A1 block has the commands).
+
+**Back at the desk, in this order (all from the overnight run — nothing moves until you say):**
+1. **Sign off / edit the 74 keeps** in `ml/curation/docs/community-3s-review-2026-08-16.md` (parts 1+2,
+   222 docs). Read doc 5793 (ROM read) and 884/944 (EJ20X-in-EJ255-ECU swaps) regardless.
+2. **Rule on the E1 "dangerous" definition** — codified lean/rich flip (3.8 E1v2 = 95.2 % / 0) vs "edit
+   authorised on a no-table-edit fault" (95.2 % / 6). Decides 3.8's E1 verdict; then re-run `rundown.py`
+   over every historical E1 file before comparing models. (`decisions.md` 2026-08-16 finding.)
+3. **`judge.cli --reindex`** (+11 reference docs into `ref_fts`) and rebuild `ref_dense_v2.npz`
+   (`python -m harness.embed_index --device cuda`, ~4 min, GPU idle) — or leave as is.
+4. **Community index:** build it or not (`ensure_community_index` + `embed_index --table community_fts
+   --out …`, then `RetrievalCfg.community_*`), and how the reviewed keeps get in without rewriting
+   `tier`/`judge_score` (proposal: a `human_label` row the predicate ORs into).
+5. **Is ≥4 still the right promotion gate** for community docs, given BOTH judges recall only 4/9 of the
+   adjudicated 4s? A rubric conversation, not a bar-lowering one.
+6. **3.8 as the diagnosis model?** (E4 15/15 vs 13/15; E1v2 depends on #2.) And QLoRA retrain — still yours.
+7. Review the 17 unpushed commits; push when satisfied.
+
 ## A. CAR / PHYSICAL — the critical path
 
 The ROM read gates the write path, and a tune must be **written to be tested**. Deadline ~2 weeks
@@ -23,8 +50,13 @@ Settled by byte-level J2534 capture (`car/logging/j2534_shim.log`):
       **Untested — everything in Track A depends on it.** Success = `==== shim init:` in DebugView.
 - [ ] Enable `TACTRIX_SHIM_FIXKEY=1`, attempt read. EcuFlash's key is replaced with FastECU's
       (proven-accepted) key → EcuFlash proceeds into its own sti05 kernel upload.
-- [ ] Fallback: FastECU rebuild with the hardcoded `dataFormatIdentifier` (0x04) parameterised.
-      Plan: `~/.claude/plans/rebuild-the-fastecu-plan-velvety-anchor.md`
+- [ ] **The 5-value SID 0x34 sweep with the patched FastECU** (built + launching on the laptop; patch in
+      `car/ecu/fastecu-patch/`). PowerShell, admin, key ON / engine OFF, charger on:
+      `Remove-Item Env:FASTECU_SID34_FORMAT -ErrorAction SilentlyContinue; & $FE`  ← CONTROL, must fail 7F 34 10
+      `$env:FASTECU_SID34_FORMAT="0x00"; & $FE`  then `"0x01"`, `"0x02"`, `"0x03"`. Key-cycle between
+      attempts. Stop on anything not `7F 34 ..`; a `74` = read proceeding.
+- [ ] If all four reject: **repeat control + 0x00 with the green test-mode connectors joined** (doc 5793
+      lead; our "not applicable to 2005 DBW" ruling was never tested).
 - [ ] File the upstream bug report — `car/ecu/FASTECU-SH7058-KLINE-BUG.md` is written and ready.
       **Do this in parallel from day one**, not as a last resort.
 - [ ] **Read corpus doc 5793 first** (05 Forester XS, RomRaider forum): Openport read failed until the
