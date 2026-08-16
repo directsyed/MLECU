@@ -52,6 +52,20 @@ class RetrievalCfg:
     # snippet_max_chars is a target — the window may overshoot by up to one token plus
     # NUM_RUN_MAX_EXTEND chars when the boundary would otherwise cut a number in half.
     snippet_window_lead_frac: float = 0.25   # share of the window placed BEFORE the match
+    # --- community index (2026-08-16, Syed ruling 3: SEPARATE index, results tagged by tier,
+    # provenance preserved; ref_fts stays reference-only). ALL DEFAULT-OFF: with these at their
+    # defaults retrieval is byte-identical to before (tests/test_community_index.py proves it).
+    # When enabled, community hits are retrieved from their own FTS table + dense index, fused
+    # the same way, and APPENDED after the reference top-k, each RefSnippet tagged
+    # tier="community" — the reference results themselves do not change.
+    community_fts: str | None = None            # e.g. "community_fts" (built by judge/retrieval)
+    community_index_path: Path | None = None    # e.g. EVAL_DIR/"data/community_dense_v2.npz"
+    community_top_k: int = 0                    # 0 = off
+    # --- per-parent cap (2026-08-16, checklist B7 idea, built OFF by default). Both E2 gate
+    # leaks had 4–6 adjacent pages of ONE book filling top-k. max_per_parent=N keeps at most N
+    # chunks per parent document (parent = source_id before '#', i.e. the PDF/book) after
+    # fusion and before the top-k slice. 0 = off = today's behaviour exactly.
+    max_per_parent: int = 0
 
 
 @dataclass(frozen=True)

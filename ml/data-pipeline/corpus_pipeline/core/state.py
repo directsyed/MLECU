@@ -248,6 +248,27 @@ class State:
                WHERE tier='reference' AND gate_status='kept' AND gone_at IS NULL"""
         ).fetchall()
 
+    # --- community index (2026-08-16, Syed ruling 3: SEPARATE from ref_fts) ------------
+    # NO gone_at filter here — 624 of 641 kept community docs are gone-marked (2026-06-26
+    # sweep) and the ratified NARROW policy says gone-ness affects scraping only. Copying the
+    # reference predicate verbatim would index 17 documents and call it done.
+    def community_kept_count(self, min_score: int) -> int:
+        return self.conn.execute(
+            """SELECT COUNT(*) FROM document
+               WHERE tier='community' AND gate_status='kept' AND judge_score >= ?""",
+            (min_score,),
+        ).fetchone()[0]
+
+    def community_kept_docs(self, min_score: int) -> list[sqlite3.Row]:
+        """Judged-and-kept community docs (score >= min_score), gone or not, for the
+        community retrieval index. `document.tier` is read, never written."""
+        return self.conn.execute(
+            """SELECT id, title, text, source, source_id, judge_score FROM document
+               WHERE tier='community' AND gate_status='kept' AND judge_score >= ?
+               ORDER BY id""",
+            (min_score,),
+        ).fetchall()
+
     # --- calibration / spot-check labels ----------------------------------
     def add_label(self, doc_id: int, *, score: int, label_set: str,
                   rater: str = "syed", notes: str = "") -> None:

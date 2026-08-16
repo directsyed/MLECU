@@ -52,6 +52,39 @@ def ensure_index(state: State, cfg: Config) -> bool:
     return True
 
 
+COMMUNITY_TABLE = "community_fts"
+_COMMUNITY_COUNT_KEY = "community_fts_doc_count"
+_COMMUNITY_MIN_KEY = "community_fts_min_score"
+
+
+def ensure_community_index(state: State, min_score: int = 4,
+                           table: str = COMMUNITY_TABLE) -> bool:
+    """Create/refresh the SEPARATE community FTS index (2026-08-16, Syed ruling 3).
+
+    Mirrors ensure_index() for ref_fts — same contentless FTS5 shape, rowid == document.id,
+    rebuilt only when the (count, min_score) stamp moves — but reads `community_kept_docs`
+    (tier='community', kept, judge_score >= min_score, gone-marked docs INCLUDED per the
+    NARROW gone policy). Never touches ref_fts, never writes document.tier.
+
+    NOT called by any runner tonight. Building the community index on the real corpus is
+    Syed's sign-off decision; this function is the tested machinery for when he gives it.
+    """
+    current = state.community_kept_count(min_score)
+    if (state.get_meta(_COMMUNITY_COUNT_KEY) == str(current)
+            and state.get_meta(_COMMUNITY_MIN_KEY) == str(min_score)):
+        return False
+    conn = state.conn
+    conn.execute(f"DROP TABLE IF EXISTS {table}")
+    conn.execute(f"CREATE VIRTUAL TABLE {table} USING fts5(title, text)")
+    with state.transaction() as tx:
+        for row in state.community_kept_docs(min_score):
+            tx.execute(f"INSERT INTO {table}(rowid, title, text) VALUES (?,?,?)",
+                       (row["id"], row["title"] or "", row["text"]))
+    state.set_meta(_COMMUNITY_COUNT_KEY, str(current))
+    state.set_meta(_COMMUNITY_MIN_KEY, str(min_score))
+    return True
+
+
 def _query_terms(text: str, max_terms: int = 12) -> list[str]:
     """Salient query terms: frequency-ranked content words, longest-first tiebreak.
     Each term is double-quoted — FTS5 treats bare tokens as syntax (AND/OR/NEAR, '-')."""

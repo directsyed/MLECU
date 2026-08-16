@@ -36,41 +36,68 @@ BATCH = 16
 MAX_CHARS = 6000             # BGE-M3 handles 8K tokens; chunks are <= ~1.5K tokens anyway
 
 
+def source_rows(db_path, table: str = "ref_fts") -> list[tuple]:
+    """(rowid, title, text) rows of an FTS table, rowid order — the embedding job's input.
+    Split out (2026-08-16) so the community index uses the identical selection logic."""
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        return conn.execute(f"SELECT rowid, title, text FROM {table} ORDER BY rowid").fetchall()
+    finally:
+        conn.close()
+
+
 def build(cfg: RetrievalCfg | None = None, log=print, device: str = "cpu",
-          batch: int | None = None) -> None:
+          batch: int | None = None, table: str = "ref_fts", out=None) -> None:
+    """Embed every row of `table` into `out` (default: cfg.index_path for ref_fts).
+
+    2026-08-16: `table`/`out` let the same builder produce a SEPARATE community index
+    (e.g. table="community_fts", out=EVAL_DIR/"data/community_dense_v2.npz") carrying the same
+    n_rows freshness stamp. Defaults are unchanged. NOT invoked on the real corpus tonight —
+    nothing enters a retrieval index without Syed's sign-off.
+    """
     cfg = cfg or RetrievalCfg()
+    out = cfg.index_path if out is None else out
     from sentence_transformers import SentenceTransformer   # heavy import, kept local
     t0 = time.time()
     log(f"loading {MODEL_NAME} ({device})...")
     model = SentenceTransformer(MODEL_NAME, device=device)
     batch = batch or (64 if device.startswith("cuda") else BATCH)
 
-    conn = sqlite3.connect(f"file:{cfg.db_path}?mode=ro", uri=True)
-    rows = conn.execute("SELECT rowid, title, text FROM ref_fts ORDER BY rowid").fetchall()
-    conn.close()
-    log(f"{len(rows)} ref_fts rows to embed")
+    rows = source_rows(cfg.db_path, table)
+    log(f"{len(rows)} {table} rows to embed")
 
     texts = [((t or "") + "\n" + (x or ""))[:MAX_CHARS] for _, t, x in rows]
     vecs = model.encode(texts, batch_size=batch, normalize_embeddings=True,
                         show_progress_bar=False, convert_to_numpy=True)
     rowids = np.array([r[0] for r in rows], dtype=np.int64)
-    cfg.index_path.parent.mkdir(parents=True, exist_ok=True)
+    out.parent.mkdir(parents=True, exist_ok=True)
     # FRESHNESS STAMP (2026-08-02, audit finding A10): the index silently drifted 30 rows
     # behind ref_fts (5,608 vs 5,638) and nothing noticed, so those chunks were invisible to
     # the dense ranker for every hybrid cell of the showdown. Recording the source row count
     # IN the artifact lets retrieval.py compare against the live DB at load and shout.
-    np.savez(cfg.index_path, vecs=vecs.astype(np.float32), rowids=rowids,
-             n_rows=np.int64(len(rows)), built_at=np.str_(time.strftime("%F %T")))
-    log(f"index -> {cfg.index_path} ({vecs.shape[0]}x{vecs.shape[1]}, "
-        f"{cfg.index_path.stat().st_size/1e6:.1f} MB, {time.time()-t0:.0f}s, "
+    np.savez(out, vecs=vecs.astype(np.float32), rowids=rowids,
+             n_rows=np.int64(len(rows)), built_at=np.str_(time.strftime("%F %T")),
+             table=np.str_(table))
+    log(f"index -> {out} ({vecs.shape[0]}x{vecs.shape[1]}, "
+        f"{out.stat().st_size/1e6:.1f} MB, {time.time()-t0:.0f}s, "
         f"n_rows stamp {len(rows)})")
 
 
 if __name__ == "__main__":
     import argparse
+    from pathlib import Path
     ap = argparse.ArgumentParser("embed_index")
     ap.add_argument("--device", default="cpu",
                     help="cpu (default, zero VRAM) or cuda (~60x faster; only when idle)")
     ap.add_argument("--batch", type=int, default=None)
+    ap.add_argument("--table", default="ref_fts",
+                    help="FTS table to embed (default ref_fts; community_fts for the "
+                         "separate community index)")
+    ap.add_argument("--out", default=None,
+                    help="output .npz (default: RetrievalCfg().index_path; REQUIRED when "
+                         "--table is not ref_fts so the reference index is never overwritten)")
     args = ap.parse_args()
-    build(device=args.device, batch=args.batch)
+    if args.table != "ref_fts" and not args.out:
+        ap.error("--out is required for a non-reference table")
+    build(device=args.device, batch=args.batch, table=args.table,
+          out=Path(args.out) if args.out else None)

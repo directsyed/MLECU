@@ -46,13 +46,25 @@ class RefSnippet:
     ref_doc_id: int
     title: str
     snippet: str
+    # 2026-08-16 (community index, Syed ruling 3): provenance travels WITH the row so the
+    # citation guard and the prompt builder can tell a forum post from a textbook, and so a
+    # per-parent cap has something to key on. Additive with defaults — every existing
+    # RefSnippet(rowid, title, snippet) construction and consumer is unchanged.
+    tier: str = "reference"
+    parent: str = ""          # source_id before '#' (the book/PDF), or the whole source_id
 
 
-def _bm25_ranked(cfg: RetrievalCfg, text: str, limit: int) -> list[sqlite3.Row]:
+REF_TABLE = "ref_fts"
+
+
+def _bm25_ranked(cfg: RetrievalCfg, text: str, limit: int,
+                 table: str = REF_TABLE) -> list[sqlite3.Row]:
     """retrieval-v1 core (Syed's query_terms + FTS5 BM25), limit parameterized.
 
     The FTS snippet() call stays here because mode="bm25" is byte-frozen for audit/repro of
     every result produced before 2026-08-02. Hybrid mode no longer consumes `snip`.
+    `table` (2026-08-16) lets the same ranker serve a separate community FTS table; the
+    default is ref_fts and the SQL is textually identical to before for it.
     """
     terms = query_terms(text)
     if not terms:
@@ -62,12 +74,16 @@ def _bm25_ranked(cfg: RetrievalCfg, text: str, limit: int) -> list[sqlite3.Row]:
     conn.row_factory = sqlite3.Row
     try:
         return conn.execute(
-            """SELECT rowid, title,
-                      snippet(ref_fts, 1, '', '', ' … ', 24) AS snip
-               FROM ref_fts WHERE ref_fts MATCH ?
-               ORDER BY bm25(ref_fts), rowid LIMIT ?""",
+            f"""SELECT rowid, title,
+                      snippet({table}, 1, '', '', ' … ', 24) AS snip
+               FROM {table} WHERE {table} MATCH ?
+               ORDER BY bm25({table}), rowid LIMIT ?""",
             (match_query, limit),
         ).fetchall()
+    except sqlite3.OperationalError as e:
+        if "no such table" in str(e) and table != REF_TABLE:
+            return []                       # community table not built yet: contributes nothing
+        raise
     finally:
         conn.close()
 
@@ -291,27 +307,33 @@ _CAND = 20           # candidates each ranker contributes before fusion
 _RRF_K = 60          # standard RRF damping constant
 
 
-def _load_index(cfg: RetrievalCfg):
+def _load_index_at(path) -> tuple | None:
     """(vecs, rowids, n_rows_stamp) or None. Cache is keyed by index PATH (bug found
     2026-07-25: an unkeyed cache served the first-loaded index to every later config)."""
-    key = str(cfg.index_path)
+    if path is None:
+        return None
+    key = str(path)
     if key not in _DENSE:
-        if not cfg.index_path.exists():
+        if not path.exists():
             return None
         import numpy as np
-        data = np.load(cfg.index_path, allow_pickle=False)
+        data = np.load(path, allow_pickle=False)
         stamp = int(data["n_rows"]) if "n_rows" in data.files else None
         _DENSE[key] = (data["vecs"], data["rowids"], stamp)
     return _DENSE[key]
 
 
-def _db_row_count(cfg: RetrievalCfg) -> int | None:
-    key = str(cfg.db_path)
+def _load_index(cfg: RetrievalCfg):
+    return _load_index_at(cfg.index_path)
+
+
+def _db_row_count(cfg: RetrievalCfg, table: str = REF_TABLE) -> int | None:
+    key = str(cfg.db_path) if table == REF_TABLE else f"{cfg.db_path}::{table}"
     if key not in _DBCOUNT:
         try:
             conn = sqlite3.connect(f"file:{cfg.db_path}?mode=ro", uri=True)
             try:
-                _DBCOUNT[key] = int(conn.execute("SELECT COUNT(*) FROM ref_fts").fetchone()[0])
+                _DBCOUNT[key] = int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
             finally:
                 conn.close()
         except Exception:
@@ -322,42 +344,53 @@ def _db_row_count(cfg: RetrievalCfg) -> int | None:
 _STALE_WARNED: set[str] = set()
 
 
-def index_freshness(cfg: RetrievalCfg) -> dict:
+def index_freshness(cfg: RetrievalCfg, index_path=None, table: str = REF_TABLE) -> dict:
     """{stamp, live, stale} — stale is None when it cannot be determined.
 
     A10 (2026-08-02): ref_dense_v1 was built at 5,608 rows while ref_fts had grown to 5,638.
     Thirty chunks were invisible to the dense ranker for the entire five-model showdown and
     nothing in the pipeline noticed. An index that cannot prove its own freshness is an
     unrecorded variable, so the stamp now travels inside the artifact and is checked here.
+    (2026-08-16: `index_path`/`table` let the same check cover the community index — the
+    stamp is carried forward, per the runbook.)
     """
-    idx = _load_index(cfg)
+    index_path = cfg.index_path if index_path is None else index_path
+    idx = _load_index_at(index_path)
     stamp = idx[2] if idx else None
-    live = _db_row_count(cfg)
+    live = _db_row_count(cfg, table)
     stale = None if (stamp is None or live is None) else (stamp != live)
-    if stale and str(cfg.index_path) not in _STALE_WARNED:
-        _STALE_WARNED.add(str(cfg.index_path))
-        print(f"WARNING: dense index STALE — {cfg.index_path.name} built at {stamp} rows, "
-              f"ref_fts now has {live}. Rebuild: python -m harness.embed_index")
+    if stale and str(index_path) not in _STALE_WARNED:
+        _STALE_WARNED.add(str(index_path))
+        print(f"WARNING: dense index STALE — {index_path.name} built at {stamp} rows, "
+              f"{table} now has {live}. Rebuild: python -m harness.embed_index")
     return {"stamp": stamp, "live": live, "stale": stale}
 
 
-def _dense_ranked(cfg: RetrievalCfg, text: str, limit: int) -> list[int]:
-    """rowids ranked by cosine similarity, best first. [] if index/model unavailable."""
-    idx = _load_index(cfg)
-    if idx is None:
-        return []
+def _encode_query(text: str):
+    """One embedding per query, shared by every dense index consulted (2026-08-16: hoisted so a
+    two-index retrieval does not embed the same text twice)."""
     if "model" not in _DENSE:
         from sentence_transformers import SentenceTransformer
         _DENSE["model"] = SentenceTransformer("BAAI/bge-m3", device="cpu")
+    return _DENSE["model"].encode([text[:6000]], normalize_embeddings=True,
+                                  convert_to_numpy=True)[0]
+
+
+def _dense_ranked(cfg: RetrievalCfg, text: str, limit: int, index_path=None,
+                  qvec=None) -> list[int]:
+    """rowids ranked by cosine similarity, best first. [] if index/model unavailable."""
+    idx = _load_index_at(cfg.index_path if index_path is None else index_path)
+    if idx is None:
+        return []
     vecs, rowids, _ = idx
-    q = _DENSE["model"].encode([text[:6000]], normalize_embeddings=True,
-                               convert_to_numpy=True)[0]
+    q = _encode_query(text) if qvec is None else qvec
     sims = vecs @ q                      # cosine similarity (both sides L2-normalized)
     top = sims.argsort()[::-1][:limit]
     return [int(rowids[i]) for i in top]
 
 
-def _fetch_rows(cfg: RetrievalCfg, rowids: list[int]) -> dict[int, tuple[str, str]]:
+def _fetch_rows(cfg: RetrievalCfg, rowids: list[int],
+                table: str = REF_TABLE) -> dict[int, tuple[str, str]]:
     """title+text for each rowid in one query."""
     if not rowids:
         return {}
@@ -365,13 +398,36 @@ def _fetch_rows(cfg: RetrievalCfg, rowids: list[int]) -> dict[int, tuple[str, st
     try:
         marks = ",".join("?" * len(rowids))
         return {r[0]: (r[1] or "", r[2] or "") for r in conn.execute(
-            f"SELECT rowid, title, text FROM ref_fts WHERE rowid IN ({marks})", rowids)}
+            f"SELECT rowid, title, text FROM {table} WHERE rowid IN ({marks})", rowids)}
     finally:
         conn.close()
 
 
-def _snippets_for(cfg: RetrievalCfg, ordered_rowids: list[int],
-                  query_text: str) -> tuple[list[RefSnippet], list[int]]:
+def _parent_of(source_id: str) -> str:
+    """Parent-document key: the part before '#' (books are chunked as '<file>#p612'), or the
+    whole source_id when there is no '#' (forum threads, wiki pages — one row IS the doc)."""
+    return source_id.split("#", 1)[0] if source_id else ""
+
+
+def _provenance_for(cfg: RetrievalCfg, rowids: list[int]) -> dict[int, tuple[str, str]]:
+    """{rowid: (tier, parent)} from the `document` table (rowid == document.id). Empty when
+    the DB has no `document` table (test fixtures) — callers fall back to defaults."""
+    if not rowids:
+        return {}
+    conn = sqlite3.connect(f"file:{cfg.db_path}?mode=ro", uri=True)
+    try:
+        marks = ",".join("?" * len(rowids))
+        return {r[0]: (r[1] or "reference", _parent_of(r[2] or "")) for r in conn.execute(
+            f"SELECT id, tier, source_id FROM document WHERE id IN ({marks})", rowids)}
+    except sqlite3.OperationalError:
+        return {}
+    finally:
+        conn.close()
+
+
+def _snippets_for(cfg: RetrievalCfg, ordered_rowids: list[int], query_text: str,
+                  table: str = REF_TABLE, tier: str = "reference"
+                  ) -> tuple[list[RefSnippet], list[int]]:
     """RefSnippets in fused order, every hit windowed from FULL TEXT by the same extractor.
 
     Returns (snippets, missing_rowids). A11: the old version silently dropped any rowid it
@@ -379,7 +435,8 @@ def _snippets_for(cfg: RetrievalCfg, ordered_rowids: list[int],
     top_k=3 would quietly serve 2. Missing ids are now returned and recorded — a rowid the
     dense index knows but ref_fts does not IS index drift, and the caller should see it.
     """
-    rows = _fetch_rows(cfg, ordered_rowids)
+    rows = _fetch_rows(cfg, ordered_rowids, table)
+    prov = _provenance_for(cfg, ordered_rowids)
     terms = [t.strip('"') for t in query_terms(query_text)]
     out, missing = [], []
     for rid in ordered_rowids:
@@ -387,9 +444,46 @@ def _snippets_for(cfg: RetrievalCfg, ordered_rowids: list[int],
             missing.append(rid)
             continue
         title, text = rows[rid]
+        t, parent = prov.get(rid, (tier, ""))
         out.append(RefSnippet(rid, title, extract_window(
-            text, terms, cfg.snippet_max_chars, cfg.snippet_window_lead_frac)))
+            text, terms, cfg.snippet_max_chars, cfg.snippet_window_lead_frac),
+            tier=t or tier, parent=parent))
     return out, missing
+
+
+def _rrf(*rankings: list[int]) -> list[int]:
+    """Reciprocal Rank Fusion over any number of rankings — score(doc) = Σ 1/(60 + rank).
+    Byte-identical to the inline loop it replaced for two rankings (same K, same order)."""
+    scores: dict[int, float] = {}
+    for ranking in rankings:
+        for rank, rid in enumerate(ranking):
+            scores[rid] = scores.get(rid, 0.0) + 1.0 / (_RRF_K + rank + 1)
+    return sorted(scores, key=scores.get, reverse=True)
+
+
+def _take_top(cfg: RetrievalCfg, ranked: list[int], k: int, meta: dict) -> list[int]:
+    """The top-k slice — with the per-parent cap applied first when max_per_parent > 0.
+
+    max_per_parent == 0 (default) is EXACTLY `ranked[:k]`. Otherwise walk the fused ranking,
+    keep at most N rowids per parent document, record what was skipped in meta['capped_out']
+    so a capped result row says so. Parent keys come from `document.source_id`; rowids the
+    DB cannot resolve get their own key (never silently capped)."""
+    if cfg.max_per_parent <= 0 or not ranked:
+        return ranked[:k]
+    prov = _provenance_for(cfg, ranked)
+    seen: dict[str, int] = {}
+    kept, capped = [], []
+    for rid in ranked:
+        parent = prov.get(rid, ("", ""))[1] or f"rowid:{rid}"
+        if seen.get(parent, 0) >= cfg.max_per_parent:
+            capped.append(rid)
+            continue
+        seen[parent] = seen.get(parent, 0) + 1
+        kept.append(rid)
+        if len(kept) >= k:
+            break
+    meta["capped_out"] = capped
+    return kept
 
 
 def retrieve_with_meta(cfg: RetrievalCfg, text: str) -> tuple[list[RefSnippet], dict]:
@@ -403,6 +497,17 @@ def retrieve_with_meta(cfg: RetrievalCfg, text: str) -> tuple[list[RefSnippet], 
             "index_path": cfg.index_path.name, "index_mtime": None, "index_stale": None,
             "index_n_rows": None, "dense_fallback": False, "missing_rowids": [],
             "n_bm25": 0, "n_dense": 0}
+    community_on = bool(cfg.community_top_k > 0
+                        and (cfg.community_fts or cfg.community_index_path))
+    if community_on:
+        meta.update({"community_top_k": cfg.community_top_k, "community_n": 0,
+                     "community_fts": cfg.community_fts,
+                     "community_index_path": (cfg.community_index_path.name
+                                              if cfg.community_index_path else None),
+                     "community_index_stale": None, "community_fallback": None})
+    if cfg.max_per_parent > 0:
+        meta["max_per_parent"] = cfg.max_per_parent
+        meta["capped_out"] = []
 
     if cfg.mode == "bm25":                    # retrieval-v1, byte-frozen
         rows = _bm25_ranked(cfg, text, cfg.top_k)
@@ -416,24 +521,58 @@ def retrieve_with_meta(cfg: RetrievalCfg, text: str) -> tuple[list[RefSnippet], 
     meta["index_stale"], meta["index_n_rows"] = fresh["stale"], fresh["stamp"]
 
     bm25 = _bm25_ranked(cfg, text, _CAND)
-    dense = _dense_ranked(cfg, text, _CAND)
+    qvec = None
+    if _load_index(cfg) is not None or (community_on and _load_index_at(cfg.community_index_path)):
+        qvec = _encode_query(text)         # once, shared across every dense index consulted
+    dense = _dense_ranked(cfg, text, _CAND, qvec=qvec) if _load_index(cfg) is not None else []
     meta["n_bm25"], meta["n_dense"] = len(bm25), len(dense)
 
     if not dense:                             # index absent -> graceful v1 ranking, RECORDED
         meta["mode_used"], meta["dense_fallback"] = "bm25_fallback", True
-        snips, missing = _snippets_for(cfg, [r["rowid"] for r in bm25[:cfg.top_k]], text)
-        meta["missing_rowids"] = missing
-        return snips, meta
-
-    scores: dict[int, float] = {}
-    for rank, r in enumerate(bm25):
-        scores[r["rowid"]] = scores.get(r["rowid"], 0.0) + 1.0 / (_RRF_K + rank + 1)
-    for rank, rid in enumerate(dense):
-        scores[rid] = scores.get(rid, 0.0) + 1.0 / (_RRF_K + rank + 1)
-    fused = sorted(scores, key=scores.get, reverse=True)[:cfg.top_k]
-    snips, missing = _snippets_for(cfg, fused, text)
+        top = _take_top(cfg, [r["rowid"] for r in bm25], cfg.top_k, meta)
+        snips, missing = _snippets_for(cfg, top, text)
+    else:
+        fused = _rrf([r["rowid"] for r in bm25], dense)
+        top = _take_top(cfg, fused, cfg.top_k, meta)
+        snips, missing = _snippets_for(cfg, top, text)
     meta["missing_rowids"] = missing
+
+    if community_on:
+        snips = snips + _community_hits(cfg, text, qvec, meta)
     return snips, meta
+
+
+def _community_hits(cfg: RetrievalCfg, text: str, qvec, meta: dict) -> list[RefSnippet]:
+    """The SEPARATE community retrieval (2026-08-16, Syed ruling 3). Same rankers, same fusion,
+    its own FTS table + dense index, results tagged tier='community' and appended AFTER the
+    reference top-k so the reference results are untouched. Absent table/index → contributes
+    nothing and says so in meta; it never raises and never changes the reference rows."""
+    table = cfg.community_fts
+    bm25 = _bm25_ranked(cfg, text, _CAND, table=table) if table else []
+    dense = []
+    if cfg.community_index_path is not None:
+        cidx = _load_index_at(cfg.community_index_path)
+        if cidx is not None:
+            if table:
+                meta["community_index_stale"] = index_freshness(
+                    cfg, cfg.community_index_path, table)["stale"]
+            dense = _dense_ranked(cfg, text, _CAND, index_path=cfg.community_index_path,
+                                  qvec=qvec if qvec is not None else _encode_query(text))
+    if not bm25 and not dense:
+        meta["community_fallback"] = "community index absent — no community hits"
+        return []
+    fused = _rrf([r["rowid"] for r in bm25], dense)
+    top = _take_top(cfg, fused, cfg.community_top_k, meta) if cfg.max_per_parent > 0 \
+        else fused[:cfg.community_top_k]
+    if table:
+        hits, missing = _snippets_for(cfg, top, text, table=table, tier="community")
+        meta["missing_rowids"] = meta.get("missing_rowids", []) + missing
+    else:                                     # dense-only community index (no FTS table yet)
+        hits = []
+    hits = [RefSnippet(h.ref_doc_id, h.title, h.snippet, tier="community", parent=h.parent)
+            for h in hits]
+    meta["community_n"] = len(hits)
+    return hits
 
 
 def retrieve(cfg: RetrievalCfg, text: str) -> list[RefSnippet]:
