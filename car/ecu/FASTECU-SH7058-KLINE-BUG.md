@@ -1,7 +1,21 @@
 # FastECU: SH7058 K-Line kernel upload rejected on MY2005 Subaru (ECU `3B12504206`)
 
-**Status:** open. Written to be filed upstream at <https://github.com/miikasyvanen/FastECU/issues>
-or <https://www.fastecu.fi/forum/>. Investigated 2026-08-13/14 with a byte-level J2534 capture.
+> ## ✅ RESOLVED 2026-08-16 — it was NOT a FastECU/format bug.
+>
+> The read succeeded once the **Subaru green test-mode connectors** were joined (they enable the
+> ECU's read/write mode). The `dataFormatIdentifier` sweep (0x00–0x04) had confirmed the byte was
+> irrelevant — the ECU understood every request and refused with a bare `generalReject`, a
+> **permission** refusal, not a format one. In FastECU's flow, `RequestDownload` (SID 0x34) is the
+> kernel-upload-to-RAM step (`flash_ecu_subaru_denso_sh705x_kline.cpp::send_sid_34_request_upload`);
+> comms were clean (a well-formed request, a well-formed NRC), so the block was semantic. Full story
+> + validated dump: `car/ecu/rom read/PROVENANCE.md`.
+>
+> **If filed upstream at all, reframe:** not "FastECU builds a wrong SID 0x34" but "MY2005 SH7058
+> requires the diagnostic/test-mode connectors joined to enter read/write mode; with them joined the
+> stock `sub_ecu_denso_sh7058` request works unchanged." Kept below as the investigation record.
+
+**Status:** RESOLVED (see banner) — the format-mismatch hypothesis was falsified. Investigation record
+follows; originally drafted to file upstream at <https://github.com/miikasyvanen/FastECU/issues>.
 
 ## Summary
 

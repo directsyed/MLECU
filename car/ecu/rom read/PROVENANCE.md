@@ -22,6 +22,12 @@ connectors joined, the plain upstream request went straight through — kernel u
 
 ## Validity evidence (see the analysis in the 2026-08-16 handoff)
 
+- **★ BYTE-IDENTICAL to an independent harvested known-stock reference.** This dump
+  (`3B12504206_2026-08-16_16h51m01s.bin`, sha256 `11fe1536…3f3118`) equals
+  `ml/data-pipeline/data/raw/roms/romraider/3B12504206_A2WC411D.bin` byte-for-byte (same sha256,
+  1,048,576 B). This is the ROADMAP `--rom-diff`/"is it really stock" answer: an outside-source
+  match proves the read is **complete** AND the ECU is **genuinely un-tuned** (a modified ROM would
+  differ). Stronger than a self-consistency check.
 - Cal ID `A2WC411D` + `Copr.DENSO2004` at 0x2000/0xC0000 — the expected USDM 2005 FXT AT calibration.
 - Valid SH7058 reset vector at 0x0: PC=0x00000AAC, SP=0xFFFFBFA0.
 - Entropy 4.65 b/byte, all 256 byte values present, real strings — genuine code+data, not a blank read.
@@ -32,7 +38,11 @@ connectors joined, the plain upstream request went straight through — kernel u
 2. `data-backups/rom/` (in git)
 3. **OFF-MACHINE (Syed): put it on a USB stick / cloud — a third, physical copy.** ← still to do
 
-## Recommended: a second independent read to prove byte-stability
+## Second read — now OPTIONAL (the byte-match already validates completeness)
+
+The byte-identical match to the harvested reference (above) supersedes the need for a confirming
+read — an independent *source* agreeing is stronger than a repeat of our own read. Still cheap
+insurance if desired. Original note:
 
 The connector works now, so re-read once more and `diff`/`sha256sum` against this file. Two
 independent reads matching byte-for-byte is the gold standard for a sacred dump. Not blocking —

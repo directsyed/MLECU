@@ -1048,3 +1048,41 @@ the incumbent's LIKE-FOR-LIKE recalibration on the same engine/n/rubric AND has 
    judge will promote", and it is why the score-3 review (28 keep / 67 drop) found value below the bar.
 4. Nothing decides whether 3.8 becomes the *diagnosis* model — E1/E2/E4 are that question and are
    Syed's (§7), with the E1 dangerous-definition finding above on the table.
+
+### 2026-08-16 — ROM READ SOLVED; and a standing directive to optimize past the pre-data (July) workflows
+
+**The read.** The project's day-one blocker fell. The stock ROM was read (FastECU + the Subaru
+**green test-mode connectors**, which enable read/write mode) and is **byte-identical to a harvested
+known-stock reference** — so the ECU is genuinely un-tuned and was never locked. The failure had been
+at `RequestDownload` (`7F 34 10`), not seed/key; a `dataFormatIdentifier` sweep falsified the
+format hypothesis; the connectors were a **permission gate**. Our own `ROM-READ-BLOCKER.md` had
+eliminated those connectors as "not applicable to a 2005 DBW car" — an elimination by argument, never
+by test. **Lesson (worth keeping): an elimination that was never run is not an elimination.** The fix
+came from corpus doc 5793, surfaced by the overnight community-doc review — the pipeline found what
+its own reasoning had ruled out. Provenance/validation: `car/ecu/rom read/PROVENANCE.md`, commit
+`f27aad8`.
+
+**Standing directive (Syed, 2026-08-16): optimize past the July guidelines where the data warrants.**
+The roadmap and capture docs were written before any real car data. Syed's instruction: do what is
+best for the project, not what an older workflow said before we had data. Concrete deviations now in
+force:
+1. **Extended-parameter RAM addresses may be grafted from siblings + validated** — the
+   `IDLE-LOG-PROFILE.md` refusal ("do not before the ROM read is solved"; "'often' is not 'provably'")
+   is lifted: the `3B125` family shares one RAM layout (Feedback Knock `0xFF5C18` agreed by 5 siblings
+   incl. the rev-42 MT twin) and the ROM now cross-checks. We recover the rich channel set instead of
+   logging an impoverished one, validating each channel live before trusting it.
+2. **RAG is de-prioritized for diagnosis** (doc-collapse: ≈0 contribution to E1); it is kept for the
+   exact-value job (E2). Diagnosis leans on the deterministic layer + fine-tune reasoning.
+3. **Center of gravity is the car** — real logs + the deterministic layer + tuning iterations are
+   primary; corpus/judge/eval is the parallel track. Re-scoring sim-bound evals is low-value.
+
+**Reconciliations.** D19 sequencing: the "needs the ROM read for a write path" precondition is now
+met; the remaining blockers are the write-path build + a driven load/rpm capture (no protocol yet).
+D20: the unvalidated-baseline refusal band is superseded for real captures by
+`MEASURED_MAF_BASELINE_20260816` once the log→layer bridge wires `nominal_validated` from it.
+
+**Role guardrail (Syed, 2026-08-16, reaffirming the safety doctrine):** the *pipeline* tunes
+(deterministic layer proposes → clamps bound → later a local fine-tuned model is a cross-checked
+proposer); **Syed approves**; **Claude builds the pipeline and is a verification set of eyes, never
+the runtime tuner.** Hand-analysis of logs is permitted only as build-phase verification of the
+builder (the bridge's acceptance test), never as the product.

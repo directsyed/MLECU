@@ -1,22 +1,25 @@
 # MLECU — open checklist
 
-Live tracker of every open thread, both halves of the project. Updated 2026-08-16 (overnight run).
+Live tracker of every open thread, both halves of the project. Updated 2026-08-16 (post-ROM-read).
 Ordered by **what blocks the car**, because that is the actual objective.
 
 ---
 
 
-## ⏭ SYED'S NEXT ACTIONS (parked 2026-08-16 20:xx UTC while he runs the SID 0x34 sweep at the car)
+## ⏭ SYED'S NEXT ACTIONS
 
-**At the car (now):** the 5-value `FASTECU_SID34_FORMAT` sweep — control (unset ⇒ must still fail
-`7F 34 10`), then `0x00`, `0x01`, `0x02`, `0x03`; key-cycle between attempts; save FastECU's log +
-`C:\Openport-shim\j2534_shim.log` after each. If every value rejects: repeat control + `0x00` with the
-**green test-mode connectors joined** (weak but cheap lead from corpus doc 5793 — an 05 Forester XS
-whose Openport read only worked "sti05 method + test connector"; our own blocker doc had ruled the
-connectors "not applicable to 2005 DBW" — that ruling was reasoning, not a test). Procedure text is
-in the 2026-08-16 session (this file's A1 block has the commands).
+**Physical (car), per the post-ROM-read plan (`~/.claude/plans/read-the-newest-checklist-bright-sunbeam.md`):**
+- **Cold-idle log** — the warm idle already meets the Stage-2 gate; capture a cold start + warm-up
+  on the same profile to close the "warm AND cold" requirement.
+- **Extended-param validation log** — after Claude builds the sibling-reconciled logger def
+  (Track 3), log the recovered params at idle + a light rev + brief load so each can be validated
+  (IAM ≈1.00, CL/OL flips, injector PW ≈ P21, Feedback Knock ~0).
+- **Driving log** (your call, before the smoke test; **no boost** — vacuum only, watch the wideband):
+  cruise ~1500–3500 rpm, light-to-moderate load, cover many load/rpm cells, 15–30 min. Raw material
+  for the VE/timing build. Ground-loop remedy applies.
+- Disconnect the green connectors for normal driving; off-machine ROM copy (3rd location).
 
-**Back at the desk, in this order (all from the overnight run — nothing moves until you say):**
+**Desk decisions (from the overnight run — nothing moves until you say):**
 1. **Sign off / edit the 74 keeps** in `ml/curation/docs/community-3s-review-2026-08-16.md` (parts 1+2,
    222 docs). Read doc 5793 (ROM read) and 884/944 (EJ20X-in-EJ255-ECU swaps) regardless.
 2. **Rule on the E1 "dangerous" definition** — codified lean/rich flip (3.8 E1v2 = 95.2 % / 0) vs "edit
@@ -30,38 +33,20 @@ in the 2026-08-16 session (this file's A1 block has the commands).
 5. **Is ≥4 still the right promotion gate** for community docs, given BOTH judges recall only 4/9 of the
    adjudicated 4s? A rubric conversation, not a bar-lowering one.
 6. **3.8 as the diagnosis model?** (E4 15/15 vs 13/15; E1v2 depends on #2.) And QLoRA retrain — still yours.
-7. Review the 17 unpushed commits; push when satisfied.
+7. Push the unpushed commits when satisfied.
 
 ## A. CAR / PHYSICAL — the critical path
 
-The ROM read gates the write path, and a tune must be **written to be tested**. Deadline ~2 weeks
-from 2026-08-14; target = **safe daily driving** (correct idle, no stumble, safe AFR under load,
-no knock). Conservative, not a power tune.
+Target = **safe daily driving** (correct idle, no stumble, safe AFR under load, no knock).
+Conservative, not a power tune. We are now in the **tuning-loop build** (ROADMAP Phase B→C).
 
-### A1. ROM read — BLOCKED at kernel upload  ← highest priority
-Settled by byte-level J2534 capture (`car/logging/j2534_shim.log`):
-**the ECU is NOT locked** (seed returned, key accepted, programming session granted) and
-**the cable is NOT faulty** (clean checksummed NRC returned). Failure is isolated to
-`RequestDownload` → `7F 34 10 generalReject`.
-
-- [ ] **Build the key-substituting shim on Windows** — code written, tested, pushed.
-      `cargo +stable-i686-pc-windows-gnu build --release` in `car/ecu/j2534-shim/`
-- [ ] **Verify the shim loads in EcuFlash** (copy into EcuFlash's own folder as `op20pt32.dll`).
-      **Untested — everything in Track A depends on it.** Success = `==== shim init:` in DebugView.
-- [ ] Enable `TACTRIX_SHIM_FIXKEY=1`, attempt read. EcuFlash's key is replaced with FastECU's
-      (proven-accepted) key → EcuFlash proceeds into its own sti05 kernel upload.
-- [ ] **The 5-value SID 0x34 sweep with the patched FastECU** (built + launching on the laptop; patch in
-      `car/ecu/fastecu-patch/`). PowerShell, admin, key ON / engine OFF, charger on:
-      `Remove-Item Env:FASTECU_SID34_FORMAT -ErrorAction SilentlyContinue; & $FE`  ← CONTROL, must fail 7F 34 10
-      `$env:FASTECU_SID34_FORMAT="0x00"; & $FE`  then `"0x01"`, `"0x02"`, `"0x03"`. Key-cycle between
-      attempts. Stop on anything not `7F 34 ..`; a `74` = read proceeding.
-- [ ] If all four reject: **repeat control + 0x00 with the green test-mode connectors joined** (doc 5793
-      lead; our "not applicable to 2005 DBW" ruling was never tested).
-- [ ] File the upstream bug report — `car/ecu/FASTECU-SH7058-KLINE-BUG.md` is written and ready.
-      **Do this in parallel from day one**, not as a last resort.
-- [ ] **Read corpus doc 5793 first** (05 Forester XS, RomRaider forum): Openport read failed until the
-      `sti05` read method + green test connectors — same year/platform family; surfaced by the 2026-08-16 review.
-- [ ] Last resort only (Syed's call): bench `shbootmode` (Renesas boot mode bypasses OBD security).
+### A1. ROM read — ✅ DONE 2026-08-16
+Stock 1 MB SH7058 dump captured (FastECU + **green test-mode connectors** = the missing read/write
+permission; the ECU was never locked), **byte-identical to a harvested known-stock reference** ⇒
+read complete AND ECU un-tuned. Archived (`car/ecu/rom read/` + `data-backups/rom/` + provenance).
+History: `car/ecu/ROM-READ-BLOCKER.md` (RESOLVED banner) — its "green connectors not applicable to
+2005 DBW" elimination was the exact error; corpus doc 5793 (2026-08-16 review) had the fix.
+Remaining: off-machine ROM copy (3rd location); optional 2nd confirming read for byte-stability.
 
 ### A2. Data capture — UNBLOCKED, do in parallel
 - [ ] **Stage 0 smoke/leak test** — non-negotiable, precedes all logging. Do we have a smoke tester?

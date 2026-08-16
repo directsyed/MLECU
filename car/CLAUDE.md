@@ -18,7 +18,7 @@ destroys an engine — deterministic clamps give provable bounds; the LLM gives 
 - **Factory drive-by-wire** (FXT was DBW from 2004 — "cable throttle" notes are WRONG).
 - **VF48 turbo, 04–08 STI top-mount IC.** **Fully catless 3″ exhaust:** 3″ single-pipe cat-back → catless 3″ bellmouth downpipe → catless 04–21 STI up-pipe. **No cats anywhere; no EGT/cat-temp sensor on the up-pipe → expect a code** (plus rear-O2 / cat-monitor codes). Unconnected O2 bung remains.
 - **Intake AVCS operational** (ECU-controlled); **exhaust AVCS deleted**, oil ports blocked, exhaust cam mechanically fixed at the gear (NOT flashed).
-- **ROM presumed bone stock (USDM 2005 FXT ECU, 4EAT automatic).** **ECU is 32-bit** (05–06 DBW family; RomRaider logging needs no green-connector jumper). **ECU ID read via SSM2 = `3B12504206`** (2026-08-08). **VERIFIED 2026-08-11 as the correct part for this car** — 05/USDM/Forester/XT/AT/SH7058/sti05; absent from the 2012 defs only because that one AT calibration revision was never contributed, while its MT twin `3B12584206` is present. Proof + repro script: `car/ecu/defs/README.md`. **ROM read still BLOCKED at seed/key** (unlock refused, nothing ever written); a stock-looking ID does **not** prove an untuned ROM.
+- **ROM read DONE 2026-08-16 — ECU is bone stock, PROVEN.** **32-bit** (05–06 DBW family; RomRaider *logging* needs no green-connector jumper — but the *read* did). **ECU ID `3B12504206`** (SSM2, 2026-08-08); = **`A2WC411D`**, the correct 05/USDM/FXT/AT/SH7058/sti05 part (`car/ecu/defs/README.md`). The full 1 MB stock ROM was read (`car/ecu/rom read/`, `PROVENANCE.md`, commit `f27aad8`) and is **byte-identical to a harvested known-stock reference** — so it is genuinely un-tuned (the "stock-looking ID ≠ untuned" caveat is discharged). **The read had been blocked at kernel upload**; the fix was **joining the green test-mode connectors** (a read/write PERMISSION gate, not a lock and not a format problem). History: `car/ecu/ROM-READ-BLOCKER.md` (RESOLVED banner).
 - **The car idles, and idles poorly; never driven by Syed.** This is the starting problem.
 
 ## Working theory for the bad idle (everything is a candidate — the DATA sets priorities)
@@ -48,13 +48,16 @@ map cell — fix the globals via closed-loop trims and the map shifts sane. **93
 - `safety/` — the hard clamps; the write-path guard (**see the safety constraint above**).
 - `simulation/` — log-replay harness, mean-value engine model (MVEM), rusEFI software-in-the-loop.
 
-## Status (Aug 8, 2026) — ACTIVE: first contact made, two blockers
-**Live SSM2 logging works** (RomRaider + Washinglee Openport clone: RPM, coolant, battery V streaming).
-Two blockers, both diagnosed to a shortlist in `sessions/handoffs/2026-08-08-forester-first-logging-toolchain.md`:
-**(A)** ECU ROM read refused at seed/key — locked/married ECU vs clone-cable K-line reflash support; CAL ID
-check queued. **(B)** AEM 30-0300 wideband serial silent on COM5 — USB-serial adapter chipset is the prime
-suspect. **The wideband link is the critical path:** once AFR reaches RomRaider, `logging/CAPTURE-PROTOCOL.md`
-runs. The ROM read is NOT required for capture — only for the (later) write path.
+## Status (2026-08-16) — ACTIVE: both early blockers cleared; in the tuning-loop build
+**Live SSM2 logging works** (RomRaider + Openport clone). Both 2026-08-08 blockers are resolved:
+**(A) ROM read DONE** — stock dump captured + validated byte-identical to a known-stock reference
+(green test-mode connectors were the missing read/write permission; NOT a lock — see the ROM line
+above and `car/ecu/rom read/PROVENANCE.md`). **(B) Wideband LIVE** — AEM 30-0300 streaming into
+RomRaider and cross-validated against the factory A/F sensor (2026-08-13). The **three-hold idle
+capture** ran (`car/logging/*.csv`): warm idle **fuelling correct, leak-free, knock-free**; first
+validated MAF baseline in `mvem.py`. Now at the **ROADMAP Phase B→C boundary** — building the
+log→layer bridge + extended-parameter recovery + the write path (`~/.claude/plans/`), so the
+*deterministic pipeline* (not a human by hand) does the tuning under the clamps + Syed's review.
 
 ## Carried-forward design question
 Stay RomRaider/ECUFlash (OEM ECU) long-term, or plan a standalone (rusEFI) swap later? Shapes the

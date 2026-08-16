@@ -9,6 +9,35 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-16 — ★ THE ROM READ: the project's day-one blocker is solved, and the idle diagnosed healthy from real data
+
+The single thing that gated whether this project's output could ever reach the car. **The stock ROM
+was read** and is **byte-identical (sha256 `11fe1536…`) to an independent harvested known-stock 05
+FXT ROM** — proving both that the read is complete and that the ECU is **genuinely un-tuned**
+(`car/CLAUDE.md`'s "stock-looking ID ≠ untuned" caveat, discharged). Archived per doctrine
+(`car/ecu/rom read/` + `data-backups/rom/` + provenance/checksums; off-machine copy on Syed).
+
+**What was actually wrong — a permission gate, not a lock.** Seed/key and the programming session
+always succeeded; the read failed at `RequestDownload` (`7F 34 10`). A five-value `dataFormatIdentifier`
+sweep (patched FastECU) changed nothing — a clean falsification pointing away from a format problem.
+The fix was **joining the Subaru green test-mode connectors**, which enable read/write mode. Our own
+`ROM-READ-BLOCKER.md` had eliminated those connectors as "not applicable to a 2005 DBW car" — an
+elimination by *argument*, never by *test*, and it was wrong. The winning lead came from **corpus doc
+5793**, an 05 Forester that read only with the test connector — a doc surfaced by the **overnight
+community-doc review**. The pipeline found the fix its own reasoning had ruled out.
+
+**First real diagnosis from the deterministic layer's own inputs.** `romread` extracted the stock
+tables (injector flow 503.9 cc/min high-confidence; MAF/timing/AFR/idle indicative). The **three-hold
+idle capture** (warm/fast/loaded) then proved, from the fuel-trim signatures: **no vacuum leak**
+(airflow doubled and trim went *more* negative — a leak does the opposite), **idle fuelling already
+correct** (trims within ±5%, wideband on 14.7 target, zero knock), idle on the ROM's 700 rpm target.
+The "poor idle" is not a fuel/leak fault; the tuning win is under load. Captured the **first validated
+MAF baseline** for the engine (`MEASURED_MAF_BASELINE_20260816`), with its real ±12% cross-session
+variance recorded — vindicating the D20 refusal to hard-code a single reading. Position: **ROADMAP
+Phase B→C boundary**, building the tuning pipeline (log→layer bridge, extended-param recovery, write
+path) so the *pipeline* tunes under the clamps + human review — Claude builds and verifies, never
+tunes by hand.
+
 ## 2026-08-16 — OVERNIGHT AUTONOMOUS RUN: judge calibration gate holds (3.8 fails on one dangerous cell), the ratified RAG headline retrieved three constant pages, the deterministic layer stops trusting an unmeasured baseline
 
 Executed unattended overnight from an approved plan (`sessions/handoffs/2026-08-17-overnight-morning-report.md`
@@ -177,7 +206,8 @@ Java `-cp` launcher (the `-jar` flag discards CLASSPATH, so the i18n bundle neve
 `main()` exited silently) and a per-boot driver-signature-enforcement bypass for the cross-signed
 `openport.sys`.
 
-Two blockers remain, each reduced to a testable shortlist:
+Two blockers remain, each reduced to a testable shortlist: *(both SUPERSEDED — the wideband link was
+solved 2026-08-11 and the ROM read 2026-08-16; see the "★ THE ROM READ" entry at the top. Historical.)*
 
 - **ECU ROM read fails at seed/key.** SSM2 init succeeds and the ECU identifies itself, then
   refuses the security unlock; no kernel is uploaded, nothing is written, retrying is safe.
@@ -785,6 +815,12 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-11 | Ground-loop fix applied (drop DB9 pin 5) | **BOTH streams live** — AFR matches gauge | signal-wire-only; return path via chassis + Openport OBD ground; zero cost |
 | 2026-08-11 | ECU ID `3B12504206` identity | **CONFIRMED correct part** — 05/USDM/FXT/AT/SH7058/sti05 | 332 defs entries parsed; family gap is 1 uncontributed AT revision, MT twin `3B12584206` present |
 | 2026-08-11 | ROM read retry (charger on, no ground loop) | STILL BLOCKED at seed/key — **but ECU returns a seed** | vendor DLL 1.01.4341, firmware 1.17.4877 unchanged; failure is at KEY validation, weakening the clone-cable hypothesis |
+| 2026-08-16 | **★ ROM READ — SOLVED** (FastECU + green test-mode connectors) | **full 1 MB SH7058 stock dump captured** | seed/key + session always worked; RequestDownload gated on read/write mode; connectors were the missing permission (not a lock) |
+| 2026-08-16 | ROM validation vs harvested known-stock 3B12504206 | **byte-identical (sha256 `11fe1536…`)** | independent-source match ⇒ read complete AND ECU genuinely un-tuned |
+| 2026-08-16 | Stock tables extracted via romread (sibling-reconciled) | injector flow **503.9 cc/min** (agree); MAF/timing/AFR/idle indicative | idle target 700 rpm confirms real-log 709; A2WC411D has no own def — read via 410D/412D |
+| 2026-08-16 | Three-hold idle capture — leak test | **NO leak** (airflow ×2.1 warm→fast, trim −0.86→−5.12%) | a leak makes +trim shrink as airflow rises; observed the opposite |
+| 2026-08-16 | Three-hold idle capture — fuelling/knock | **trims ±5%, wideband on 14.7, 0 knock** all holds | idle fuelling already correct; not a fuel/leak fault |
+| 2026-08-16 | First validated MAF baseline (`MEASURED_MAF_BASELINE_20260816`) | 3.08 g/s @709, 6.55 @1637; **±12% cross-session variance** recorded | vs 3.49 @709 on 08-11 — atmospheric; validates D20's refusal to hard-code |
 | 2026-08-12 | First real log: parser on live-car export | **13/13 canonical roles mapped** | real RomRaider v370 headers, unmodified parser; first non-synthetic data in the project |
 | 2026-08-12 | SSM2 sample rate, 21 params (measured) | **14.49 Hz** (model predicted 4.7) | continuous-read mode; model was 3x pessimistic, replaced by measurement |
 | 2026-08-12 | Steady-state quality vs GridSpec | **0.00% of samples transient** | \|d rpm\| mean 8.7/max 79 vs tol 100; \|d tps\| max 0.39 vs tol 2.0 |

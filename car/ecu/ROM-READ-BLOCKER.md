@@ -1,6 +1,28 @@
 # ROM read blocked at seed/key — technical statement
 
-**Status: OPEN. Not on the critical path** — see "Why this is parked" below. Written to be posted
+> ## ✅ RESOLVED 2026-08-16 — SUPERSEDED. The ECU was NOT locked. Read succeeded.
+>
+> The whole conclusion below (H1: "married/EcuTek-locked ECU, software read path effectively
+> exhausted") **was wrong.** The stock ROM was read on 2026-08-16 and is **byte-identical to a
+> harvested known-stock reference** (sha256 `11fe1536…`), so the ECU is genuinely un-tuned and was
+> never locked. Full story + validation: **`car/ecu/rom read/PROVENANCE.md`** (commit `f27aad8`).
+>
+> **What actually fixed it:** joining the Subaru **green test-mode connectors** (two single-pin
+> greens under the driver column) enabled read/write mode. This document's line 63 —
+> *"Green test-mode connectors | Not applicable to a 2005 DBW car"* — **was the exact error.** That
+> elimination was reasoning, never a test; the real fix came from corpus doc 5793 (an 05 Forester
+> that read only with the test connector), surfaced by the 2026-08-16 community-doc review.
+> Note: this doc is about **EcuFlash** failing at *seed/key*; the successful read was **FastECU**
+> (its seed/key was solved separately) failing at *RequestDownload* until the connectors were
+> joined. EcuFlash was never retried with the connectors; whether they also fix its key step is
+> untested and now moot.
+>
+> **The body below is kept verbatim as the honest failure history** (and a lesson: an elimination
+> by argument is not an elimination by experiment). Do not act on its conclusions.
+
+---
+
+**Status: RESOLVED (see banner). Historical below.** Written to be posted
 verbatim to the RomRaider forum, and to stop the next agent re-testing what is already eliminated.
 
 ## Vehicle and hardware
