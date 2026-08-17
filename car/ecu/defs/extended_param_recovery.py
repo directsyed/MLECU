@@ -46,10 +46,20 @@ LOGGER_XML = (REPO / "ml" / "data-pipeline" / "data" / "raw" / "SubaruDefs"
 OUT_DIR = Path(__file__).resolve().parent
 
 
+def _ecu_ids(ecu: ET.Element) -> list[str]:
+    """The ECU ids this <ecu> element covers.
+
+    Two formats in the wild: the 2009 def gives one id per element; the v370 (2021) def GROUPS ids
+    that share an address into a comma-separated list (`id="1358171FFF,3B12504106,3B12504306,..."`).
+    Handling both is what lets the same reconciliation read either file.
+    """
+    return [s.strip() for s in (ecu.get("id") or "").split(",") if s.strip()]
+
+
 def _addr_for(ecuparam: ET.Element, ecu_id: str) -> tuple[str, str] | None:
     """(address, length) this ecuparam declares for ecu_id, or None."""
     for ecu in ecuparam.findall("ecu"):
-        if ecu.get("id") == ecu_id:
+        if ecu_id in _ecu_ids(ecu):
             a = ecu.find("address")
             if a is not None and (a.text or "").strip():
                 return a.text.strip(), (a.get("length") or "1")

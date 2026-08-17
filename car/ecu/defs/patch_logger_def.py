@@ -34,15 +34,22 @@ def _load_recovered(report: Path) -> dict[str, dict]:
     return {r["name"]: r for r in recs}
 
 
-def patch(logger_path: Path, out_path: Path, report_path: Path) -> dict:
+def patch(logger_path: Path, out_path: Path, report_path: Path,
+          create_nodes: bool = False) -> dict:
+    """Add TARGET to every ecuparam whose recovered address matches an existing <ecu> group.
+
+    Two def formats are supported:
+      * GROUPED (v370/2021): `<ecu id="A,B,C"><address>0xFF5C18</address></ecu>` — we APPEND our id
+        to the group that already carries our recovered address. Minimal, surgical diff: no new XML
+        nodes, and our ECU provably lands on the same address as the siblings in that group.
+      * ONE-ID-PER-ELEMENT (0.3.5b/2009): no group matches, so we insert a new <ecu> element.
+    """
     recovered = _load_recovered(report_path)
     xml = logger_path.read_text(encoding="utf-8")
 
-    # Work on the raw text so we preserve the file byte-for-byte except the inserted lines.
-    # For each ecuparam, if its name is recovered and it lacks our ECU, insert our <ecu> right
-    # after the opening <ecuparam ...> tag.
-    added, already, not_found = [], [], list(recovered.keys())
-    # iterate ecuparam blocks
+    added_group, added_node, already, not_found = [], [], [], list(recovered.keys())
+    skipped_no_group: list[str] = []
+
     def repl(m: re.Match) -> str:
         block = m.group(0)
         name_m = re.search(r'<ecuparam\b[^>]*\bname="([^"]*)"', block)
@@ -53,21 +60,52 @@ def patch(logger_path: Path, out_path: Path, report_path: Path) -> dict:
             return block
         if name in not_found:
             not_found.remove(name)
-        if f'id="{TARGET}"' in block:
+        if re.search(rf'\bid="[^"]*\b{TARGET}\b[^"]*"', block):
             already.append(name)
             return block
         r = recovered[name]
+        addr = r["address"].lower()
+
+        # 1) preferred: append our id to the <ecu> group that already declares this address
+        def group_repl(em: re.Match) -> str:
+            ids, body = em.group(1), em.group(2)
+            am = re.search(r'<address\b[^>]*>([^<]+)</address>', body)
+            if not am or am.group(1).strip().lower() != addr:
+                return em.group(0)
+            if TARGET in ids:
+                return em.group(0)
+            return em.group(0).replace(f'id="{ids}"', f'id="{ids},{TARGET}"', 1)
+
+        patched_block, n = re.subn(r'<ecu id="([^"]*)">(.*?)</ecu>', group_repl, block,
+                                   flags=re.DOTALL)
+        if patched_block != block:
+            added_group.append(name)
+            return patched_block
+
+        # 2) fallback: insert a standalone <ecu> element after the opening tag.
+        # ONLY when this ecuparam has no group carrying our address at all. Guarded because
+        # duplicate-NAME ecuparams exist across protocol sections (e.g. "CL/OL Fueling*" is both
+        # E3 and E33): the sibling group in the OTHER block was already patched, and adding a
+        # second, node-style entry here risks a conflicting definition. Emitting a node also has
+        # to preserve v370's convention of omitting length for 1-byte params — writing
+        # length="None" (an earlier bug, caught in validation) is malformed.
+        if not create_nodes:
+            skipped_no_group.append(name)
+            return block
+        length_attr = "" if str(r["length"]) in ("1", "None", "") else f' length="{r["length"]}"'
         open_tag_end = block.index(">") + 1
-        indent = "\n                    "   # match the file's <ecu> indentation
+        indent = "\n                    "
         ins = (f'{indent}<ecu id="{TARGET}">'
-               f'{indent}    <address length="{r["length"]}">{r["address"]}</address>'
+               f'{indent}    <address{length_attr}>{r["address"]}</address>'
                f'{indent}</ecu>')
-        added.append(name)
+        added_node.append(name)
         return block[:open_tag_end] + ins + block[open_tag_end:]
 
     patched = re.sub(r'<ecuparam\b.*?</ecuparam>', repl, xml, flags=re.DOTALL)
     out_path.write_text(patched, encoding="utf-8")
-    return {"added": added, "already_present": already, "recovered_not_in_def": not_found,
+    return {"added_to_group": added_group, "added_as_node": added_node,
+            "added": added_group + added_node, "already_present": already,
+            "recovered_not_in_def": not_found, "skipped_no_group": skipped_no_group,
             "out": str(out_path)}
 
 
@@ -76,12 +114,20 @@ def main() -> int:
     ap.add_argument("--logger", required=True, help="your RomRaider logger def XML (input; untouched)")
     ap.add_argument("--out", required=True, help="patched copy to write")
     ap.add_argument("--report", default=str(HERE / "recovered-3B12504206.report.json"))
+    ap.add_argument("--create-nodes", action="store_true",
+                    help="also emit standalone <ecu> elements where no address group matches "
+                         "(default OFF: group-append only — safest, no duplicate definitions)")
     args = ap.parse_args()
-    res = patch(Path(args.logger), Path(args.out), Path(args.report))
+    res = patch(Path(args.logger), Path(args.out), Path(args.report), args.create_nodes)
     print(f"patched -> {res['out']}")
-    print(f"  added {TARGET} to {len(res['added'])} ecuparams")
+    print(f"  added {TARGET} to {len(res['added'])} ecuparams "
+          f"({len(res['added_to_group'])} appended to an existing address group, "
+          f"{len(res['added_as_node'])} as new elements)")
     if res["already_present"]:
         print(f"  already had {TARGET}: {len(res['already_present'])} (left as-is)")
+    if res.get("skipped_no_group"):
+        print(f"  skipped (no matching address group; duplicate-name block already patched "
+              f"elsewhere): {len(res['skipped_no_group'])}")
     if res["recovered_not_in_def"]:
         print(f"  {len(res['recovered_not_in_def'])} recovered params NOT found in this def "
               f"(name mismatch / older def): {res['recovered_not_in_def'][:6]}"
