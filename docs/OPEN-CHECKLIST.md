@@ -1,23 +1,30 @@
 # MLECU — open checklist
 
-Live tracker of every open thread, both halves of the project. Updated 2026-08-16 (post-ROM-read).
-Ordered by **what blocks the car**, because that is the actual objective.
+Live tracker of every open thread, both halves of the project. Updated 2026-08-17 (extended-param
+def installed). Ordered by **what blocks the car**, because that is the actual objective.
 
 ---
 
 
 ## ⏭ SYED'S NEXT ACTIONS
 
-**Physical (car), per the post-ROM-read plan (`~/.claude/plans/read-the-newest-checklist-bright-sunbeam.md`):**
-- **Cold-idle log** — the warm idle already meets the Stage-2 gate; capture a cold start + warm-up
-  on the same profile to close the "warm AND cold" requirement.
-- **Extended-param validation log** — after Claude builds the sibling-reconciled logger def
-  (Track 3), log the recovered params at idle + a light rev + brief load so each can be validated
-  (IAM ≈1.00, CL/OL flips, injector PW ≈ P21, Feedback Knock ~0).
-- **Driving log** (your call, before the smoke test; **no boost** — vacuum only, watch the wideband):
-  cruise ~1500–3500 rpm, light-to-moderate load, cover many load/rpm cells, 15–30 min. Raw material
-  for the VE/timing build. Ground-loop remedy applies.
-- Disconnect the green connectors for normal driving; off-machine ROM copy (3rd location).
+**Physical (car) — the two logs that unblock everything downstream:**
+1. **Extended-param VALIDATION log** (short; the def is built AND installed in RomRaider as of
+   2026-08-17). Select the new extended params + `P21 Injector PW` + `P7 MAP` + the usual idle set,
+   then one continuous file, engine warm: ~30 s idle → a few blips to ~2500 in neutral → ~1 min
+   gentle vacuum driving. Claude then validates each channel per the gate in
+   `car/ecu/defs/EXTENDED-PARAMS-RECOVERY.md` (IAM ≈1.00, CL/OL flips, injector PW ≈ P21,
+   Feedback Knock ~0, Engine Load tracks P200). Channels that fail are DROPPED.
+2. **Driving log** (`car/logging/DRIVING-CAPTURE-PROTOCOL.md`): **no boost — vacuum only, P7 MAP
+   below ~100 kPa** (that IS your boost gauge; no physical gauge needed), cruise ~1500–3500 rpm,
+   light-to-moderate load, many load/rpm cells, 15–30 min, one file. Watch the wideband; lean on
+   rising load or any knock retard ⇒ lift. Raw material for the VE/timing build (D19).
+   Can be merged with #1 into one session if channel count allows; validation log first regardless.
+- **Cold-idle verification** — Syed reports one of the older committed logs
+  (`car/logging/romraiderlog_202608*.csv`) is a genuine cold start (visible via ECT ramp). Claude:
+  verify and, if genuinely cold-stable, close the Stage-2 "warm AND cold" gate. Not yet verified.
+- Disconnect the green connectors for normal driving; off-machine ROM copy (3rd location);
+  optional 2nd confirming read for byte-stability.
 
 **Desk decisions (from the overnight run — nothing moves until you say):**
 1. **Sign off / edit the 74 keeps** in `ml/curation/docs/community-3s-review-2026-08-16.md` (parts 1+2,
@@ -48,54 +55,45 @@ History: `car/ecu/ROM-READ-BLOCKER.md` (RESOLVED banner) — its "green connecto
 2005 DBW" elimination was the exact error; corpus doc 5793 (2026-08-16 review) had the fix.
 Remaining: off-machine ROM copy (3rd location); optional 2nd confirming read for byte-stability.
 
-### A2. Data capture — UNBLOCKED, do in parallel
-- [ ] **Stage 0 smoke/leak test** — non-negotiable, precedes all logging. Do we have a smoke tester?
+### A2. Data capture — three-hold DONE; remaining physical items
+- [x] **Three-hold capture DONE 2026-08-16** (`car/logging/warm|fast|loaded idle.csv`): warm idle
+      **healthy** — trims −0.86 %, no leak signature, no knock. The layer's own verdict via
+      `--diagnose`: no confident fault (maf_high vs injector_flow degenerate, honestly refused).
+- [x] **MAF baseline MEASURED 2026-08-16**: `MEASURED_MAF_BASELINE_20260816` (708.65 rpm → 3.08 g/s,
+      1637.14 → 6.55; ~12 % cross-session variance in provenance). D20 refusal flips to *use* for
+      real captures; the sim seed stays `validated=False`.
+- [x] **Extended-param logger def built, validated, and INSTALLED in RomRaider (2026-08-17)** —
+      57 params for `3B12504206` by sibling reconciliation, cross-corroborated byte-identical
+      across two def versions (2009 + v370/2021). `car/ecu/defs/romraider defs/
+      logger_STD_EN_v370_3B12504206.xml`. **Channels UNVALIDATED until the live log** (see ⏭).
+- [ ] **Stage 0 smoke/leak test — RESEQUENCED by Syed (2026-08-16): after vacuum VE work, before
+      ANY boost tuning.** A vacuum-side leak is a trim offset; a boost leak is the lean-detonation
+      path. The boost line is absolute (`DRIVING-CAPTURE-PROTOCOL.md`).
 - [ ] Read stored DTCs. TGV / catless / exhaust-AVCS deletes should all set codes; their presence
       argues the ROM is unmodified, their absence argues someone suppressed monitors.
-- [ ] **Rebuild the DB9 shell** against the molded pin numbers. Dupont jumpers are fine for a
-      stationary test, not for a real capture. (Original crimp landed on the wrong pin.)
-- [ ] Run the **three-hold capture** (`car/logging/CAPTURE-PROTOCOL.md`) — warm idle / fast idle /
-      loaded idle. Channels per `car/logging/IDLE-LOG-PROFILE.md`.
-- [ ] **Measure the MAF baseline on THIS engine** and populate `mvem.MafBaseline.from_capture()`.
-      2026-08-16: the sim seed is now `SIM_MAF_BASELINE` (`validated=False`) and the estimator
-      REFUSES MAF verdicts against it (D20) — so this is no longer "provisional", it is "withheld".
+- [ ] **Rebuild the DB9 shell** against the molded pin numbers. Dupont jumpers held for the
+      stationary three-hold; a *driving* capture shakes connectors — do this before/with the
+      driving log if feasible.
 - [ ] Ground-loop remedy stays in force: DB9 **pin 5 omitted**, signal wire only.
 
 ---
 
-## A3. ⚠ MVEM IS MIS-CALIBRATED FOR THIS ENGINE — validated 2026-08-15
+## A3. MVEM re-grounded 2026-08-16 (was: mis-calibrated) — history + residual limits
 
-**The deterministic layer would misdiagnose this healthy car.** Measured against the first real
-warm-idle log:
+The 2026-08-15 finding stands as history: the sim constant (2.50 g/s @ 850) was +40 % off this
+TGV-deleted engine and would have invented a MAF fault on a healthy car. **Resolved by measurement,
+not assumption:** D20 guard built (refuse MAF verdicts on unvalidated baseline), then the three-hold
+capture measured the real baseline (A2 above) and the idle operating point was re-grounded
+(target 700 rpm, measured airflow). The layer now diagnoses the real holds honestly.
 
-| | value |
-|---|---|
-| `NOMINAL_MAF_IDLE` (sim constant) | **2.50 g/s** @ 850 rpm |
-| real car, warm idle | **3.493 g/s** @ **709 rpm** |
-| error | **+40%** (and worse normalised — *lower* rpm should mean *less* air) |
-
-Feeding the real log to `identify.maf_belief_ratio()` returns **1.397** — a confident
-**"MAF believed +39.7% off"** verdict, on a car whose total fuel trim is **+0.31%**, i.e. fuelling
-is essentially correct. That term is the *only* thing separating a MAF fault from an injector-flow
-fault, so today the layer is primed to invent a MAF fault on a healthy engine.
-
-Cause is almost certainly the **TGV deletes** (plus exhaust-AVCS delete) raising idle airflow —
-exactly what `CAPTURE-PROTOCOL.md` predicted when it flagged 2.50 as a sim value that "must be
-established empirically on this engine."
-
-- [x] **Do NOT simply hardcode 3.49** — nothing does (D20, commit `58c8ec2`).
-- [x] rpm-indexed baseline exists: `mvem.MafBaseline` (points, `validated`, `provenance`; `.at(rpm)`);
-      the sim seed is marked UNVALIDATED. Populate via `MafBaseline.from_capture()` after Stage 0 +
-      the three holds. **The value is still unmeasured** — that is the open item, above in A2.
-- [x] Until then the layer **refuses** MAF verdicts on unvalidated data (`identify()` returns
-      `identifiable=False` with the ratio + trims-only ranking; `clamp_diagnosis_agreement` blocks
-      writes). Bluntness note for Syed: any ratio outside 0.999–1.001 refuses — widen if desired.
-
-### ⚠ What this means for every benchmark number
-All of E1/E2/E4 are **sim-bound** — E4's own status string says
-`"sim-calibrated-pending (MVEM not yet validated against the real engine)"`. We now have the first
-evidence the sim's healthy baseline is 40% off for this car. **Chasing eval scores has unproven
-transfer until MVEM is re-grounded.** The real-car data is what makes the numbers mean anything.
+**Residual limits (open, honest):**
+- [ ] MVEM *fault dynamics* (leak/latency response curves) are still model-bound, not measured —
+      `e4.py`'s status string says exactly this. Only the healthy idle point is real-grounded.
+- [ ] ~12 % cross-session MAF variance between the 08-13 log and the 08-16 holds — inside noise for
+      idle-fuel work, but it is why `--diagnose` refuses to call maf_high vs injector_flow apart
+      without an independent baseline. More captures tighten it.
+- E1/E2/E4 remain **sim-bound** for fault cases; re-running them buys comparability, not truth.
+      Real-data progress outranks re-scoring sims (workflow directive, 2026-08-16).
 
 ## B. ML / EVAL
 
@@ -231,19 +229,31 @@ another's confidence.
 
 ---
 
-## D. TONIGHT — runnable with Syed asleep (no human input needed)
-- [x] **3.6 doc-collapse re-check — DONE 2026-08-16: collapsed worse (3 constant docs, 100% coverage,
-      same as 3.8).** See B2.
-- [x] **Judge calibration of 3.8** — running 2026-08-16 (in-memory via `judge.recalibrate`, no DB
-      mutation; the "skips judged docs" blocker never applied to this path). Results in the
-      2026-08-17 morning report.
-- [ ] **File the FastECU upstream bug report** — Syed chose to skip it on 2026-08-16; still ready.
+## D. CLAUDE'S NEXT BUILDS (gated on Syed's two logs)
+- [ ] **Validate the extended-param channels** against Syed's validation log (the gate table in
+      `EXTENDED-PARAMS-RECOVERY.md`); add ONLY the passing ones as canonical roles in
+      `car/ecutune/logparse/schema.py` (`feedback_knock`, `target_afr`, `iam`, `target_boost`,
+      `manifold_pressure`, …).
+- [ ] **VE + timing proposers (D19)** from the driving log: per-cell `VE_correction =
+      measured_AFR / target_AFR` (target from the validated `CL/OL Fueling Target` channel, else
+      the ROM's `fuel.target_afr_primary` map); timing retreat-only on `Feedback Knock`. Plug into
+      `STAGE_REGISTRY` behind the existing clamps (`ve_rate_limit ±3 %`, `knock_auto_abort`,
+      `timing_row_ceiling`).
+- [ ] **`romwrite`** (ROADMAP Phase E; nothing exists): inverse encoder, byte patcher on a copy,
+      SH7058 checksum recompute, byte-diff whitelist · read-back · bounds · human CHANGE REPORT —
+      all behind `safety/` so the `test_write_path.py` source-scan invariant holds.
+- [ ] Then the **first FastECU write** (a milestone of its own; write path UNPROVEN — only read is)
+      → re-log → post-flash verify → the first closed iteration → **E3 becomes runnable** (bars
+      pre-registered in DB meta before any arm runs).
+- [ ] (Parked, Syed skipped:) file the FastECU upstream bug report — still ready if wanted.
 
 ## E. NEEDS SYED PHYSICALLY (car)
-- [ ] **The 5-value SID 0x34 sweep** — everything is built and verified; see handoff §1 for the
-      exact commands. Control run first (unset ⇒ must still fail `7F 34 10`).
-- [ ] Stage 0 smoke/leak test · DTC re-read after a drive cycle · DB9 shell rebuild ·
-      the three-hold capture.
+- [x] ~~SID 0x34 sweep~~ — OBSOLETE: the ROM read succeeded 2026-08-16 (green test-mode
+      connectors); the sweep was diagnostic scaffolding for a solved problem.
+- [ ] **Extended-param validation log** then **the vacuum driving log** — see ⏭ at top; these are
+      the two that unblock D19.
+- [ ] DTC re-read after a drive cycle · DB9 shell rebuild · Stage 0 smoke test (resequenced:
+      before boost, after vacuum VE) · off-machine ROM copy.
 
 ## F. NEEDS SYED'S DECISION (do not decide unilaterally)
 - [ ] **Does 3.8 displace 3.6?** E4 says yes (15/15 vs 13/15); E1v2 says no (7 dangerous vs 0).
