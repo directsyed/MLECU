@@ -45,7 +45,11 @@ def patch(logger_path: Path, out_path: Path, report_path: Path,
       * ONE-ID-PER-ELEMENT (0.3.5b/2009): no group matches, so we insert a new <ecu> element.
     """
     recovered = _load_recovered(report_path)
-    xml = logger_path.read_text(encoding="utf-8")
+    # newline="" preserves the file's existing CRLF/LF exactly. Path.read_text/write_text
+    # do universal-newline translation, which silently rewrote all 40,404 lines of the
+    # v370 def from CRLF to LF when this ran on Linux (caught 2026-08-18).
+    with open(logger_path, encoding="utf-8", newline="") as fh:
+        xml = fh.read()
 
     added_group, added_node, already, not_found = [], [], [], list(recovered.keys())
     skipped_no_group: list[str] = []
@@ -102,7 +106,8 @@ def patch(logger_path: Path, out_path: Path, report_path: Path,
         return block[:open_tag_end] + ins + block[open_tag_end:]
 
     patched = re.sub(r'<ecuparam\b.*?</ecuparam>', repl, xml, flags=re.DOTALL)
-    out_path.write_text(patched, encoding="utf-8")
+    with open(out_path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(patched)
     return {"added_to_group": added_group, "added_as_node": added_node,
             "added": added_group + added_node, "already_present": already,
             "recovered_not_in_def": not_found, "skipped_no_group": skipped_no_group,
