@@ -1086,3 +1086,48 @@ D20: the unvalidated-baseline refusal band is superseded for real captures by
 proposer); **Syed approves**; **Claude builds the pipeline and is a verification set of eyes, never
 the runtime tuner.** Hand-analysis of logs is permitted only as build-phase verification of the
 builder (the bridge's acceptance test), never as the product.
+
+## 2026-08-26 — Boost sequencing corrected (Syed); and WHY the car is unsafe under boost right now
+
+### D21 — The "no boost before the smoke test" rule was circular. Syed's sequencing stands.
+
+**Corrected by Syed, 2026-08-26.** The recorded rule (`DRIVING-CAPTURE-PROTOCOL.md`: *"Boost/WOT
+tuning waits for the smoke test. No exceptions."*, checklist A2) is **physically impossible as
+written**: the smoke test happens at Syed's shop, reaching the shop requires highway driving, and
+highway driving is boost driving. The rule required boost to be tuned before it could be tuned.
+
+**Ratified ordering:** a **general base tune first — enough to drive safely, including boost** —
+then the smoke test. This was Syed's intent on 2026-08-16 (`DRIVING-CAPTURE-PROTOCOL.md` line 24
+already recorded *"tune enough to drive well, defer the smoke test"*); the absolute no-boost line
+elsewhere in the same document contradicted it and is now withdrawn. Do not re-litigate.
+
+Retained: a leak still poisons VE conclusions, so the smoke test remains a prerequisite for
+**trusting** boost-region VE numbers as final — it is no longer a gate on **collecting** them or on
+shipping a conservative safety tune.
+
+### The finding that makes this urgent (drives 2–3, 2026-08-26)
+
+The car **stays in CLOSED LOOP under boost, targeting ~14.55 AFR, while knocking.**
+
+| | drive 2 | drive 3 |
+|---|---|---|
+| boost samples | 83 (max +1.31 psi) | 211 (max +2.18 psi) |
+| CL/OL status under boost | `8` (closed loop) — all | `8` (closed loop) — all |
+| commanded target | 14.53–14.57 AFR | 14.53–14.56 AFR |
+| measured AFR | 15.45 mean | 14.51 mean |
+| knocking while in boost | 57 of 83 samples | **211 of 211 samples** |
+| worst retard | −8.22° | −12.00° |
+
+A healthy Subaru leaves closed loop under boost and commands ~11.0–12.5 AFR. This one holds stoich
+and pulls up to 12° of timing to survive it.
+
+**Mechanism — one root cause explains everything observed:** open-loop transition is triggered by a
+**load** threshold. Load is derived from airflow, and we measured the VE error directly — the ECU
+needs **+34 % fuel correction at 0.7–0.8 g/rev** (`car/logging/drive/ANALYSIS-2026-08-26-vacuum-drives.md`).
+It is therefore **under-reporting load**, never crosses the OL threshold, stays in closed loop, runs
+stoich into boost, knocks, and has learned `IAM = 0.500`. The 2.0 L-on-a-2.5 L-calibration VE error
+has **defeated the ECU's own boost-enrichment safety mechanism.**
+
+**Consequence for the tune order:** correcting VE is not cosmetic — it re-arms stock protection. The
+severity scales with boost, so sustained highway boost is materially worse than the +2 psi seen so
+far. The cruise-region VE correction is therefore the first flash, and it is a safety fix.

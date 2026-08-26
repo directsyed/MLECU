@@ -30,7 +30,9 @@ Syed's sequencing (2026-08-16): tune enough to drive well, defer the smoke test.
 - Watch `wideband_afr` continuously. If AFR trends lean as load rises, or ANY knock retard /
   `Feedback Knock` appears, **lift** — that is itself the boost-leak / VE-lean signature, seen before
   it costs a piston. Note it and stop.
-- Boost/WOT tuning waits for the smoke test (`CAPTURE-PROTOCOL.md` Stage 0). No exceptions.
+- Boost/WOT tuning **no longer waits** for the smoke test — that rule was circular (the shop is a
+  highway drive away). See decisions.md D21 (2026-08-26). A base tune covering boost comes FIRST;
+  the smoke test then validates it. A leak still invalidates *final* boost VE numbers.
 
 ## Channels to log
 
