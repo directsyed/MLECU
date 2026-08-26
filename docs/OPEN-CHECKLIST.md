@@ -21,7 +21,7 @@ def installed). Ordered by **what blocks the car**, because that is the actual o
    rising load or any knock retard ⇒ lift. Raw material for the VE/timing build (D19).
    Can be merged with #1 into one session if channel count allows; validation log first regardless.
 - **Cold-idle verification** — Syed reports one of the older committed logs
-  (`car/logging/romraiderlog_202608*.csv`) is a genuine cold start (visible via ECT ramp). Claude:
+  (`car/logging/idle/`) is a genuine cold start (visible via ECT ramp). Claude:
   verify and, if genuinely cold-stable, close the Stage-2 "warm AND cold" gate. Not yet verified.
 - Disconnect the green connectors for normal driving; off-machine ROM copy (3rd location);
   optional 2nd confirming read for byte-stability.
@@ -56,7 +56,7 @@ History: `car/ecu/ROM-READ-BLOCKER.md` (RESOLVED banner) — its "green connecto
 Remaining: off-machine ROM copy (3rd location); optional 2nd confirming read for byte-stability.
 
 ### A2. Data capture — three-hold DONE; remaining physical items
-- [x] **Three-hold capture DONE 2026-08-16** (`car/logging/warm|fast|loaded idle.csv`): warm idle
+- [x] **Three-hold capture DONE 2026-08-16** (`car/logging/idle/idle-20260816-0{1,2,3}-*.csv`): warm idle
       **healthy** — trims −0.86 %, no leak signature, no knock. The layer's own verdict via
       `--diagnose`: no confident fault (maf_high vs injector_flow degenerate, honestly refused).
 - [x] **MAF baseline MEASURED 2026-08-16**: `MEASURED_MAF_BASELINE_20260816` (708.65 rpm → 3.08 g/s,

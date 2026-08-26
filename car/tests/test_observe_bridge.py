@@ -19,7 +19,9 @@ from ecutune.simulation.mvem import (MEASURED_MAF_BASELINE_20260816 as BASE, Eng
                                      MafBaseline)
 from ecutune.simulation.rom_seed import fxt_rom_into_ej20x
 
-HOLDS = ["logging/warm idle.csv", "logging/fast idle.csv", "logging/loaded idle.csv"]
+HOLDS = ["logging/idle/idle-20260816-01-warm.csv",
+         "logging/idle/idle-20260816-02-fast.csv",
+         "logging/idle/idle-20260816-03-loaded.csv"]
 
 
 # ------------------------------------------------------------- the bridge transforms correctly

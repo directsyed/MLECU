@@ -6,7 +6,7 @@ One-file patch against [FastECU](https://github.com/miikasyvanen/FastECU) that m
 ## Why
 
 On the 2005 Forester XT (ECU `3B12504206`, SH7058, K-Line) the byte-level capture in
-`car/logging/j2534_shim.log` shows the ECU **completes SecurityAccess and grants a programming
+`car/logging/diagnostics/j2534_shim.log` shows the ECU **completes SecurityAccess and grants a programming
 session**, then rejects `RequestDownload`:
 
 ```

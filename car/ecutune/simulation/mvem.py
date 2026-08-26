@@ -129,8 +129,8 @@ NOMINAL_MAF_IDLE = SIM_MAF_BASELINE.at(IDLE_RPM)      # == 2.50 g/s
 # First real, validated MAF baseline for THIS engine. Two same-voltage steady holds where the
 # closed-loop fuel trim was ~0 and the wideband tracked the 14.7 target — i.e. the airflow the
 # ECU reports when it is fuelling correctly. `validated=True`: measured, not seeded.
-#   warm idle  709 rpm -> 3.08 g/s (trim -0.86%, wb 14.74)   \  logs: car/logging/warm idle.csv
-#   fast idle 1637 rpm -> 6.55 g/s (trim -5.12%, wb 14.55)   /         car/logging/fast idle.csv
+#   warm idle  709 rpm -> 3.08 g/s (trim -0.86%, wb 14.74)   \  logs: car/logging/idle/idle-20260816-01-warm.csv
+#   fast idle 1637 rpm -> 6.55 g/s (trim -5.12%, wb 14.55)   /         car/logging/idle/idle-20260816-02-fast.csv
 # CAUTION carried in the provenance: the warm-idle point read 3.49 g/s on 2026-08-11 vs 3.08 here
 # — a ~12% cross-session swing (atmospheric/warm-up; the MAF's low-voltage end wanders day to day,
 # cf. reviewed forum doc 6224). So this is a baseline with real variance, not an exact constant;

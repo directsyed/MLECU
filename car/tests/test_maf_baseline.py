@@ -21,7 +21,7 @@ from ecutune.simulation.mvem import (FAST_AIR_SCALE, FAST_IDLE_RPM, IDLE_RPM, LO
                                      NOMINAL_MAF_IDLE, SIM_MAF_BASELINE, EngineParams,
                                      MafBaseline, OperatingPoint, steady_trim)
 
-# What the real car measured on 2026-08-11 (romraiderlog_20260811_213908.csv, warm idle):
+# What the real car measured on 2026-08-11 (logging/idle/idle-20260811-warm-hold.csv):
 # 3.493 g/s at 709 rpm, total trim +0.31%. Used here as a MEASUREMENT to feed the estimator,
 # never as a baseline.
 REAL_MAF_GS = 3.493
