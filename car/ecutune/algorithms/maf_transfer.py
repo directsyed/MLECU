@@ -63,7 +63,7 @@ def grid_spec_for(table: Table, min_samples: int = 20) -> GridSpec:
     if vals.size == 0:
         raise ValueError("MAF transfer table is empty")
     return GridSpec(x_role="maf_gs", x_breaks=tuple(float(v) for v in vals),
-                    y_breaks=(0.0,), min_samples=min_samples)
+                    y_breaks=(0.0,), min_samples=min_samples, require_closed_loop=True)
 
 
 def _measured_correction(grid: BinnedGrid) -> tuple[np.ndarray, np.ndarray]:

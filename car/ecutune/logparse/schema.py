@@ -15,8 +15,14 @@ import re
 CANONICAL_ROLES = (
     "rpm", "maf_gs", "load", "wideband_afr", "af_correction", "af_learning",
     "knock_retard", "fine_knock_learn", "timing_total", "injector_duty",
-    "iat", "coolant", "tps", "battery_v",
+    "iat", "coolant", "tps", "battery_v", "fuel_system_status", "target_afr",
 )
+
+# SSM2 fuel-system status codes (def E33: "[8 = CL (normal)][10 = OL (normal)]
+# [7 = OL insufficient ECT][14 = OL due to system failure]"). Only CL_NORMAL carries a
+# meaningful fuel trim -- in open loop A/F Correction is FROZEN (measured sd 0.04 vs 9.75
+# in closed loop), so open-loop samples silently drag a binned trim toward zero.
+CL_NORMAL = 8.0
 
 # Headers that must NEVER map to a role, checked BEFORE _RULES.
 #
@@ -43,8 +49,16 @@ _IGNORE: tuple[re.Pattern, ...] = (
 _RULES: list[tuple[re.Pattern, str]] = [
     # RomRaider's real name is "Fine Learning Knock Correction" (P91), so the words are NOT
     # adjacent; the optional middle group is what makes the real export map correctly.
+    # Matches "CL/OL Fueling*" and nothing else. Deliberately NOT r"closed\s*loop":
+    # that would also swallow "Closed Loop Fueling Target", a different channel.
+    (re.compile(r"\bcl\s*/\s*ol\b", re.I), "fuel_system_status"),
     (re.compile(r"fine\s*(learn\w*\s*)?knock", re.I), "fine_knock_learn"),
     (re.compile(r"knock", re.I), "knock_retard"),
+    # MUST precede the wideband rule: "Closed Loop Fueling Target (2-byte)* (lambda)"
+    # carries "lambda" in its units and was silently landing on wideband_afr, i.e. the
+    # ECU's TARGET overwriting the MEASURED AFR. It only escaped notice because the AEM
+    # happened to sit in an earlier column and first-column-wins saved us. Found 2026-08-27.
+    (re.compile(r"fuel\w*\s*target", re.I), "target_afr"),
     (re.compile(r"wideband|uego|\baem\b|\bwb\b|lambda", re.I), "wideband_afr"),
     (re.compile(r"a/?f\s*learn", re.I), "af_learning"),
     (re.compile(r"a/?f\s*correction|a/?f\s*corr", re.I), "af_correction"),

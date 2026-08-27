@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from . import schema
 from .romraider_csv import LogTable
 
 
@@ -30,6 +31,11 @@ class GridSpec:
     require_steady: bool = True
     steady_rpm_tol: float = 100.0     # |d rpm/sample| above this => transient, dropped
     steady_tps_tol: float = 2.0       # |d tps/sample| above this => transient, dropped
+    # Open-loop samples carry a FROZEN A/F Correction (measured sd 0.04 vs 9.75 in closed
+    # loop), so pooling them drags a binned trim toward zero. Default False for back-compat
+    # with the sim harness, which has no fuel_system_status channel; the real-log stages set
+    # it True. Inert when the channel is absent -- we never silently discard a whole log.
+    require_closed_loop: bool = False
 
 
 @dataclass
@@ -58,6 +64,10 @@ def _steady_mask(log: LogTable, spec: GridSpec) -> np.ndarray:
         mask &= np.abs(np.gradient(rpm)) <= spec.steady_rpm_tol
     if tps is not None:
         mask &= np.abs(np.gradient(tps)) <= spec.steady_tps_tol
+    if spec.require_closed_loop:
+        status = log.get("fuel_system_status")
+        if status is not None:
+            mask &= status == schema.CL_NORMAL
     return mask
 
 
