@@ -29,6 +29,11 @@ class Scaling:
     storagetype: str = "uint8"
     endian: str = "big"
     toexpr: str = "x"
+    # ECUFlash ships the INVERSE alongside every numeric scaling. Parsing it (2026-08-27) is what
+    # makes a byte-exact write path possible without numerically inverting an arbitrary expression:
+    # 122 of the base def's scalings carry both, and every frexpr passes the same `_EXPR_OK`
+    # charset allowlist reader._apply enforces, so _apply can evaluate it verbatim.
+    frexpr: str = "x"
     units: str = ""
     vmin: float | None = None       # def-declared plausible range (used to vet reads)
     vmax: float | None = None
@@ -119,6 +124,7 @@ class EcuFlashDefs:
                         return None
                 s = Scaling(name=sc.get("name", ""), storagetype=sc.get("storagetype", "uint8"),
                             endian=sc.get("endian", "big"), toexpr=sc.get("toexpr", "x"),
+                            frexpr=sc.get("frexpr", "x"),
                             units=sc.get("units", ""), vmin=_f("min"), vmax=_f("max"))
                 scalings[s.name] = s
             for tb in rom.findall("table"):

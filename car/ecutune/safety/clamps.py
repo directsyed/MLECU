@@ -365,12 +365,19 @@ def _enforce_monotonic(edits: list[CellEdit],
         for col, e in cell_edits.items():
             if 0 <= col < len(curve):
                 curve[col] = e.new_value
-        eps = ctx.safety.zero_base_eps
+        # The separation must SURVIVE STORAGE ENCODING. zero_base_eps (1e-9) does not: these
+        # curves are stored as float32, whose relative precision is ~1.2e-7, so at a value of
+        # 30 a 1e-9 gap collapses to equality on write and the "strictly ascending" guarantee
+        # silently evaporates in the flashed image. Found 2026-08-27 by the write path's own
+        # read-back check. A relative gap clears float32 with two orders of margin.
+        def _sep(v: float) -> float:
+            return max(ctx.safety.zero_base_eps, abs(v) * 1e-5)
+
         for col in sorted(cell_edits):
             if not (0 <= col < len(curve)):
                 continue
-            lo = curve[col - 1] + eps if col > 0 else -math.inf
-            hi = curve[col + 1] - eps if col + 1 < len(curve) else math.inf
+            lo = curve[col - 1] + _sep(curve[col - 1]) if col > 0 else -math.inf
+            hi = curve[col + 1] - _sep(curve[col + 1]) if col + 1 < len(curve) else math.inf
             if lo > hi:
                 # Boxed in — the neighbours leave no ordered slot. This only happens when the
                 # STOCK curve is already non-monotonic here, so fall back to the cell's CURRENT

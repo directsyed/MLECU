@@ -12,6 +12,8 @@ trusting the values. Address drift between revisions then shows up as a hard err
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 
 from ..core.models import Table, TableAxis
@@ -112,6 +114,21 @@ def plausible(t: Table, data_sc: Scaling) -> bool:
     return True
 
 
+@dataclass(frozen=True)
+class ResolvedDef:
+    """WHICH def actually won reconciliation for a semantic table, and where it lives.
+
+    The write path cannot re-derive this. Our MAF curve sits at 0xCB75C under def A2WC410D but
+    at 0xCB77C — +0x20 — under A2WC412D, and reconciliation only picks 410D because the 412D
+    read yields a non-monotonic voltage axis that plausible() rejects. A writer that assumed a
+    fixed def id would silently corrupt 192 bytes of a neighbouring table. So the winning
+    (def_id, TableDef, Scaling) is carried out of the read rather than reconstructed.
+    """
+    def_id: str
+    table_def: TableDef
+    scaling: Scaling
+
+
 def read_semantic_tables(rom: RomImage, defs: EcuFlashDefs, def_ids: list[str],
                          semantic_map: dict[str, str],
                          variants: dict[str, tuple[str, ...]] | None = None,
@@ -121,11 +138,14 @@ def read_semantic_tables(rom: RomImage, defs: EcuFlashDefs, def_ids: list[str],
     Per table: defs that read bit-identically corroborate each other; where they disagree
     (address drift between revisions), only a read that passes plausible() survives, and it
     must be UNIQUE — zero or multiple surviving candidates is a hard error, never a guess.
-    Returns ({semantic_id: Table}, report with per-table provenance).
+    Returns ({semantic_id: Table}, report). `report["resolved"][sem_id]` carries the
+    ResolvedDef that WON reconciliation — the write path needs the address, and
+    re-deriving it from a fixed def id would be wrong (see ResolvedDef).
     """
     variants = variants or {}
-    reads: dict[str, list[tuple[str, Table, Scaling]]] = {}
-    report: dict = {"def_ids": def_ids, "internal_id": None, "matched": {}, "provenance": {}}
+    reads: dict[str, list[tuple[str, Table, Scaling, TableDef]]] = {}
+    report: dict = {"def_ids": def_ids, "internal_id": None, "matched": {},
+                    "provenance": {}, "resolved": {}}
     for did in def_ids:
         tables, scalings = defs.tables(did)
         rid = defs.rom_id(did)
@@ -135,31 +155,34 @@ def read_semantic_tables(rom: RomImage, defs: EcuFlashDefs, def_ids: list[str],
                 if name in tables and tables[name].address is not None:
                     td = tables[name]
                     sc = scalings.get(td.scaling or "", Scaling(name="raw"))
-                    reads.setdefault(sem_id, []).append((did, read_table(rom, td, scalings), sc))
+                    reads.setdefault(sem_id, []).append(
+                        (did, read_table(rom, td, scalings), sc, td))
                     report["matched"][sem_id] = name
                     break
 
     out: dict[str, Table] = {}
     for sem_id, cands in reads.items():
-        groups: list[tuple[Table, Scaling, list[str]]] = []   # distinct value-sets
-        for did, t, sc in cands:
+        groups: list[tuple[Table, Scaling, list[str], TableDef]] = []   # distinct value-sets
+        for did, t, sc, td in cands:
             for g in groups:
                 if np.array_equal(g[0].values, t.values):
                     g[2].append(did)
                     break
             else:
-                groups.append((t, sc, [did]))
+                groups.append((t, sc, [did], td))
         if len(groups) == 1:
-            t, _, dids = groups[0]
+            t, sc, dids, td = groups[0]
             out[sem_id] = t
             report["provenance"][sem_id] = f"agree({','.join(dids)})"
+            report["resolved"][sem_id] = ResolvedDef(dids[0], td, sc)
             continue
-        survivors = [(t, dids) for t, sc, dids in groups if plausible(t, sc)]
+        survivors = [(t, dids, td, sc) for t, sc, dids, td in groups if plausible(t, sc)]
         if len(survivors) != 1:
             raise ValueError(
                 f"{sem_id}: defs disagree ({[d for *_, d in groups]}) and plausibility "
                 f"leaves {len(survivors)} candidates — refusing to guess")
-        t, dids = survivors[0]
+        t, dids, td, sc = survivors[0]
         out[sem_id] = t
         report["provenance"][sem_id] = f"plausible-only({','.join(dids)})"
+        report["resolved"][sem_id] = ResolvedDef(dids[0], td, sc)
     return out, report
