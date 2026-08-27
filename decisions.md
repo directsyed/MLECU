@@ -1131,3 +1131,94 @@ has **defeated the ECU's own boost-enrichment safety mechanism.**
 **Consequence for the tune order:** correcting VE is not cosmetic — it re-arms stock protection. The
 severity scales with boost, so sustained highway boost is materially worse than the +2 psi seen so
 far. The cruise-region VE correction is therefore the first flash, and it is a safety fix.
+
+## 2026-08-27 — MAF root cause, a new clamp category, and the SH7058 checksum
+
+### D22 — The fault is the MAF TRANSFER CURVE, not the fuel maps
+
+Six vacuum drives (35,744 rows, 30,795 steady closed-loop samples). Fuel trim tracks **measured
+airflow** far better than load or rpm — `corr` +0.838 vs +0.708 / +0.737 — and the decisive test
+settles it: hold MAF fixed and swing load/rpm hard, trim moves 0.3–5.0 pp; hold load fixed and
+swing MAF, trim moves 3.1–15.3 pp. The error is a function of airflow alone.
+
+**This supersedes the "2.0 L on a 2.5 L VE map" framing.** Subaru's 32-bit ECU is MAF-based and
+has **no VE table at all** — `core/tables.py` already annotated `sensor.maf_transfer` as
+"(speed-density: absent)". A 1-D curve correction replaces a 2-D map rewrite.
+
+**One fault, three symptoms.** Load is derived from airflow, so the under-read propagates:
+fuel under-commanded (clawed back by trim); the ignition map indexed at the **wrong cell**,
+applying light-cruise advance under real load — which is the only thing that explains knock at
+stoichiometric AFR; and the load-triggered open-loop transition never firing, so the car has
+**never once left closed loop under boost** in anything logged.
+
+Contamination is **ruled out**: Syed cleaned the MAF element and re-drove (2026-08-27); the
+curve's shape is unchanged and `corr` held at +0.840. Remaining candidates are a wrong
+calibration for this intake tract, or unmetered air through the custom MAF→turbo tubing. Not
+separable from logs; the smoke test is the arbiter. We proceed because the compensation is
+correct for the car's present physical state and the failure direction if a leak is later
+sealed is **rich**, which `clamp_afr_floor` already documents as the safe direction.
+
+### D23 — The ECU is nearly out of fuel-correction authority (why this is urgent)
+
+A/F Learning hard-clamps at **+14.84%** and A/F Correction at **±25.00%**; combined ceiling
+**+39.84%**. Above 20 g/s the car runs at **~75% of total authority**, learning is saturated in
+79–81% of samples, and **6.2% have both channels maxed simultaneously** — roughly 9.8 pp left.
+
+Independently corroborated by the ROM itself: `fuel.cl_learning_limits` reads **±15.00%**, and
+we measured learning pegged at +14.84%. The wideband confirms the ECU is still holding command,
+so it is winning — with nothing in reserve, in vacuum cruise. Highway airflow plus boost exceeds
+what remains, and an ECU out of correction goes **lean**, on an engine already at IAM 0.500.
+
+### D24 — A new clamp CATEGORY: sensor calibration (methodology change to the safety layer)
+
+`clamp_ve_rate_limit` bounds fuel edits to 3%/iteration because idle convergence chases a target
+that moves as the loop corrects it. A MAF transfer curve is not a target being chased — it is a
+**measurement wrong by a fixed amount**, established over ~20k samples. Creeping there needs ~11
+flash cycles on a car with no authority margin. Adding `targets_kind="sensor"` +
+`clamp_sensor_calibration`, which bounds **evidence** (samples per breakpoint), **displacement**
+(`max_sensor_recal` 0.40; measured worst point 0.363) and **curve monotonicity**, instead of
+velocity. The two paths are disjoint by `targets_kind` and that disjointness is property-tested:
+`fuel.*` behaviour is byte-identical.
+
+### D25 — The SH7058 checksum, derived (ROADMAP E.4(c) closed)
+
+The repo had **zero** checksum content and the ROADMAP left it open ("believed yes" that ECUFlash
+fixes it on save). Derived and implemented rather than trusted: block at file offset **0xFFB80**
+(1 MB ROMs), an array of 12-byte big-endian records `{start, end_inclusive, stored}` satisfying
+
+    ( Σ BE-uint32 over data[start..end] + stored ) mod 2**32 == 0x5AA5A55A
+
+Our ROM carries exactly one active record, `0x2000..0xFFAF7`, stored `0x5EA92EFD`. The block sits
+**outside** every region it covers, so repair is a **one-pass fixed point** — asserted in code,
+not assumed. The offset is claimed for **our family only**: foreign ROMs on disk do not parse
+there, so `read_records` raises `UnknownChecksumLayout` rather than returning a confident wrong
+answer.
+
+### Two safety-config numbers that need Syed's ruling
+
+1. **`boost_load_threshold: 1.5` g/rev is wrong for this car.** `clamp_afr_floor` — the clamp
+   whose entire purpose is preventing lean-at-boost — only acts *above* that load, but this car
+   crosses atmospheric MAP at **≈0.6 g/rev**. As configured it does not cover where boost happens.
+2. **`belief_envelope` is absent from `config.yaml`**, so it runs on pydantic defaults whose own
+   comment says "VALUES ARE SYED'S TO RATIFY" — including `sensor.maf_transfer: 0.20`, which the
+   measured correction exceeds. The new sensor clamp bypasses it by `targets_kind`, deliberately,
+   but the number should still be ratified rather than inherited.
+
+### Bugs found while building (all fixed)
+
+- `clamps._sign()` computed `(x>0)-(x<0)`, which raises `TypeError` on a numpy scalar.
+  `CellEdit.new_value` is *typed* float but nothing coerces it, so any array-derived proposal
+  crashed `clamp_ve_rate_limit`. Never hit because only the sim had produced proposals.
+- `Closed Loop Fueling Target (2-byte)* (lambda)` matched the wideband schema rule on the word
+  "lambda" in its units — the ECU's *target* silently overwriting the *measured* AFR. It escaped
+  notice only because the AEM sat in an earlier column and parsing is first-column-wins.
+- `clamp_sensor_calibration` guaranteed a strictly ascending curve using `zero_base_eps` (1e-9).
+  float32 has ~1.2e-7 relative precision, so at a value of 30 that separation **collapses to
+  equality on write**: the guarantee died at the storage boundary and the flashed curve would
+  have had flat spots. Caught by the write path's own read-back. Separation is now relative, and
+  `patch()` independently re-checks ordering *after* encoding. **An in-memory guarantee that does
+  not survive encoding is not a guarantee.**
+- The first generated CHANGE REPORT showed the stage proposing −1% to −3% across the idle band —
+  chasing bin noise in the one region independently validated as healthy (three-hold capture,
+  −0.86%). Added `AlgoCfg.sensor_deadband` (0.02), applied before interpolation so a sub-noise
+  anchor cannot drag its neighbours. 20 cells → 14.
