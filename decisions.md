@@ -1222,3 +1222,24 @@ answer.
   chasing bin noise in the one region independently validated as healthy (three-hold capture,
   −0.86%). Added `AlgoCfg.sensor_deadband` (0.02), applied before interpolation so a sub-noise
   anchor cannot drag its neighbours. 20 cells → 14.
+
+### D26 — `boost_load_threshold` 1.5 -> 0.60 g/rev (Syed ratified, 2026-08-27)
+
+The number is a CLASSIFIER, not a limit: `clamps.py:160` uses it for exactly one decision —
+which fuel-target cells `clamp_afr_floor` bothers to check. It does not restrict boost, does not
+cap it, and never touches the wastegate.
+
+But `clamp_afr_floor` is the last and strongest clamp in the pipeline (it will richen past the
+rate limit, because commanding lean under boost is the engine-grenade case), and its guarantee is
+only as good as the region it is aimed at. At 1.5 g/rev it aimed at nothing: this car crosses
+atmospheric MAP at **~0.6 g/rev**, and all **31 knock events sat at 0.58-0.79 g/rev** — entirely
+outside the protected region.
+
+Nothing had been harmed: `clamp_afr_floor` only acts on AFR/lambda target tables and no edit to
+one has ever been proposed. It goes live the moment boost tuning starts.
+
+The error is one-sided, which is why the low value is right: too high leaves real boost cells
+unprotected; too low protects vacuum cells whose 14.7 target is nowhere near the 11.5 floor, so
+the clamp never fires there. `tests/test_boost_threshold.py` recomputes the crossing point from
+the committed drive logs and fails if the threshold ever drifts back above it — a regression test
+against a physical fact rather than a remembered number.

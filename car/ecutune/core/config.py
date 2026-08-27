@@ -24,7 +24,8 @@ class TimingCeiling(BaseModel):
 class SafetyCfg(BaseModel):
     max_ve_step: float = 0.03            # +/-3% per iteration — the provable rate bound
     afr_floor: float = 11.5              # AFR leaner (greater) than this at boost => abort
-    boost_load_threshold: float = 1.5    # load (g/rev) above which a cell counts as "boost"
+    boost_load_threshold: float = 0.60   # load (g/rev) above which a cell counts as "boost"
+                                         # (measured MAP-crossing point on this car; see config.yaml)
     boost_trim_tol: float = 0.05         # +/-5% trims required before boost edits ungate
     fuel_trim_converged_tol: float = 0.05  # |trim| under this => converged (fuel-before-timing)
     steady_tol: float = 0.05

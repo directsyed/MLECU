@@ -4,7 +4,14 @@
 safety:
   max_ve_step: 0.03            # +/-3% max fuel/VE change per iteration (the provable bound)
   afr_floor: 11.5              # AFR leaner than this at boost => abort the leaning edits (lambda ~0.78)
-  boost_load_threshold: 1.5    # load (g/rev) above which a fueling cell counts as "boost"
+  # Which fuel-target CELLS clamp_afr_floor treats as boost. NOT a boost limit and not a
+  # "stay out of boost" setting -- it only decides where the AFR floor is enforced.
+  # 1.5 was a pre-data placeholder. Measured on this car (six drives, 2026-08-26/27): MAP
+  # crosses atmospheric at ~0.6 g/rev, and all 31 knock events sat at 0.58-0.79 g/rev, i.e.
+  # ENTIRELY OUTSIDE the old threshold. The failure is one-sided: too high leaves real boost
+  # cells unprotected; too low protects vacuum cells whose 14.7 target is nowhere near the
+  # 11.5 floor, so the clamp simply never fires there. Ratified by Syed 2026-08-27.
+  boost_load_threshold: 0.60   # load (g/rev) above which a fuelling cell counts as "boost"
   boost_trim_tol: 0.05         # trims must be within +/-5% before boost edits ungate
   fuel_trim_converged_tol: 0.05  # |trim| under this counts as converged (fuel-before-timing gate)
   steady_tol: 0.05
