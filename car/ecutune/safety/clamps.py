@@ -25,7 +25,11 @@ _FUEL_TARGETS = ("fuel",)
 
 
 def _sign(x: float) -> int:
-    return (x > 0) - (x < 0)
+    # int() on each comparison, not on the difference: numpy bools do not support `-`
+    # (TypeError: "numpy boolean subtract"). CellEdit.new_value is TYPED float but nothing
+    # coerces it, so a caller handing in an np.float64 -- which any array-derived proposal
+    # naturally would -- crashed clamp_ve_rate_limit here. Found 2026-08-27.
+    return int(x > 0) - int(x < 0)
 
 
 def _cur(ctx: ClampContext, e: CellEdit) -> float:
@@ -262,3 +266,126 @@ def clamp_belief_envelope(prop: Proposal, ctx: ClampContext) -> ClampResult:
         viols.append(ClampViolation("belief_envelope", e.table_id, e.row, e.col,
                                     e.new_value, bounded, "envelope_limited"))
     return ClampResult(True, tuple(out), tuple(viols))
+
+
+def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
+    """MODIFIER — bound a SENSOR recalibration by evidence and displacement, not by velocity.
+
+    Why this clamp exists (2026-08-27). `clamp_ve_rate_limit` bounds a fuel edit to 3% per
+    iteration because idle convergence chases a target that moves as the loop corrects it —
+    creeping is the whole point. A MAF transfer curve is a different kind of object: it is a
+    MEASUREMENT that is wrong by a fixed amount, established over ~20k steady samples. Bounding
+    its speed would mean eleven flash cycles to reach a correction the data already supports,
+    on a car whose ECU is currently at ~75% of its total fuel-correction authority. So the
+    bound moves from "how fast" to "how far, and on what evidence".
+
+    Three independent bounds, applied in order:
+      1. EVIDENCE  — a breakpoint no log data supports does not move at all. Inert (skipped)
+                     when ctx.sensor_sample_counts is absent, matching belief_envelope's
+                     treatment of a missing baseline.
+      2. DISPLACEMENT — |new/current - 1| <= safety.max_sensor_recal. Clamped to the boundary,
+                     sign preserved, never flipped.
+      3. MONOTONICITY — the resulting curve must stay strictly ascending. A transfer curve that
+                     doubles back is physically meaningless AND unflashable: romread.plausible()
+                     rejects non-monotonic axes, so this catches at proposal time what would
+                     otherwise fail at write time. Only EDITED cells are moved to restore order;
+                     a pre-existing violation in untouched cells is not ours to silently repair.
+
+    Note the deliberate asymmetry with the fuel clamps: those key off `targets_kind == "fuel"`,
+    this off `"sensor"`, so the two paths cannot interfere. A sensor proposal is untouched by
+    the 3% rate limit, and a fuel proposal is untouched by this.
+    """
+    if prop.targets_kind != "sensor":
+        return ClampResult(True, tuple(prop.edits))
+
+    cap = ctx.safety.max_sensor_recal
+    counts = ctx.sensor_sample_counts or {}
+    out: list[CellEdit] = []
+    viols: list[ClampViolation] = []
+
+    for e in prop.edits:
+        cur = _cur(ctx, e)
+
+        # 1. EVIDENCE
+        per_table = counts.get(e.table_id)
+        if per_table is not None:
+            n = per_table[e.col] if e.col < len(per_table) else 0
+            if n < ctx.safety.min_sensor_samples:
+                keep = e.new_value if math.isnan(cur) else cur
+                out.append(CellEdit(e.table_id, e.row, e.col, keep, e.reason))
+                if keep != e.new_value:
+                    viols.append(ClampViolation("sensor_calibration", e.table_id, e.row, e.col,
+                                                e.new_value, keep, "insufficient_evidence"))
+                continue
+
+        # 2. DISPLACEMENT
+        if math.isnan(cur) or abs(cur) < ctx.safety.zero_base_eps:
+            out.append(e)
+            continue
+        lo, hi = cur * (1.0 - cap), cur * (1.0 + cap)
+        lo, hi = min(lo, hi), max(lo, hi)
+        if lo <= e.new_value <= hi:
+            out.append(e)
+        else:
+            bounded = min(hi, max(lo, e.new_value))
+            out.append(CellEdit(e.table_id, e.row, e.col, bounded, e.reason))
+            viols.append(ClampViolation("sensor_calibration", e.table_id, e.row, e.col,
+                                        e.new_value, bounded, "recal_limited"))
+
+    # 3. MONOTONICITY — cross-cell, so it runs once over the surviving edits per table.
+    if ctx.safety.sensor_require_monotonic:
+        out, mono_viols = _enforce_monotonic(out, ctx)
+        viols.extend(mono_viols)
+
+    return ClampResult(True, tuple(out), tuple(viols))
+
+
+def _enforce_monotonic(edits: list[CellEdit],
+                       ctx: ClampContext) -> tuple[list[CellEdit], list[ClampViolation]]:
+    """Keep each edited curve strictly ascending, moving ONLY edited cells.
+
+    Builds the curve that would result from these edits, then walks it in order. When an edited
+    cell would sit at or below its predecessor it is raised to just above it; when it would sit
+    at or above its successor it is lowered to just below. Untouched cells are left exactly as
+    they are — if the STOCK curve is already non-monotonic somewhere, that is a finding to
+    report, not something to quietly rewrite.
+    """
+    by_table: dict[str, dict[int, CellEdit]] = {}
+    for e in edits:
+        by_table.setdefault(e.table_id, {})[e.col] = e
+    viols: list[ClampViolation] = []
+    replaced: dict[tuple[str, int], CellEdit] = {}
+
+    for table_id, cell_edits in by_table.items():
+        t = ctx.tables.tables.get(table_id)
+        if t is None or t.kind != "curve_1d":
+            continue
+        stock = [float(v) for v in t.values.ravel()]
+        curve = list(stock)
+        for col, e in cell_edits.items():
+            if 0 <= col < len(curve):
+                curve[col] = e.new_value
+        eps = ctx.safety.zero_base_eps
+        for col in sorted(cell_edits):
+            if not (0 <= col < len(curve)):
+                continue
+            lo = curve[col - 1] + eps if col > 0 else -math.inf
+            hi = curve[col + 1] - eps if col + 1 < len(curve) else math.inf
+            if lo > hi:
+                # Boxed in — the neighbours leave no ordered slot. This only happens when the
+                # STOCK curve is already non-monotonic here, so fall back to the cell's CURRENT
+                # value (NOT curve[col], which is the proposal we are adjudicating). Refusing to
+                # move is right: silently repairing cells we were not asked to touch would hide
+                # a bad ROM read or a bad definition behind our own edit.
+                lo = hi = stock[col]
+            bounded = min(hi, max(lo, curve[col]))
+            if bounded != curve[col]:
+                e = cell_edits[col]
+                viols.append(ClampViolation("sensor_calibration", table_id, e.row, col,
+                                            e.new_value, bounded, "monotonicity_limited"))
+                curve[col] = bounded
+                replaced[(table_id, col)] = CellEdit(table_id, e.row, col, bounded, e.reason)
+
+    if not replaced:
+        return edits, viols
+    return [replaced.get((e.table_id, e.col), e) for e in edits], viols

@@ -43,7 +43,24 @@ class SafetyCfg(BaseModel):
         "fuel.injector_latency": 0.30,     # +/-30% of the stock dead time
         "sensor.maf_transfer": 0.20,       # +/-20% of stock MAF scaling
     })
-    belief_envelope_default: float = 0.25  # applied to any fuel table not listed above
+    belief_envelope_default: float = 0.25
+
+    # --- sensor recalibration (clamp_sensor_calibration, 2026-08-27) -------------------
+    # A SENSOR calibration is a different act from a fuel-target correction, so it gets a
+    # different bound. `max_ve_step` limits VELOCITY (3%/iteration) because idle fuel
+    # convergence must creep toward a moving target. A MAF transfer curve is not a target
+    # being chased -- it is a measurement being corrected against ~20k samples of evidence,
+    # and creeping there would take ~11 flash cycles to reach a correction the data already
+    # supports. So this clamp bounds DISPLACEMENT (how far from stock) and demands EVIDENCE
+    # (samples per breakpoint), instead of bounding speed.
+    max_sensor_recal: float = 0.40      # hard cap: |new/stock - 1| per cell. Measured worst
+                                        # point on the car is 0.363, so this is a real ceiling
+                                        # with margin, not a rubber stamp.
+    min_sensor_samples: int = 20        # steady samples required per breakpoint before a cell
+                                        # may move at all (matches GridSpec.min_samples)
+    sensor_require_monotonic: bool = True   # the corrected curve must stay strictly ascending;
+                                            # romread.plausible() rejects non-monotonic axes,
+                                            # so a curve that breaks this is unflashable anyway  # applied to any fuel table not listed above
 
     def timing_ceiling_for(self, rpm: float) -> float:
         """Tightest configured ceiling whose rpm threshold the cell meets; else the default."""

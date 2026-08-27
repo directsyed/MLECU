@@ -74,3 +74,81 @@ def test_afr_floor_never_lean_at_boost(target, cur):
                     "fuel", "algorithm:test")
     final = apply_clamps(prop, ClampContext(ts, SAFETY)).clamped_edits[0].new_value
     assert final <= SAFETY.afr_floor + 1e-9
+
+
+# --- sensor recalibration (clamp_sensor_calibration, 2026-08-27) --------------------------
+#
+# The sensor clamp trades the fuel clamps' VELOCITY bound for a DISPLACEMENT bound, so it owes
+# the same standard of proof: the cap must hold for ANY requested value, the clamp must be
+# idempotent, and it must not perturb the fuel path it deliberately bypasses.
+
+from ecutune.core.tables import SENSOR_MAF_TRANSFER   # noqa: E402
+
+
+def _maf_curve(vals):
+    return Table(SENSOR_MAF_TRANSFER, "curve_1d", np.array(vals, dtype=float), units="g/s")
+
+
+def _sensor_prop(col, new):
+    return Proposal("s", "maf_transfer", (CellEdit(SENSOR_MAF_TRANSFER, 0, col, new),),
+                    "sensor", "algorithm:test")
+
+
+# A doubling curve: neighbours are 100% apart, so the 40% cap always binds before monotonicity
+# does. That isolates the displacement bound, which is what this property is about.
+_CURVE = (1.0, 2.0, 4.0, 8.0, 16.0)
+
+
+@settings(deadline=None, max_examples=400)
+@given(new=st.floats(-1e5, 1e5), col=st.integers(1, 3))
+def test_sensor_recal_never_exceeds_the_cap(new, col):
+    """|final/stock - 1| <= max_sensor_recal, for ANY requested value including negative ones."""
+    ts = TableSet({SENSOR_MAF_TRANSFER: _maf_curve(_CURVE)})
+    final = apply_clamps(_sensor_prop(col, new), _ctx(ts)).clamped_edits[0].new_value
+    stock = _CURVE[col]
+    assert abs(final / stock - 1.0) <= SAFETY.max_sensor_recal + 1e-9
+
+
+@settings(deadline=None, max_examples=300)
+@given(new=st.floats(-1e5, 1e5), col=st.integers(1, 3))
+def test_sensor_recal_idempotent(new, col):
+    """clamp(clamp(x)) == clamp(x) — the invariant that stops an iterative loop ratcheting."""
+    ts = TableSet({SENSOR_MAF_TRANSFER: _maf_curve(_CURVE)})
+    v1 = apply_clamps(_sensor_prop(col, new), _ctx(ts)).clamped_edits[0].new_value
+    v2 = apply_clamps(_sensor_prop(col, v1), _ctx(ts)).clamped_edits[0].new_value
+    assert abs(v2 - v1) <= 1e-9
+
+
+@settings(deadline=None, max_examples=300)
+@given(new=st.floats(-1e5, 1e5), col=st.integers(1, 3))
+def test_sensor_clamp_leaves_the_fuel_path_byte_identical(new, col):
+    """A 'fuel' proposal is bounded EXACTLY as it was before this clamp existed.
+
+    Proves the new category is additive: the +/-3% velocity limit still governs fuel, and the
+    sensor clamp cannot loosen it. Run against the same table id the sensor clamp owns, so the
+    only thing separating the two paths is targets_kind.
+    """
+    ts = TableSet({SENSOR_MAF_TRANSFER: _maf_curve(_CURVE)})
+    fuel = Proposal("f", "idle_stage2", (CellEdit(SENSOR_MAF_TRANSFER, 0, col, new),),
+                    "fuel", "algorithm:test")
+    final = apply_clamps(fuel, _ctx(ts)).clamped_edits[0].new_value
+    stock = _CURVE[col]
+    assert abs(final - stock) <= SAFETY.max_ve_step * abs(stock) + 1e-9
+
+
+@settings(deadline=None, max_examples=300)
+@given(vals=st.lists(st.floats(1.0, 50.0), min_size=4, max_size=8, unique=True),
+       new=st.floats(-1e3, 1e3))
+def test_sensor_corrected_curve_never_breaks_a_sound_ordering(vals, new):
+    """If the stock curve is strictly ascending, the corrected curve still is — for any request.
+
+    This is the bound that keeps output flashable: romread.plausible() rejects a non-monotonic
+    axis, so a curve that doubles back could never be written anyway.
+    """
+    curve = tuple(sorted(vals))
+    ts = TableSet({SENSOR_MAF_TRANSFER: _maf_curve(curve)})
+    col = len(curve) // 2
+    res = apply_clamps(_sensor_prop(col, new), _ctx(ts))
+    out = list(curve)
+    out[col] = res.clamped_edits[0].new_value
+    assert all(b > a for a, b in zip(out, out[1:])), f"ordering broken: {out}"

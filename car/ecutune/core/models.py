@@ -186,6 +186,12 @@ class ClampContext:
     # bounded cumulative displacement — 12 iterations compounds to 43%. clamp_belief_envelope
     # bounds distance from here.
     baseline_tables: TableSet | None = None
+    # --- 2026-08-27: evidence behind a SENSOR recalibration ---------------------------------
+    # {table_id: per-column steady-sample count}. clamp_sensor_calibration refuses to move a
+    # breakpoint that no log data supports. Defaulted to None so every existing call site keeps
+    # working; the clamp's cap/monotonicity checks still run without it, only the per-cell
+    # evidence test goes inert (the same pattern baseline_tables uses).
+    sensor_sample_counts: dict[str, tuple[int, ...]] | None = None
     fuel_trims_converged: bool = False    # gates fuel_before_timing
     steady_state_ok: bool = False         # gates steady_before_transient
     wideband_tracking: bool = False       # gates boost

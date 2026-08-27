@@ -13,6 +13,11 @@ Order rationale:
   6. ve_rate_limit         — bound every fuel edit to +/-3% per iteration (VELOCITY).
   6b. belief_envelope      — bound every fuel belief's DISTANCE from the stock ROM. The rate
                              limit alone lets 12 iterations compound to 43%.
+  6c. sensor_calibration  — bound SENSOR recalibrations by EVIDENCE + DISPLACEMENT + curve
+                             monotonicity instead of velocity. Disjoint from 6/6b: those key
+                             off targets_kind=='fuel', this off 'sensor', so neither throttles
+                             the other. A MAF curve is a measurement to correct, not a target
+                             to chase.
   7. afr_floor             — LAST: the final hard word on boost AFR cells (may richen past the
                              rate limit; rich is safe, lean-at-boost is the hazard).
 
@@ -35,6 +40,7 @@ CLAMP_PIPELINE = (
     clamps.clamp_timing_row_ceiling,
     clamps.clamp_ve_rate_limit,
     clamps.clamp_belief_envelope,
+    clamps.clamp_sensor_calibration,
     clamps.clamp_afr_floor,
 )
 

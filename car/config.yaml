@@ -8,6 +8,15 @@ safety:
   boost_trim_tol: 0.05         # trims must be within +/-5% before boost edits ungate
   fuel_trim_converged_tol: 0.05  # |trim| under this counts as converged (fuel-before-timing gate)
   steady_tol: 0.05
+
+  # --- sensor recalibration (2026-08-27) — SYED REVIEWS THESE NUMBERS ---------------
+  # A sensor calibration is bounded by evidence and displacement, NOT by the +/-3%/iteration
+  # velocity limit above (that one is for chasing a moving fuel target; a MAF curve is a
+  # measurement that is simply wrong by a fixed amount). Measured worst point on the car is
+  # +36.3%, so 0.40 is a real ceiling with margin.
+  max_sensor_recal: 0.40         # hard cap on |new/stock - 1| for any sensor.* cell
+  min_sensor_samples: 20         # steady log samples required before a breakpoint may move
+  sensor_require_monotonic: true # corrected curve must stay strictly ascending
   default_timing_ceiling: 25.0   # deg BTDC; used when no per-rpm override matches
   # Per-row timing ceilings — PLACEHOLDER values, tighten under load. REVIEW before any
   # timing work (EJ20X on 93 oct wants less than the EJ255 base assumes). Not exercised by
