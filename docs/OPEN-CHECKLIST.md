@@ -1,5 +1,15 @@
 # MLECU — open checklist
 
+> **2026-08-27 — STATE CHANGE.** Root cause found (**MAF transfer curve**, not the fuel maps —
+> Subaru's 32-bit ECU has no VE table), the deterministic stage + a new sensor-calibration clamp
+> category are built and property-tested, and **`romwrite` exists** — including the SH7058
+> checksum, which was previously an open ROADMAP question. `ecutune --tune-maf` now produces a
+> verified candidate ROM + CHANGE REPORT end to end. Car suite **138 passed**.
+> See decisions.md **D22–D25**.
+>
+> **⏭ SYED'S NEXT ACTIONS ARE NOW:** (1) review the CHANGE REPORT; (2) rule on the two
+> safety-config numbers below; (3) flash, then a post-flash verification log.
+
 Live tracker of every open thread, both halves of the project. Updated 2026-08-17 (extended-param
 def installed). Ordered by **what blocks the car**, because that is the actual objective.
 
@@ -54,6 +64,27 @@ read complete AND ECU un-tuned. Archived (`car/ecu/rom read/` + `data-backups/ro
 History: `car/ecu/ROM-READ-BLOCKER.md` (RESOLVED banner) — its "green connectors not applicable to
 2005 DBW" elimination was the exact error; corpus doc 5793 (2026-08-16 review) had the fix.
 Remaining: off-machine ROM copy (3rd location); optional 2nd confirming read for byte-stability.
+
+### A1b. The MAF correction — BUILT 2026-08-27, awaiting Syed's review
+- [x] **Root cause: `sensor.maf_transfer` under-reads progressively above ~10 g/s** (corr +0.838
+      vs load +0.708 / rpm +0.737; the hold-one-fixed test moves trim 0.3–5.0 pp vs 3.1–15.3 pp).
+      Supersedes the "2.0 L on a 2.5 L VE map" framing — there is no VE table on this platform.
+- [x] **Sensor contamination RULED OUT** — cleaned the element, re-drove, curve shape unchanged.
+      Remaining candidates: wrong calibration for this intake, or unmetered air through the
+      custom MAF→turbo tubing. Only the smoke test separates them; failure direction if a leak
+      is later sealed is **rich**, which is safe.
+- [x] **Authority finding:** A/F Learning clamps at +14.84%, Correction at ±25.00%. Above 20 g/s
+      the car uses ~75% of that ceiling, 6.2% of samples have both maxed. ROM's own
+      `fuel.cl_learning_limits` reads ±15.00%. There is no margin left for highway.
+- [ ] **SYED: review the CHANGE REPORT** — 14 of 48 cells, 47 bytes + checksum, read-back error
+      1.8e-06, no other table moved. Regenerate any time with
+      `ecutune --tune-maf logging/drive/drive-2026*.csv --rom <stock> --out cand.bin`
+- [ ] **SYED: ratify two safety numbers.** (a) `boost_load_threshold: 1.5` g/rev is wrong for
+      this car — `clamp_afr_floor`, whose whole job is preventing lean-at-boost, only acts above
+      that load, but this car crosses atmospheric MAP at **≈0.6 g/rev**. (b) `belief_envelope` is
+      absent from `config.yaml` and running on pydantic defaults marked "SYED'S TO RATIFY".
+- [ ] **First flash**, then a post-flash log. The question it answers: **does the ECU now leave
+      closed loop under boost?** That is where the surviving Run 4 channels earn their place.
 
 ### A2. Data capture — three-hold DONE; remaining physical items
 - [x] **Three-hold capture DONE 2026-08-16** (`car/logging/idle/idle-20260816-0{1,2,3}-*.csv`): warm idle
