@@ -35,4 +35,5 @@ algo:
   ki: 0.05                     # small integral: kills residual error without winding up
   damping: 0.7                 # <1 => small deliberate steps, low overshoot
   step_clamp: 0.03             # == safety.max_ve_step (the clamp IS the anti-windup)
+  sensor_deadband: 0.02        # measured corrections under +/-2% are noise: emit no edit
   max_iters: 30

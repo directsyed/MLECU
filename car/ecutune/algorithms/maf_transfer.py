@@ -25,6 +25,11 @@ TWO RULES THAT ARE NOT NEGOTIABLE
      exactly where lean is dangerous.
   2. ONLY CONFIDENT BINS. A breakpoint is corrected only where `grid.confidence` is True
      (>= `GridSpec.min_samples` steady samples). Everything else keeps its stock value.
+  3. DEADBAND. A measured correction below `AlgoCfg.sensor_deadband` emits no edit. Fuel trims
+     are noisy and a +/-1% bin mean is not distinguishable from zero -- correcting it is
+     chasing noise. It also protects regions independently validated as healthy: the idle band
+     measured -0.86% trim on the three-hold capture, and the first uncorrected run of this
+     stage was proposing -1% to -3% there off 367 drive samples.
 
 Pure, like every stage: it returns a Proposal and NEVER applies it (`safety.apply_proposal`
 does that). `targets_kind="sensor"` routes it to `clamp_sensor_calibration` rather than to the
@@ -130,6 +135,9 @@ def propose_maf_correction(grid: BinnedGrid, tables: TableSet, state: MafState,
     if frac.size != stock.size:
         raise ValueError(f"grid has {frac.size} breakpoints, table has {stock.size} — "
                          "the GridSpec was not built from this table (use grid_spec_for)")
+    # Deadband BEFORE interpolation, so a sub-noise anchor cannot drag its neighbours either.
+    deadband = getattr(cfg, "sensor_deadband", 0.0)
+    frac = np.where(np.isfinite(frac) & (np.abs(frac) < deadband), 0.0, frac)
     applied = _interpolated_correction(frac) * cfg.damping
 
     edits: list[CellEdit] = []

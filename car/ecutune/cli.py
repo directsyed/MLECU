@@ -196,6 +196,90 @@ def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> 
     return 0
 
 
+
+def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
+              report_out: str | None) -> int:
+    """The full pipeline, end to end: ROM + drive logs -> a verified candidate image.
+
+    ROM -> semantic tables -> bin the pooled logs on THIS ROM's MAF breakpoints -> the layer's
+    own identify() second opinion -> stage -> clamps -> romwrite -> CHANGE REPORT. Nothing is
+    written unless --out is given, and even then we emit a FILE: flashing stays a human act in
+    ECUFlash (ROADMAP Phase E.5).
+    """
+    import numpy as np
+
+    from .algorithms import MafState, grid_spec_for, propose_maf_correction
+    from .core.models import ClampContext, TableSet
+    from .core.tables import SENSOR_MAF_TRANSFER
+    from .logparse.binning import bin_log
+    from .logparse.romraider_csv import LogTable, parse_romraider_csv
+    from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
+    from .romread import EcuFlashDefs, RomImage, read_semantic_tables
+    from .safety import apply_clamps, apply_proposal
+    from .safety.romwrite import change_report, patch
+    from .simulation.rom_seed import DEFAULT_DEFS, DEFAULT_ROM, SIBLING_DEFS
+
+    cfg = load_config()
+    rom_path = rom if (rom and rom != "DEFAULT") else str(DEFAULT_ROM)
+    stock = Path(rom_path).read_bytes()
+    defs = EcuFlashDefs(DEFAULT_DEFS)
+    raw, rep = read_semantic_tables(RomImage(stock), defs, list(SIBLING_DEFS),
+                                    TO_PLATFORM, VARIANTS)
+    tables = TableSet(raw)
+    maf = tables.get(SENSOR_MAF_TRANSFER)
+    if maf is None:
+        print("ROM has no MAF transfer table — cannot proceed")
+        return 1
+
+    logs = [parse_romraider_csv(c) for c in drive_csvs]
+    roles = set().union(*[set(l.channels) for l in logs])
+    pooled = LogTable({r: np.concatenate([l.channels.get(r, np.full(len(l), np.nan))
+                                          for l in logs]) for r in roles})
+    grid = bin_log(pooled, grid_spec_for(maf))
+    counts = {SENSOR_MAF_TRANSFER: tuple(int(c) for c in grid.count.sum(axis=0))}
+
+    prop, _ = propose_maf_correction(grid, tables, MafState(), cfg.algo)
+    ctx = ClampContext(tables, cfg.safety, sensor_sample_counts=counts,
+                       baseline_tables=tables)
+    res = apply_clamps(prop, ctx)
+    after, _ = apply_proposal(tables, prop, ctx)
+
+    print(f"ROM {Path(rom_path).name} — {len(drive_csvs)} log(s), {len(pooled)} rows")
+    print(f"  {int(grid.count.sum())} closed-loop steady samples over "
+          f"{prop.metadata['n_confident_bins']} confident breakpoints")
+    print(f"  proposal: {prop.metadata['n_corrected']}/{prop.metadata['n_breakpoints']} cells, "
+          f"max measured {prop.metadata['max_measured_correction'] * 100:+.1f}% "
+          f"(damping {prop.metadata['damping']})")
+    print(f"  clamps: ok={res.ok} violations={len(res.violations)} "
+          f"{sorted({v.action for v in res.violations})}")
+    if not res.ok:
+        print(f"  ABORTED BY {res.aborted_by} — nothing written")
+        return 2
+
+    w = patch(stock, res, raw, rep["resolved"])
+    back, _ = read_semantic_tables(RomImage(w.data), defs, list(SIBLING_DEFS),
+                                   TO_PLATFORM, VARIANTS)
+    moved = [s for s in raw if s != SENSOR_MAF_TRANSFER
+             and not np.array_equal(raw[s].values, back[s].values)]
+    print(f"  wrote {sum(b - a for a, b in w.byte_ranges)} bytes in "
+          f"{len(w.byte_ranges)} range(s); checksum records repaired {list(w.checksum_repaired)}")
+    print(f"  read-back: other tables moved = {moved or 'none'}")
+
+    md = change_report(prop, res, w, raw, back, rom_name=Path(rom_path).name)
+    if report_out:
+        Path(report_out).write_text(md)
+        print(f"  change report -> {report_out}")
+    else:
+        print()
+        print(md)
+    if out:
+        Path(out).write_bytes(w.data)
+        print(f"  candidate image -> {out}  (NOT flashed; review the report first)")
+    else:
+        print("  (no --out given: nothing written to disk)")
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="ecutune", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -223,6 +307,12 @@ def main(argv=None) -> int:
     p.add_argument("--score-sim-eval", metavar="PATH",
                    help="score a baseline against an eval-case JSONL")
     p.add_argument("--baseline", choices=("rules", "rules_v2", "random"), default="rules")
+    p.add_argument("--tune-maf", nargs="+", metavar="DRIVE_CSV",
+                   help="ROM + drive logs -> clamped MAF transfer-curve correction -> verified "
+                        "candidate image + CHANGE REPORT (nothing is flashed)")
+    p.add_argument("--out", metavar="PATH", help="with --tune-maf: write the candidate ROM here")
+    p.add_argument("--report-out", metavar="PATH",
+                   help="with --tune-maf: write the change report here instead of stdout")
     p.add_argument("--eval-version", type=int, choices=(1, 2), default=1,
                    help="sim-eval generator version (2 = adds the voltage-sweep probe point)")
     args = p.parse_args(argv)
@@ -239,6 +329,8 @@ def main(argv=None) -> int:
         return _rom_diff(args.rom_diff[0], args.rom_diff[1])
     if args.diagnose:
         return _diagnose(args.diagnose, args.rom, args.independent_baseline)
+    if args.tune_maf:
+        return _tune_maf(args.tune_maf, args.rom, args.out, args.report_out)
     if args.generate_eval_cases:
         return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out,
                               args.eval_version)

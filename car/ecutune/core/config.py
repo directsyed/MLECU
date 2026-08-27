@@ -60,7 +60,7 @@ class SafetyCfg(BaseModel):
                                         # may move at all (matches GridSpec.min_samples)
     sensor_require_monotonic: bool = True   # the corrected curve must stay strictly ascending;
                                             # romread.plausible() rejects non-monotonic axes,
-                                            # so a curve that breaks this is unflashable anyway  # applied to any fuel table not listed above
+                                            # so a curve that breaks this is unflashable anyway
 
     def timing_ceiling_for(self, rpm: float) -> float:
         """Tightest configured ceiling whose rpm threshold the cell meets; else the default."""
@@ -80,6 +80,12 @@ class AlgoCfg(BaseModel):
     kp: float = 0.5         # proportional: fraction of trim error corrected per step
     ki: float = 0.05        # integral gain (small: kills residual without winding up)
     damping: float = 0.7    # <1 => deliberate under-correction (small steps, low overshoot)
+    # Fuel trims are noisy: a +/-1% bin mean is indistinguishable from zero. Below this the
+    # stage emits NO edit at all, which does two things -- it stops the correction chasing
+    # noise, and it leaves regions we have independently validated as healthy (the idle band,
+    # trims -0.86% on the three-hold capture) untouched. A smaller diff is also a reviewable
+    # diff. 2026-08-27.
+    sensor_deadband: float = 0.02
     step_clamp: float = 0.03  # per-iteration cap == SafetyCfg.max_ve_step (anti-windup)
     max_iters: int = 30
 
