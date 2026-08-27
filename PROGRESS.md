@@ -9,6 +9,62 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-27 — ★ ROOT CAUSE FOUND, AND THE WRITE PATH BUILT: the pipeline now produces a flashable candidate ROM
+
+The arc that turns six drives into a verified candidate image, with a human as the only remaining gate.
+
+**The fault is the MAF transfer curve — not the fuel maps, and not a VE table (there isn't one).**
+Six vacuum drives, 35,744 rows, 30,795 steady closed-loop samples. Fuel trim tracks *measured
+airflow* better than load or rpm (`corr` +0.838 vs +0.708 / +0.737), and the decisive test settles
+it: hold MAF fixed and swing load/rpm hard, trim moves 0.3–5.0 pp; hold load fixed and swing MAF,
+trim moves 3.1–15.3 pp. This corrected a framing the project had carried for weeks — Subaru's
+32-bit ECU is MAF-based and has no VE table at all, so a 1-D curve correction replaced a planned
+2-D map rewrite. **One fault, three symptoms:** load is derived from airflow, so the under-read
+also makes the ECU index the ignition map at the wrong cell (the only explanation for knock at
+*stoichiometric* AFR) and never cross the load threshold that triggers open-loop enrichment — the
+car has never once left closed loop under boost in anything logged. Sensor contamination was
+eliminated by experiment: Syed cleaned the element and re-drove; the curve's shape was unchanged.
+
+**The finding that set the urgency: the ECU is nearly out of authority.** A/F Learning hard-clamps
+at +14.84% and A/F Correction at ±25.00%. Above 20 g/s the car runs at ~75% of that combined
+ceiling, with learning saturated in ~80% of samples and 6.2% having *both* channels maxed at once.
+Corroborated by the ROM itself — `fuel.cl_learning_limits` reads ±15.00%. The wideband confirms the
+ECU is still holding command, so it is winning with nothing in reserve, in vacuum cruise.
+
+**Built, all under the existing safety architecture:** a MAF transfer stage (the first stage that
+tunes a *curve*, 48 cells, no integral term); a new **sensor-calibration clamp category** bounding
+evidence + displacement + curve monotonicity instead of velocity, disjoint from the fuel clamps by
+`targets_kind` and property-tested to leave them byte-identical; and **`romwrite`** — the
+safety-critical write path, which required **deriving the SH7058 checksum algorithm** (ROADMAP
+E.4(c), previously "believed yes" that ECUFlash handled it, with zero content in the repo).
+
+**The write path caught a bug in its own clamp**, which is the point of building it: the clamp
+guaranteed a strictly-ascending curve using a 1e-9 separation, but float32 has ~1.2e-7 relative
+precision, so at a value of 30 that gap **collapses to equality on write**. The guarantee died at
+the storage boundary and the flashed curve would have had flat spots. An in-memory guarantee that
+does not survive encoding is not a guarantee. Two other latent bugs surfaced too: a `TypeError` in
+`_sign()` on numpy scalars that would have crashed any array-derived proposal, and a schema
+collision where the ECU's fuelling *target* was silently overwriting the *measured* AFR.
+
+**End to end, one command** (`ecutune --tune-maf`): ROM + drive logs → bin on this ROM's own 48
+breakpoints → stage → clamps → patch → read-back → CHANGE REPORT. On the real car: 14 of 48 cells
+corrected, 47 bytes changed in 14 ranges plus the checksum record, read-back matches intent to
+1.8e-06, no other semantic table moved, curve monotonic after encoding, checksum passes. **Nothing
+is flashed** — we emit a file; flashing stays a human act in ECUFlash.
+
+| date | metric | value | conditions |
+|---|---|---|---|
+| 2026-08-27 | corr(trim, airflow) | **+0.838** | 30,795 steady closed-loop samples, 6 drives |
+| 2026-08-27 | corr(trim, load) / (rpm) | +0.708 / +0.737 | same |
+| 2026-08-27 | max measured MAF error | **+32.1%** | at 32 g/s, post-clean, learning converged |
+| 2026-08-27 | fuel-correction authority used | **~75%** | above 20 g/s, of a +39.84% ceiling |
+| 2026-08-27 | A/F learning saturation | **80.8%** | of samples at 20–25 g/s, pegged at +14.84% |
+| 2026-08-27 | cells corrected | 14 of 48 | deadband 2%, damping 0.70 |
+| 2026-08-27 | bytes changed | 47 + checksum | read-back error 1.8e-06, no other table moved |
+| 2026-08-27 | car test suite | **138 passed** | was 106 at the start of the arc |
+
+---
+
 ## 2026-08-16 — ★ THE ROM READ: the project's day-one blocker is solved, and the idle diagnosed healthy from real data
 
 The single thing that gated whether this project's output could ever reach the car. **The stock ROM
