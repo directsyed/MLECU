@@ -280,6 +280,100 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     return 0
 
 
+
+def _verify_flash(candidate: str, rom: str | None) -> int:
+    """Pre-flash audit: prove a candidate image is safe to write, or refuse it.
+
+    Every check is independent and every one must pass. This is the last automated gate before
+    a human puts the file on an ECU, so it reports GO / NO-GO and nothing softer -- there is no
+    "passed with warnings" state, because a warning on a flashable image is a defect.
+    """
+    import hashlib
+
+    import numpy as np
+
+    from .core.tables import SENSOR_MAF_TRANSFER
+    from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
+    from .romread import EcuFlashDefs, RomImage, read_semantic_tables
+    from .safety.romwrite import checksum as ck
+    from .safety.romwrite.patcher import _diff_ranges
+    from .simulation.rom_seed import DEFAULT_DEFS, DEFAULT_ROM, SIBLING_DEFS
+
+    rom_path = Path(rom if (rom and rom != "DEFAULT") else str(DEFAULT_ROM))
+    stock, cand = rom_path.read_bytes(), Path(candidate).read_bytes()
+    fails: list[str] = []
+
+    def check(ok: bool, label: str, detail: str = "") -> None:
+        print(f"  [{'PASS' if ok else 'FAIL'}] {label}{('  — ' + detail) if detail else ''}")
+        if not ok:
+            fails.append(label)
+
+    print(f"PRE-FLASH AUDIT\n  stock     {rom_path.name}\n  candidate {Path(candidate).name}\n")
+
+    check(len(cand) == len(stock) == 1024 * 1024, "size is exactly 1,048,576 bytes",
+          f"stock {len(stock)}, candidate {len(cand)}")
+
+    # The archived stock must be the one we actually read off THIS car.
+    sums = rom_path.parent / "SHA256SUMS.txt"
+    digest = hashlib.sha256(stock).hexdigest()
+    if sums.exists():
+        check(digest in sums.read_text(), "stock matches the archived SHA256SUMS", digest[:16])
+    else:
+        print(f"  [ -- ] no SHA256SUMS.txt beside the stock ROM (skipped)")
+
+    # A calibration ID that moved means we patched the wrong thing entirely.
+    check(stock[0x2000:0x2008] == cand[0x2000:0x2008], "calibration ID unchanged",
+          cand[0x2000:0x2008].decode("ascii", "replace"))
+    check(stock[:0x2000] == cand[:0x2000], "boot/vector region 0x0-0x1FFF untouched")
+
+    ranges = _diff_ranges(stock, cand)
+    nbytes = sum(b - a for a, b in ranges)
+    check(0 < len(ranges) < 64, f"{len(ranges)} changed byte-range(s), {nbytes} bytes total")
+
+    defs = EcuFlashDefs(DEFAULT_DEFS)
+    s_tab, s_rep = read_semantic_tables(RomImage(stock), defs, list(SIBLING_DEFS),
+                                        TO_PLATFORM, VARIANTS)
+    c_tab, _ = read_semantic_tables(RomImage(cand), defs, list(SIBLING_DEFS),
+                                    TO_PLATFORM, VARIANTS)
+    moved = [k for k in s_tab if not np.array_equal(s_tab[k].values, c_tab[k].values)]
+    check(moved == [SENSOR_MAF_TRANSFER], "exactly one semantic table changed",
+          str(moved) if moved else "none changed")
+
+    # Every changed byte must fall inside that table, or inside a checksum record's stored field.
+    rd = s_rep["resolved"][SENSOR_MAF_TRANSFER]
+    n = np.asarray(s_tab[SENSOR_MAF_TRANSFER].values).size
+    lo, hi = rd.table_def.address, rd.table_def.address + n * rd.scaling.byte_size
+    cks = {(r.offset + 8, r.offset + 12) for r in ck.read_records(stock)}
+    stray = [r for r in ranges
+             if not (lo <= r[0] and r[1] <= hi)
+             and not any(a <= r[0] and r[1] <= b for a, b in cks)]
+    check(not stray, "every changed byte is inside the MAF table or a checksum field",
+          f"MAF 0x{lo:X}-0x{hi:X}" if not stray else f"stray {stray[:3]}")
+
+    check(ck.verify(cand) == [], "candidate satisfies its own SH7058 checksum")
+
+    curve = np.asarray(c_tab[SENSOR_MAF_TRANSFER].values, float).ravel()
+    check(bool(np.all(np.diff(curve) > 0)), "MAF curve is strictly ascending")
+    check(bool(np.all(np.isfinite(curve)) and curve.min() > 0), "MAF curve finite and positive",
+          f"{curve.min():.2f} .. {curve.max():.2f} g/s")
+
+    stock_curve = np.asarray(s_tab[SENSOR_MAF_TRANSFER].values, float).ravel()
+    worst = float(np.max(np.abs(curve / stock_curve - 1.0)))
+    cfg = load_config()
+    check(worst <= cfg.safety.max_sensor_recal + 1e-9,
+          f"no cell exceeds max_sensor_recal ({cfg.safety.max_sensor_recal:.0%})",
+          f"worst {worst:+.1%}")
+
+    print()
+    if fails:
+        print(f"NO-GO — {len(fails)} check(s) failed: {fails}")
+        return 2
+    print("GO — every check passed. The image is internally consistent and changes only what")
+    print("     was approved. This says nothing about whether the CALIBRATION is right, only")
+    print("     that the file is what we intended to build.")
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="ecutune", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -311,6 +405,9 @@ def main(argv=None) -> int:
                    help="ROM + drive logs -> clamped MAF transfer-curve correction -> verified "
                         "candidate image + CHANGE REPORT (nothing is flashed)")
     p.add_argument("--out", metavar="PATH", help="with --tune-maf: write the candidate ROM here")
+    p.add_argument("--verify-flash", metavar="CANDIDATE",
+                   help="pre-flash audit of a candidate ROM against the stock image "
+                        "(GO/NO-GO; exit 2 on any failure)")
     p.add_argument("--report-out", metavar="PATH",
                    help="with --tune-maf: write the change report here instead of stdout")
     p.add_argument("--eval-version", type=int, choices=(1, 2), default=1,
@@ -329,6 +426,8 @@ def main(argv=None) -> int:
         return _rom_diff(args.rom_diff[0], args.rom_diff[1])
     if args.diagnose:
         return _diagnose(args.diagnose, args.rom, args.independent_baseline)
+    if args.verify_flash:
+        return _verify_flash(args.verify_flash, args.rom)
     if args.tune_maf:
         return _tune_maf(args.tune_maf, args.rom, args.out, args.report_out)
     if args.generate_eval_cases:
