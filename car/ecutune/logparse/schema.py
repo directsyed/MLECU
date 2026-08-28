@@ -15,7 +15,7 @@ import re
 CANONICAL_ROLES = (
     "rpm", "maf_gs", "load", "wideband_afr", "af_correction", "af_learning",
     "knock_retard", "fine_knock_learn", "timing_total", "injector_duty",
-    "iat", "coolant", "tps", "battery_v", "fuel_system_status", "target_afr",
+    "iat", "coolant", "tps", "battery_v", "fuel_system_status", "target_afr", "final_fueling_base", "af_learning_range",
 )
 
 # SSM2 fuel-system status codes (def E33: "[8 = CL (normal)][10 = OL (normal)]
@@ -58,8 +58,25 @@ _RULES: list[tuple[re.Pattern, str]] = [
     # carries "lambda" in its units and was silently landing on wideband_afr, i.e. the
     # ECU's TARGET overwriting the MEASURED AFR. It only escaped notice because the AEM
     # happened to sit in an earlier column and first-column-wins saved us. Found 2026-08-27.
+    # BOTH of these must precede the wideband rule, and for the same reason: they are ECU
+    # COMMANDED values carrying "lambda" or "AFR" in their UNITS, and the wideband pattern
+    # matches "lambda" anywhere. Left unhandled they land on wideband_afr -- the ECU's own
+    # command silently replacing the MEASURED mixture. Both were found in real logs:
+    #   Closed Loop Fueling Target (2-byte)* (lambda)   2026-08-27
+    #   Final Fueling Base (4-byte)* (lambda)           2026-08-28
+    # The second is why silent collisions are now DETECTED (see romraider_csv.LogTable.collisions)
+    # rather than resolved by column order: the AEM sat in column 10 of the August 26 logs and
+    # column 25 of the August 27 log, so first-column-wins quietly changed what wideband_afr
+    # MEANT between two sessions of the same car.
     (re.compile(r"fuel\w*\s*target", re.I), "target_afr"),
+    (re.compile(r"final\s*fuel\w*\s*base", re.I), "final_fueling_base"),
     (re.compile(r"wideband|uego|\baem\b|\bwb\b|lambda", re.I), "wideband_afr"),
+    # MUST precede the a/f-learn rule. "A/F Learning Airflow Range (Current)*" is an INDEX
+    # (1,2,3 = which airflow range is being learned), NOT a percentage — and it matched
+    # `a/?f\s*learn`. It only ever lost to the real learning channel because it happened to sit
+    # one column later; a reordered log would have put an integer index into af_learning and
+    # silently corrupted every trim calculation downstream. Found 2026-08-28.
+    (re.compile(r"learn\w*\s*airflow\s*range|airflow\s*range", re.I), "af_learning_range"),
     (re.compile(r"a/?f\s*learn", re.I), "af_learning"),
     (re.compile(r"a/?f\s*correction|a/?f\s*corr", re.I), "af_correction"),
     (re.compile(r"engine\s*load|calculated\s*load|g/rev|\bload\b", re.I), "load"),
@@ -86,3 +103,25 @@ def map_header(header: str) -> str | None:
         if pat.search(h):
             return role
     return None
+
+
+# When two headers legitimately describe the SAME quantity, which one wins must be a DECISION,
+# not an accident of column order. RomRaider's column order is not stable between sessions: the
+# AEM wideband sat in column 10 of the 2026-08-26 logs and column 25 of the 2026-08-27 log, which
+# is how "Final Fueling Base (lambda)" quietly took over wideband_afr for one session.
+# Most-preferred pattern first; anything unlisted falls back to first-column-wins.
+_PREFER: dict[str, tuple[re.Pattern, ...]] = {
+    # The ECU's own 4-byte internal load, not RomRaider's value derived from MAF and rpm.
+    "load": (re.compile(r"4-?byte", re.I),),
+    # Live knock feedback beats the IAM-scaled advance correction for "is it knocking NOW".
+    "knock_retard": (re.compile(r"feedback\s*knock", re.I),),
+}
+
+
+def prefer(role: str, headers: list[str]) -> str:
+    """Pick the winning header for a role deterministically. Returns headers[0] if unlisted."""
+    for pat in _PREFER.get(role, ()):
+        for h in headers:
+            if pat.search(h):
+                return h
+    return headers[0]

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .schema import map_header
+from .schema import map_header, prefer
 
 
 @dataclass
@@ -23,6 +23,10 @@ class LogTable:
     raw_headers: tuple[str, ...] = ()
     sample_hz: float = 0.0
     source_path: str | None = None
+    # role -> the headers that ALL claimed it, when more than one did. Empty is the healthy
+    # case. Recorded rather than silently resolved: a collision means a role's MEANING depends
+    # on column order, and RomRaider's column order is not stable between logging sessions.
+    collisions: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     def __len__(self) -> int:
         return max((len(v) for v in self.channels.values()), default=0)
@@ -70,16 +74,21 @@ def parse_romraider_csv(src, source_path: str | None = None) -> LogTable:
 
     rows = [r for r in csv.reader(io.StringIO(text)) if r and any(c.strip() for c in r)]
     if not rows:
-        return LogTable({}, (), 0.0, source_path)
+        return LogTable({}, (), 0.0, source_path, {})
 
     header, data = rows[0], rows[1:]
 
     # Resolve columns -> roles (first column wins a role if duplicated).
-    role_col: dict[str, int] = {}
+    claims: dict[str, list[str]] = {}
+    col_of: dict[str, int] = {}
     for ci, h in enumerate(header):
         role = map_header(h)
-        if role and role not in role_col:
-            role_col[role] = ci
+        if not role:
+            continue
+        claims.setdefault(role, []).append(h)
+        col_of.setdefault(h, ci)
+    role_col = {r: col_of[prefer(r, hs)] for r, hs in claims.items()}
+    collisions = {r: tuple(hs) for r, hs in claims.items() if len(hs) > 1}
 
     channels: dict[str, np.ndarray] = {}
     for role, ci in role_col.items():
@@ -91,4 +100,5 @@ def parse_romraider_csv(src, source_path: str | None = None) -> LogTable:
                 col[ri] = np.nan
         channels[role] = col
 
-    return LogTable(channels, tuple(header), _sample_hz(header, data), source_path)
+    return LogTable(channels, tuple(header), _sample_hz(header, data), source_path,
+                    collisions)
