@@ -80,6 +80,10 @@ def change_report(prop: Proposal, result: ClampResult, write: WriteResult,
 
     L.append("---")
     L.append("**Nothing has been flashed.** This file is a candidate image; flashing stays a "
-             "human act in ECUFlash, against the checklist (battery charger, AC power, stock "
-             "ROM archived in three places).")
+             "human act, against the checklist (battery charger, AC power, green test-mode "
+             "connectors joined, stock ROM archived in three places).")
+    L.append("")
+    L.append("Tool: **FastECU** (stock upstream build, profile `sub_ecu_denso_sh7058`). EcuFlash "
+             "cannot be used on this ECU -- its SecurityAccess key is rejected even with the "
+             "green connectors joined, retested 2026-08-29. See ecu/ROM-READ-BLOCKER.md.")
     return "\n".join(L)
