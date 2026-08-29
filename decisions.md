@@ -1243,3 +1243,45 @@ unprotected; too low protects vacuum cells whose 14.7 target is nowhere near the
 the clamp never fires there. `tests/test_boost_threshold.py` recomputes the crossing point from
 the committed drive logs and fails if the threshold ever drifts back above it — a regression test
 against a physical fact rather than a remembered number.
+
+### D27 — FIRST ECU WRITE, verified byte-exact (2026-08-29)
+
+The project's first write to the car. Loop closed: **intended → written → confirmed.**
+
+```
+candidate  sha256 9d33d08b7d4e604b064c018c3fc9a02123b68074f5c11fe36641ade15a04bc25
+read-back  sha256 9d33d08b7d4e604b064c018c3fc9a02123b68074f5c11fe36641ade15a04bc25   IDENTICAL
+stock      sha256 11fe1536690e6b8f789d8719185a003c2d8ee73253ecd59a97a63f183a3f3118
+```
+
+53 bytes differ from stock, exactly as designed. Cal ID `A2WC411D` unchanged, SH7058 checksum
+valid on the read-back, `sensor.maf_transfer` the only semantic table changed, curve strictly
+ascending in the ECU. 16 of 48 breakpoints moved, −3.2% to +22.1%.
+
+**Tool: FastECU, stock upstream build, block-by-block write.** EcuFlash was eliminated by test
+(D26 / ROM-READ-BLOCKER): its SecurityAccess key is rejected on this ECU even with the green
+connectors joined.
+
+### ⚠ D28 — FastECU's "test write" is NOT a dry run. It erases and does not program.
+
+Read from the source before use (`modules/ecu/flash_ecu_subaru_denso_sh705x_kline.cpp`). The
+erase command is sent **unconditionally** — there is no `test_write` guard around it:
+
+```cpp
+emit LOG_I("Erasing flash page...", true, false);
+output.append((uint8_t)(SUB_KERNEL_BLANK_PAGE & 0xFF));
+received = serial->write_serial_data_echo_check(output);
+```
+
+The flag changes only the final step: `SUB_KERNEL_VALIDATE_FLASH_BUFFER` (CRC, does not persist)
+instead of `SUB_KERNEL_COMMIT_FLASH_BUFFER`. So a "test write" **erases the page and then does not
+program it**, leaving the original contents destroyed and the replacement unwritten. Recoverable
+only by immediately performing a real write. It converts one risky operation into two with a
+dangerous window between them.
+
+**Never use it.** The name, and the community description of the green arrow as a safe test, are
+both actively misleading. Verified against the source, not assumed.
+
+Corollary, from the same source: writes are block-by-block and unmodified blocks are skipped
+(`get_changed_blocks()` / `if (block_modified[blockno])`). A stock→stock "rehearsal" flash would
+therefore write nothing at all and prove nothing — that plan was dropped for this reason.
