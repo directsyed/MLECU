@@ -14,8 +14,29 @@
 > that read only with the test connector), surfaced by the 2026-08-16 community-doc review.
 > Note: this doc is about **EcuFlash** failing at *seed/key*; the successful read was **FastECU**
 > (its seed/key was solved separately) failing at *RequestDownload* until the connectors were
-> joined. EcuFlash was never retried with the connectors; whether they also fix its key step is
-> untested and now moot.
+> joined.
+>
+> ### ✅ 2026-08-29 — EcuFlash RETESTED WITH THE CONNECTORS JOINED. Still fails at seed/key.
+>
+> The open question ("whether they also fix its key step is untested") is now **answered: they do
+> not.** Syed retried an EcuFlash read with the green connectors in. Its own log:
+>
+> ```
+> 18:25:04.135  SSM2 init
+> 18:25:04.280  SSM2 ECU ID is 3B12504206      <- comms + cable fine, ECU identified
+> 18:25:04.362  Requesting Seed...
+> 18:25:04.394  Sending Key...                  <- 32 ms: a real seed came back, a key was computed
+> 18:25:04.445  interface close                 <- 51 ms later, no positive response
+> ```
+>
+> Compare the FastECU trace, which the shim captured byte-for-byte:
+> `27 02 01 B1 1E A4 -> 67 02` — key **ACCEPTED**. Same car, same cable, same seed exchange; the
+> two tools compute different keys and only FastECU's is right for this ECU. The green connectors
+> govern *read/write permission* (SID 0x34), not SecurityAccess.
+>
+> **Consequence: EcuFlash cannot authenticate on this ECU and is not a flashing option.** The only
+> way to make it work would be the j2534 shim's key substitution, which is deliberately NOT used
+> for writing (see below).
 >
 > **The body below is kept verbatim as the honest failure history** (and a lesson: an elimination
 > by argument is not an elimination by experiment). Do not act on its conclusions.

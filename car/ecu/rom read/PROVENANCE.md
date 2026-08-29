@@ -5,7 +5,11 @@
 - File: `3B12504206_2026-08-16_16h51m01s.bin` — 1,048,576 bytes (1024 KB), full SH7058 flash.
 - sha256: `11fe1536690e6b8f789d8719185a003c2d8ee73253ecd59a97a63f183a3f3118`
 - md5:    `e88f016d3d32df251c9462fca1435ae9`
-- Read: 2026-08-16 ~16:51 local, FastECU 0.1.0-beta.5 (patched, see `car/ecu/fastecu-patch/`),
+- Read: 2026-08-16 ~16:51 local, FastECU 0.1.0-beta.5. The `car/ecu/fastecu-patch/` build was
+  present, but the patch is **inert unless `FASTECU_SID34_FORMAT` is set** (unset => 0x04 =>
+  byte-identical to upstream) and the successful read used the plain upstream request. So the read
+  is reproducible on a **stock upstream FastECU**; "patched" in an earlier version of this line was
+  misleading. Clarified 2026-08-29.
   Washinglee Openport 2.0 clone via the logging shim, profile `sub_ecu_denso_sh7058`, K-line.
 
 ## How it was finally read (the blocker that was dead since project start)
