@@ -29,6 +29,13 @@ FUEL_CL_LEARNING_LIMITS = "fuel.cl_learning_limits"       # A/F learning clamp l
 # --- ignition ---------------------------------------------------------------------------
 IGNITION_BASE_TIMING = "ignition.base_timing"
 IGNITION_TIMING_COMP_A = "ignition.timing_comp_a"         # per-cylinder/aux timing compensation
+# The advance the ECU adds ON TOP of the base map, scaled by IAM. Read-only for the layer: the
+# timing stage needs it to know how much advance a cell LOSES when IAM collapses, which is what
+# turns "IAM went to zero" from a severity signal into a number of degrees per cell.
+IGNITION_KNOCK_ADVANCE_MAX = "ignition.knock_advance_max"
+# The ECU's own starting IAM. On this ROM it is 0.5, NOT 1.0 -- so an observed IAM of 0.5 is the
+# healthy value, not a halved one, and the deficit at IAM 0 is 0.5 of the advance map.
+IGNITION_ADVANCE_MULT_INITIAL = "ignition.advance_multiplier_initial"
 
 # --- idle / boost ------------------------------------------------------------------------
 IDLE_SPEED_TARGET_A = "idle.speed_target_a"

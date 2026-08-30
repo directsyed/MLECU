@@ -4,6 +4,9 @@
   python -m ecutune.cli --run-convergence [--seed N]  # the one-command offline proof
   python -m ecutune.cli --generate-eval-cases 10      # sim-eval cases -> ml/eval/data/*.jsonl
   python -m ecutune.cli --score-sim-eval PATH --baseline rules|random
+  python -m ecutune.cli --tune-maf LOG.csv... --rom ROM --baseline-rom STOCK --out CAND.bin
+  python -m ecutune.cli --tune-timing LOG.csv... --rom ROM --baseline-rom STOCK --out CAND.bin
+  python -m ecutune.cli --verify-flash CAND.bin --rom ROM --baseline-rom STOCK --expect timing
 """
 from __future__ import annotations
 
@@ -198,7 +201,8 @@ def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> 
 
 
 def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
-              report_out: str | None, baseline: str | None = None) -> int:
+              report_out: str | None, baseline: str | None = None,
+              ack_knock: bool = False) -> int:
     """The full pipeline, end to end: ROM + drive logs -> a verified candidate image.
 
     ROM -> semantic tables -> bin the pooled logs on THIS ROM's MAF breakpoints -> the layer's
@@ -213,6 +217,7 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     from .core.tables import SENSOR_MAF_TRANSFER
     from .logparse.binning import bin_log
     from .logparse.romraider_csv import LogTable, parse_romraider_csv
+    from .logparse.signals import live_signals
     from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
     from .romread import EcuFlashDefs, RomImage, read_semantic_tables
     from .safety import apply_clamps, apply_proposal
@@ -238,6 +243,10 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     grid = bin_log(pooled, grid_spec_for(maf))
     counts = {SENSOR_MAF_TRANSFER: tuple(int(c) for c in grid.count.sum(axis=0))}
 
+    sig = live_signals(pooled, grid, cfg.safety)
+    print(f"  live signals: knock onsets={sig.knock_onsets} (worst {sig.worst_knock_deg:+.2f} deg) "
+          f"trims_converged={sig.fuel_trims_converged} steady={sig.steady_state_ok} "
+          f"max|trim|={sig.max_trim_abs:.1%}")
     prop, _ = propose_maf_correction(grid, tables, MafState(), cfg.algo)
     # The cumulative sensor envelope is measured against the ARCHIVED STOCK ROM, not against
     # the image being patched. Passing the current tables here would make the bound vacuous:
@@ -252,8 +261,26 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
         baseline_tables = tables
         print("  WARNING: no --baseline given; cumulative envelope is measured against the "
               "image being patched, which makes it inert")
+    kw = sig.as_context_kwargs()
+    if ack_knock and kw["knock_active"]:
+        # A HUMAN override, made at the command line, not something a proposal can claim for
+        # itself. clamp_knock_auto_abort's exemption covers retard-only TIMING; a fuel or
+        # sensor proposal has no such structural argument, so the only way past it is a person
+        # stating that they have looked at the knock and judged the closed-loop steady evidence
+        # uncontaminated by it. It is stamped into the proposal metadata and printed in the
+        # change report, because an override nobody can see afterwards is not a review.
+        print("  ** --ack-knock: HUMAN OVERRIDE of clamp_knock_auto_abort **")
+        print(f"     {sig.knock_onsets} knock onset(s) in the samples this correction is built "
+              f"from, worst {sig.worst_knock_deg:+.2f} deg.")
+        print("     Recorded in the change report. A MAF correction is derived from mixture, "
+              "not from spark,")
+        print("     so knock does not corrupt the trim evidence -- but that is a judgement, "
+              "and it is yours.")
+        kw["knock_active"] = False
+        prop.metadata["human_override"] = (
+            f"--ack-knock: {sig.knock_onsets} onsets, worst {sig.worst_knock_deg:+.2f} deg")
     ctx = ClampContext(tables, cfg.safety, sensor_sample_counts=counts,
-                       baseline_tables=baseline_tables)
+                       baseline_tables=baseline_tables, **kw)
     res = apply_clamps(prop, ctx)
     after, _ = apply_proposal(tables, prop, ctx)
 
@@ -294,26 +321,217 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
 
 
 
-def _verify_flash(candidate: str, rom: str | None) -> int:
+def _pool_logs(drive_csvs: list[str]):
+    """Parse and concatenate several RomRaider exports into one LogTable.
+
+    A channel missing from one file is NaN-filled for that file's rows rather than dropped, so
+    pooling a log that carries `Ignition Base Timing` with one that does not keeps both usable
+    and leaves the gap visible as NaN instead of as a fabricated zero.
+    """
+    import numpy as np
+
+    from .logparse.romraider_csv import LogTable, parse_romraider_csv
+
+    logs = [parse_romraider_csv(c) for c in drive_csvs]
+    roles = set().union(*[set(l.channels) for l in logs])
+    pooled = LogTable({r: np.concatenate([l.channels.get(r, np.full(len(l), np.nan))
+                                          for l in logs]) for r in roles})
+    collisions = {}
+    for l in logs:
+        collisions.update(l.collisions)
+    return logs, pooled, collisions
+
+
+def _tune_timing(drive_csvs: list[str], rom: str | None, out: str | None,
+                 report_out: str | None, baseline: str | None = None) -> int:
+    """ROM + drive logs -> a clamped ignition-retard candidate image + CHANGE REPORT.
+
+    Mirrors `_tune_maf`, with three differences that matter:
+
+      * the log is binned on the TIMING MAP's own axes (load x rpm), so a binned cell and a
+        `CellEdit(row, col)` are the same thing;
+      * `require_closed_loop=False` -- open loop is where this car makes boost, and knock is
+        measured identically in both;
+      * the write uses `round_mode="no_greater"`, because Base Timing is uint8 at 0.3516
+        deg/step and rounding to nearest could store up to +0.176 deg MORE ADVANCE than the
+        clamps approved.
+
+    Nothing is flashed. This emits a FILE for a human to review and write with FastECU.
+    """
+    from dataclasses import replace
+
+    import numpy as np
+
+    from .algorithms import (TimingState, grid_spec_for_timing, iam_deficit_degrees,
+                             propose_timing_retard)
+    from .core.models import ClampContext, TableSet
+    from .core.tables import IGNITION_BASE_TIMING
+    from .logparse.binning import bin_log
+    from .logparse.signals import live_signals
+    from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
+    from .romread import EcuFlashDefs, RomImage, read_semantic_tables
+    from .safety import apply_clamps, apply_proposal
+    from .safety.romwrite import change_report, patch
+    from .simulation.rom_seed import DEFAULT_DEFS, DEFAULT_ROM, SIBLING_DEFS
+
+    cfg = load_config()
+    rom_path = rom if (rom and rom != "DEFAULT") else str(DEFAULT_ROM)
+    current = Path(rom_path).read_bytes()
+    defs = EcuFlashDefs(DEFAULT_DEFS)
+    raw, rep = read_semantic_tables(RomImage(current), defs, list(SIBLING_DEFS),
+                                    TO_PLATFORM, VARIANTS)
+    tables = TableSet(raw)
+    timing = tables.tables.get(IGNITION_BASE_TIMING)
+    if timing is None:
+        print("ROM has no Base Timing map — cannot proceed")
+        return 1
+
+    logs, pooled, collisions = _pool_logs(drive_csvs)
+    grid = bin_log(pooled, grid_spec_for_timing(timing, cfg.safety.min_sensor_samples))
+    sig = live_signals(pooled, grid, cfg.safety)
+    iam_deficit, iam_info = iam_deficit_degrees(pooled.get("iam"), cfg.safety, tables, timing)
+
+    # FUEL convergence has to be judged on the grid the FUEL evidence lives on -- closed-loop,
+    # binned on airflow -- not on this stage's open-loop-inclusive load x rpm grid. In open
+    # loop the A/F correction is FROZEN (measured sd 0.04 vs 9.75 closed), so pooling those
+    # samples reports a trim spread that is an artefact of the filter, not of the calibration.
+    # The number that gates clamp_fuel_before_timing must mean what its name says.
+    from .algorithms import grid_spec_for
+    from .core.tables import SENSOR_MAF_TRANSFER
+    fuel_sig = sig
+    maf_table = tables.tables.get(SENSOR_MAF_TRANSFER)
+    if maf_table is not None:
+        fuel_sig = live_signals(pooled, bin_log(pooled, grid_spec_for(maf_table)), cfg.safety)
+    sig = replace(sig, fuel_trims_converged=fuel_sig.fuel_trims_converged,
+                  max_trim_abs=fuel_sig.max_trim_abs)
+
+    print(f"ROM {Path(rom_path).name} — {len(drive_csvs)} log(s), {len(pooled)} rows")
+    if collisions:
+        print(f"  schema collisions resolved by schema.prefer(): "
+              f"{ {k: len(v) for k, v in collisions.items()} }")
+    print(f"  {int(grid.count.sum())} steady samples over {int((grid.count > 0).sum())} cells "
+          f"({int(np.asarray(grid.confidence).sum())} confident, "
+          f">= {cfg.safety.min_sensor_samples} samples)")
+    print(f"  IAM: worst {iam_info['iam_worst']} vs reference {iam_info['iam_reference']} "
+          f"[{iam_info['iam_reference_source']}] -> deficit "
+          f"{iam_info['iam_deficit_fraction']:.3f} x advance authority "
+          f"[{iam_info['iam_authority_source']}] = up to "
+          f"{iam_info.get('iam_deficit_max_deg', 0.0):.2f} deg")
+    print(f"  live signals: knock onsets={sig.knock_onsets} (worst {sig.worst_knock_deg:+.2f} deg) "
+          f"trims_converged={sig.fuel_trims_converged} steady={sig.steady_state_ok} "
+          f"max|trim|={sig.max_trim_abs:.1%}")
+
+    prop, _ = propose_timing_retard(grid, tables, TimingState(), cfg.algo, cfg.safety,
+                                    iam_deficit_deg=iam_deficit,
+                                    metadata={"logs": [Path(c).name for c in drive_csvs]})
+
+    base_path = baseline or rom_path
+    if base_path != rom_path:
+        base_raw, _ = read_semantic_tables(RomImage(Path(base_path).read_bytes()), defs,
+                                           list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
+        baseline_tables = TableSet(base_raw)
+        print(f"  cumulative retard measured against {Path(base_path).name}")
+    else:
+        # REFUSED, not warned. For --tune-maf an inert cumulative envelope still leaves the
+        # per-iteration displacement cap doing real work. Here it would leave the cumulative
+        # retard floor as the ONLY bound below, and the ceiling only bounds above — so the
+        # stage's own safety story would rest on `min_timing_advance` alone.
+        print("  REFUSED: --tune-timing requires --baseline-rom (the archived stock ROM).")
+        print("           Without it the cumulative retard floor is inert and the only bound")
+        print("           below is the absolute min_timing_advance backstop.")
+        return 2
+
+    ctx = ClampContext(tables, cfg.safety, baseline_tables=baseline_tables,
+                       **sig.as_context_kwargs())
+    res = apply_clamps(prop, ctx)
+    after_tables, _ = apply_proposal(tables, prop, ctx)
+
+    m = prop.metadata
+    print(f"  proposal: {m['n_edited']}/{m['n_cells']} cells "
+          f"({m['n_evidence_driven']} evidence-driven, {m['n_ceiling_only']} ceiling-only), "
+          f"worst pull {m['max_pull_deg']:.2f} deg")
+    print(f"  clamps: ok={res.ok} surviving={len(res.clamped_edits)} "
+          f"violations={len(res.violations)} {sorted({v.action for v in res.violations})}")
+    if not res.ok:
+        print(f"  ABORTED BY {res.aborted_by} — nothing written")
+        return 2
+    if not res.clamped_edits:
+        print("  no edit survived the clamps — nothing to write")
+        return 2
+
+    w = patch(current, res, raw, rep["resolved"],
+              round_modes={IGNITION_BASE_TIMING: "no_greater"})
+    back, _ = read_semantic_tables(RomImage(w.data), defs, list(SIBLING_DEFS),
+                                   TO_PLATFORM, VARIANTS)
+    moved = [s for s in raw if s != IGNITION_BASE_TIMING
+             and not np.array_equal(raw[s].values, back[s].values)]
+    flashed = np.asarray(back[IGNITION_BASE_TIMING].values, float)
+    stock_map = np.asarray(raw[IGNITION_BASE_TIMING].values, float)
+    print(f"  wrote {sum(b - a for a, b in w.byte_ranges)} bytes in "
+          f"{len(w.byte_ranges)} range(s); checksum records repaired {list(w.checksum_repaired)}")
+    print(f"  read-back: other tables moved = {moved or 'none'}; "
+          f"worst advance vs current {float(np.max(flashed - stock_map)):+.4f} deg "
+          f"(must be <= 0)")
+
+    md = change_report(prop, res, w, raw, back, rom_name=Path(rom_path).name)
+    if report_out:
+        Path(report_out).write_text(md)
+        print(f"  change report -> {report_out}")
+    else:
+        print()
+        print(md)
+    if out:
+        Path(out).write_bytes(w.data)
+        print(f"  candidate image -> {out}  (NOT flashed; review the report first)")
+    else:
+        print("  (no --out given: nothing written to disk)")
+    return 0
+
+
+
+# --- pre-flash audit ---------------------------------------------------------------------
+# Which semantic table a stage is allowed to move, and the checks that table's OWN physics
+# demand. Before 2026-08-30 this was hardcoded to the MAF curve ("exactly one semantic table
+# changed" asserted `moved == [SENSOR_MAF_TRANSFER]`, plus "strictly ascending" and
+# `max_sensor_recal`), so a timing candidate got NO-GO on three checks that do not apply to it
+# and skipped every check that does.
+_FLASH_PROFILES = {
+    "maf": "sensor.maf_transfer",
+    "timing": "ignition.base_timing",
+}
+
+
+def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
+                  expect: str | None = None) -> int:
     """Pre-flash audit: prove a candidate image is safe to write, or refuse it.
 
     Every check is independent and every one must pass. This is the last automated gate before
     a human puts the file on an ECU, so it reports GO / NO-GO and nothing softer -- there is no
     "passed with warnings" state, because a warning on a flashable image is a defect.
+
+    `rom` is the image being REPLACED (the one currently on the car), so per-iteration bounds
+    are measured against it. `baseline` is the ARCHIVED STOCK ROM, so cumulative bounds are
+    measured against that; it defaults to `rom`, which makes the cumulative checks vacuous and
+    says so out loud rather than quietly passing.
+
+    `expect` ("maf" | "timing") states which table the candidate is SUPPOSED to move. The audit
+    determines the answer independently either way; supplying it turns "I flashed the wrong
+    candidate file" from an undetected mistake into a NO-GO.
     """
     import hashlib
 
     import numpy as np
 
-    from .core.tables import SENSOR_MAF_TRANSFER
     from .platforms.subaru_ecuflash import TO_PLATFORM, VARIANTS
     from .romread import EcuFlashDefs, RomImage, read_semantic_tables
     from .safety.romwrite import checksum as ck
+    from .safety.romwrite.encoder import quantisation_step
     from .safety.romwrite.patcher import _diff_ranges
     from .simulation.rom_seed import DEFAULT_DEFS, DEFAULT_ROM, SIBLING_DEFS
 
     rom_path = Path(rom if (rom and rom != "DEFAULT") else str(DEFAULT_ROM))
     stock, cand = rom_path.read_bytes(), Path(candidate).read_bytes()
+    base_path = Path(baseline) if baseline else rom_path
     fails: list[str] = []
 
     def check(ok: bool, label: str, detail: str = "") -> None:
@@ -321,18 +539,21 @@ def _verify_flash(candidate: str, rom: str | None) -> int:
         if not ok:
             fails.append(label)
 
-    print(f"PRE-FLASH AUDIT\n  stock     {rom_path.name}\n  candidate {Path(candidate).name}\n")
+    print(f"PRE-FLASH AUDIT\n  current   {rom_path.name}\n  candidate {Path(candidate).name}\n"
+          f"  baseline  {base_path.name}"
+          f"{'  (== current: CUMULATIVE CHECKS ARE INERT)' if base_path == rom_path else ''}\n")
 
     check(len(cand) == len(stock) == 1024 * 1024, "size is exactly 1,048,576 bytes",
-          f"stock {len(stock)}, candidate {len(cand)}")
+          f"current {len(stock)}, candidate {len(cand)}")
 
     # The archived stock must be the one we actually read off THIS car.
     sums = rom_path.parent / "SHA256SUMS.txt"
     digest = hashlib.sha256(stock).hexdigest()
     if sums.exists():
-        check(digest in sums.read_text(), "stock matches the archived SHA256SUMS", digest[:16])
+        check(digest in sums.read_text(), "current image matches the archived SHA256SUMS",
+              digest[:16])
     else:
-        print(f"  [ -- ] no SHA256SUMS.txt beside the stock ROM (skipped)")
+        print("  [ -- ] no SHA256SUMS.txt beside the current ROM (skipped)")
 
     # A calibration ID that moved means we patched the wrong thing entirely.
     check(stock[0x2000:0x2008] == cand[0x2000:0x2008], "calibration ID unchanged",
@@ -348,34 +569,106 @@ def _verify_flash(candidate: str, rom: str | None) -> int:
                                         TO_PLATFORM, VARIANTS)
     c_tab, _ = read_semantic_tables(RomImage(cand), defs, list(SIBLING_DEFS),
                                     TO_PLATFORM, VARIANTS)
+    b_tab, _ = read_semantic_tables(RomImage(base_path.read_bytes()), defs, list(SIBLING_DEFS),
+                                    TO_PLATFORM, VARIANTS)
     moved = [k for k in s_tab if not np.array_equal(s_tab[k].values, c_tab[k].values)]
-    check(moved == [SENSOR_MAF_TRANSFER], "exactly one semantic table changed",
-          str(moved) if moved else "none changed")
+    check(len(moved) == 1, "exactly one semantic table changed", str(moved) if moved else "none")
+    if len(moved) != 1:
+        print(f"\nNO-GO — {len(fails)} check(s) failed: {fails}")
+        return 2
+    target = moved[0]
+    check(target in _FLASH_PROFILES.values(), "the changed table is one this layer tunes", target)
+    if expect:
+        check(_FLASH_PROFILES.get(expect) == target,
+              f"changed table is the one --expect={expect} asked for", target)
 
     # Every changed byte must fall inside that table, or inside a checksum record's stored field.
-    rd = s_rep["resolved"][SENSOR_MAF_TRANSFER]
-    n = np.asarray(s_tab[SENSOR_MAF_TRANSFER].values).size
+    rd = s_rep["resolved"][target]
+    n = np.asarray(s_tab[target].values).size
     lo, hi = rd.table_def.address, rd.table_def.address + n * rd.scaling.byte_size
     cks = {(r.offset + 8, r.offset + 12) for r in ck.read_records(stock)}
     stray = [r for r in ranges
              if not (lo <= r[0] and r[1] <= hi)
              and not any(a <= r[0] and r[1] <= b for a, b in cks)]
-    check(not stray, "every changed byte is inside the MAF table or a checksum field",
-          f"MAF 0x{lo:X}-0x{hi:X}" if not stray else f"stray {stray[:3]}")
+    check(not stray, f"every changed byte is inside {target} or a checksum field",
+          f"table 0x{lo:X}-0x{hi:X}" if not stray else f"stray {stray[:3]}")
 
     check(ck.verify(cand) == [], "candidate satisfies its own SH7058 checksum")
 
-    curve = np.asarray(c_tab[SENSOR_MAF_TRANSFER].values, float).ravel()
-    check(bool(np.all(np.diff(curve) > 0)), "MAF curve is strictly ascending")
-    check(bool(np.all(np.isfinite(curve)) and curve.min() > 0), "MAF curve finite and positive",
-          f"{curve.min():.2f} .. {curve.max():.2f} g/s")
+    cur = np.asarray(c_tab[target].values, float)
+    old = np.asarray(s_tab[target].values, float)
+    base = np.asarray(b_tab[target].values, float)
+    check(bool(np.all(np.isfinite(cur))), "every value is finite")
+    sc = rd.scaling
+    if sc.vmin is not None and sc.vmax is not None:
+        check(bool(cur.min() >= sc.vmin - 1e-9 and cur.max() <= sc.vmax + 1e-9),
+              f"every value inside the def's declared range [{sc.vmin}, {sc.vmax}]",
+              f"{cur.min():.3f} .. {cur.max():.3f}")
 
-    stock_curve = np.asarray(s_tab[SENSOR_MAF_TRANSFER].values, float).ravel()
-    worst = float(np.max(np.abs(curve / stock_curve - 1.0)))
     cfg = load_config()
-    check(worst <= cfg.safety.max_sensor_recal + 1e-9,
-          f"no cell exceeds max_sensor_recal ({cfg.safety.max_sensor_recal:.0%})",
-          f"worst {worst:+.1%}")
+    if target == "sensor.maf_transfer":
+        curve = cur.ravel()
+        check(bool(np.all(np.diff(curve) > 0)), "MAF curve is strictly ascending")
+        check(bool(curve.min() > 0), "MAF curve positive",
+              f"{curve.min():.2f} .. {curve.max():.2f} g/s")
+        worst = float(np.max(np.abs(curve / old.ravel() - 1.0)))
+        check(worst <= cfg.safety.max_sensor_recal + 1e-9,
+              f"no cell exceeds max_sensor_recal ({cfg.safety.max_sensor_recal:.0%})",
+              f"worst {worst:+.1%}")
+        if base_path != rom_path:
+            cum = float(np.max(np.abs(curve / base.ravel() - 1.0)))
+            check(cum <= cfg.safety.sensor_envelope + 1e-9,
+                  f"no cell exceeds sensor_envelope vs stock "
+                  f"({cfg.safety.sensor_envelope:.0%})", f"worst {cum:+.1%}")
+
+    elif target == "ignition.base_timing":
+        from .algorithms import ceiling_grid
+        # RETARD ONLY. This is the property clamp_knock_auto_abort and clamp_fuel_before_timing
+        # granted their exemptions on, so it is re-proved here against the actual BYTES rather
+        # than trusted from the in-memory proposal.
+        adv = cur - old
+        check(bool(np.all(adv <= 1e-9)), "no cell is more advanced than the current ROM",
+              f"worst advance {adv.max():+.4f} deg")
+
+        # One storage step of slack, in the RETARD direction only: Base Timing is uint8 at
+        # 0.3516 deg/step and the timing write rounds with "no_greater", so a value the clamp
+        # allowed at exactly the 6 deg bound stores at most one LSB further retarded. The
+        # excess can only ever be extra retard -- the advance check above is exact.
+        step_tol = quantisation_step(sc, float(old.max())) + 1e-9
+        moved_deg = float(np.max(np.abs(cur - old)))
+        check(moved_deg <= cfg.safety.max_timing_step + step_tol,
+              f"no cell moved more than max_timing_step ({cfg.safety.max_timing_step} deg)",
+              f"worst {moved_deg:.4f} deg (+{step_tol:.4f} uint8 storage slack, retard only)")
+
+        # NOT "every cell is at or below its ceiling" -- that is a post-condition of the whole
+        # CONVERGED sequence, not of one pass. Syed ratified 6 deg per iteration precisely so
+        # the map walks down to the ceiling over several drives, and the worst cell on this ROM
+        # starts 18.12 deg above it, i.e. four passes away. Asserting the end state here would
+        # NO-GO every iteration but the last.
+        # The invariant that IS true of a single pass: a cell still above its ceiling may only
+        # be there because the rate limit stopped it, never because it was passed over.
+        ceil = ceiling_grid(s_tab[target], cfg.safety)
+        above = cur > ceil + 1e-9
+        stalled = above & ((old - cur) < cfg.safety.max_timing_step - step_tol)
+        check(not bool(stalled.any()),
+              "every cell still above its ceiling took a full rate-limited step",
+              f"{int(above.sum())} cell(s) above ceiling, {int(stalled.any() and stalled.sum())} "
+              f"of them not moving")
+        if above.any():
+            remaining = float(np.max((cur - ceil)[above]))
+            print(f"  [ .. ] {int(above.sum())} cell(s) remain above their ceiling, worst by "
+                  f"{remaining:.2f} deg — "
+                  f"{int(np.ceil(remaining / cfg.safety.max_timing_step))} more iteration(s) "
+                  f"at {cfg.safety.max_timing_step} deg/pass")
+
+        if base_path != rom_path:
+            retard = float(np.max(base - cur))
+            check(retard <= cfg.safety.max_timing_retard + step_tol,
+                  f"no cell is more than max_timing_retard ({cfg.safety.max_timing_retard} deg) "
+                  "below stock", f"worst {retard:.4f} deg")
+        n_moved = int(np.sum(np.abs(cur - old) > 1e-9))
+        print(f"  [ .. ] {n_moved} of {cur.size} cells changed; "
+              f"mean pull {float(np.mean(old - cur)):.3f} deg, worst {moved_deg:.3f} deg")
 
     print()
     if fails:
@@ -417,15 +710,31 @@ def main(argv=None) -> int:
     p.add_argument("--tune-maf", nargs="+", metavar="DRIVE_CSV",
                    help="ROM + drive logs -> clamped MAF transfer-curve correction -> verified "
                         "candidate image + CHANGE REPORT (nothing is flashed)")
-    p.add_argument("--out", metavar="PATH", help="with --tune-maf: write the candidate ROM here")
+    p.add_argument("--tune-timing", nargs="+", metavar="DRIVE_CSV",
+                   help="ROM + drive logs -> clamped ignition-retard correction of Base Timing "
+                        "-> verified candidate image + CHANGE REPORT (nothing is flashed)")
+    p.add_argument("--out", metavar="PATH",
+                   help="with --tune-maf / --tune-timing: write the candidate ROM here")
     p.add_argument("--verify-flash", metavar="CANDIDATE",
-                   help="pre-flash audit of a candidate ROM against the stock image "
+                   help="pre-flash audit of a candidate ROM against the current image "
                         "(GO/NO-GO; exit 2 on any failure)")
+    p.add_argument("--expect", choices=("maf", "timing"),
+                   help="with --verify-flash: which table the candidate is SUPPOSED to move. "
+                        "The audit works it out either way; stating it turns 'wrong candidate "
+                        "file' into a NO-GO instead of a silent pass")
     p.add_argument("--baseline-rom", metavar="PATH",
-                   help="with --tune-maf: the ARCHIVED STOCK ROM the cumulative sensor "
-                        "envelope is measured against (not the image being patched)")
+                   help="the ARCHIVED STOCK ROM that CUMULATIVE bounds are measured against "
+                        "(not the image being patched): the sensor envelope for --tune-maf, "
+                        "the retard floor for --tune-timing, and both under --verify-flash")
+    p.add_argument("--ack-knock", action="store_true",
+                   help="with --tune-maf: HUMAN override of clamp_knock_auto_abort. Declares "
+                        "that you have reviewed the knock in these logs and judged the "
+                        "closed-loop fuel evidence uncontaminated. Recorded in the change "
+                        "report. Retard-only timing proposals do not need it -- they are "
+                        "exempt structurally")
     p.add_argument("--report-out", metavar="PATH",
-                   help="with --tune-maf: write the change report here instead of stdout")
+                   help="with --tune-maf / --tune-timing: write the change report here "
+                        "instead of stdout")
     p.add_argument("--eval-version", type=int, choices=(1, 2), default=1,
                    help="sim-eval generator version (2 = adds the voltage-sweep probe point)")
     args = p.parse_args(argv)
@@ -443,9 +752,13 @@ def main(argv=None) -> int:
     if args.diagnose:
         return _diagnose(args.diagnose, args.rom, args.independent_baseline)
     if args.verify_flash:
-        return _verify_flash(args.verify_flash, args.rom)
+        return _verify_flash(args.verify_flash, args.rom, args.baseline_rom, args.expect)
     if args.tune_maf:
-        return _tune_maf(args.tune_maf, args.rom, args.out, args.report_out, args.baseline_rom)
+        return _tune_maf(args.tune_maf, args.rom, args.out, args.report_out, args.baseline_rom,
+                         args.ack_knock)
+    if args.tune_timing:
+        return _tune_timing(args.tune_timing, args.rom, args.out, args.report_out,
+                            args.baseline_rom)
     if args.generate_eval_cases:
         return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out,
                               args.eval_version)

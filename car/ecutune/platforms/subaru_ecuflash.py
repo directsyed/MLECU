@@ -21,6 +21,8 @@ TO_PLATFORM: dict[str, str] = {
     T.FUEL_CL_LEARNING_LIMITS: "A/F Learning #1 Limits",
     T.IGNITION_BASE_TIMING: "Base Timing",
     T.IGNITION_TIMING_COMP_A: "Timing Compensation Per Cylinder A__",
+    T.IGNITION_KNOCK_ADVANCE_MAX: "Knock Correction Advance Max",
+    T.IGNITION_ADVANCE_MULT_INITIAL: "Advance Multiplier (Initial)",
     T.IDLE_SPEED_TARGET_A: "Idle Speed Target A",
     # no factory wastegate-duty table exposed at this level yet — boost stage is future work
 }
