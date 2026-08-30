@@ -202,7 +202,7 @@ def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> 
 
 def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
               report_out: str | None, baseline: str | None = None,
-              ack_knock: bool = False) -> int:
+              ack_knock: bool = False, extrapolate: bool = False) -> int:
     """The full pipeline, end to end: ROM + drive logs -> a verified candidate image.
 
     ROM -> semantic tables -> bin the pooled logs on THIS ROM's MAF breakpoints -> the layer's
@@ -247,7 +247,6 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     print(f"  live signals: knock onsets={sig.knock_onsets} (worst {sig.worst_knock_deg:+.2f} deg) "
           f"trims_converged={sig.fuel_trims_converged} steady={sig.steady_state_ok} "
           f"max|trim|={sig.max_trim_abs:.1%}")
-    prop, _ = propose_maf_correction(grid, tables, MafState(), cfg.algo)
     # The cumulative sensor envelope is measured against the ARCHIVED STOCK ROM, not against
     # the image being patched. Passing the current tables here would make the bound vacuous:
     # every iteration would be "0% from baseline" and the curve could walk forever.
@@ -261,6 +260,9 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
         baseline_tables = tables
         print("  WARNING: no --baseline given; cumulative envelope is measured against the "
               "image being patched, which makes it inert")
+    prop, _ = propose_maf_correction(grid, tables, MafState(), cfg.algo,
+                                     baseline=baseline_tables if base_path != rom_path else None,
+                                     extrapolate=extrapolate)
     kw = sig.as_context_kwargs()
     if ack_knock and kw["knock_active"]:
         # A HUMAN override, made at the command line, not something a proposal can claim for
@@ -280,7 +282,8 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
         prop.metadata["human_override"] = (
             f"--ack-knock: {sig.knock_onsets} onsets, worst {sig.worst_knock_deg:+.2f} deg")
     ctx = ClampContext(tables, cfg.safety, sensor_sample_counts=counts,
-                       baseline_tables=baseline_tables, **kw)
+                       baseline_tables=baseline_tables,
+                       sensor_extrapolation_ok=extrapolate, **kw)
     res = apply_clamps(prop, ctx)
     after, _ = apply_proposal(tables, prop, ctx)
 
@@ -535,31 +538,44 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
     base_path = Path(baseline) if baseline else rom_path
     fails: list[str] = []
 
-    def check(ok: bool, label: str, detail: str = "") -> None:
+    # `fatal` is the subset of failures that mean the image cannot meaningfully be DECODED --
+    # wrong size, another ECU's calibration ID, a rewritten boot region. Those short-circuit,
+    # because reconciliation will refuse a foreign image and raise. Everything else is a real
+    # failure that still produces a NO-GO, but not a reason to stop looking: a chained build
+    # legitimately bases on a CANDIDATE rather than a ROM read off the car, so the
+    # archived-checksum check fails on provenance while the image is perfectly decodable.
+    fatal: list[str] = []
+
+    def check(ok: bool, label: str, detail: str = "", is_fatal: bool = False) -> None:
         print(f"  [{'PASS' if ok else 'FAIL'}] {label}{('  — ' + detail) if detail else ''}")
         if not ok:
             fails.append(label)
+            if is_fatal:
+                fatal.append(label)
 
     print(f"PRE-FLASH AUDIT\n  current   {rom_path.name}\n  candidate {Path(candidate).name}\n"
           f"  baseline  {base_path.name}"
           f"{'  (== current: CUMULATIVE CHECKS ARE INERT)' if base_path == rom_path else ''}\n")
 
     check(len(cand) == len(stock) == 1024 * 1024, "size is exactly 1,048,576 bytes",
-          f"current {len(stock)}, candidate {len(cand)}")
+          f"current {len(stock)}, candidate {len(cand)}", is_fatal=True)
 
     # The archived stock must be the one we actually read off THIS car.
     sums = rom_path.parent / "SHA256SUMS.txt"
     digest = hashlib.sha256(stock).hexdigest()
     if sums.exists():
         check(digest in sums.read_text(), "current image matches the archived SHA256SUMS",
-              digest[:16])
+              digest[:16] + ("" if digest in sums.read_text() else
+                             "  (expected for a CHAINED build: the base is a candidate, "
+                             "not a ROM read off the car — record it in SHA256SUMS.txt)"))
     else:
         print("  [ -- ] no SHA256SUMS.txt beside the current ROM (skipped)")
 
     # A calibration ID that moved means we patched the wrong thing entirely.
     check(stock[0x2000:0x2008] == cand[0x2000:0x2008], "calibration ID unchanged",
-          cand[0x2000:0x2008].decode("ascii", "replace"))
-    check(stock[:0x2000] == cand[:0x2000], "boot/vector region 0x0-0x1FFF untouched")
+          cand[0x2000:0x2008].decode("ascii", "replace"), is_fatal=True)
+    check(stock[:0x2000] == cand[:0x2000], "boot/vector region 0x0-0x1FFF untouched",
+          is_fatal=True)
 
     # SHORT-CIRCUIT once IDENTITY is in doubt. Everything above answers "is this even the same
     # ECU's calibration?", and if the answer is no there is nothing to be gained by decoding it
@@ -572,9 +588,9 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
     # output has to interpret a Python stack trace to learn the answer is "do not flash this".
     # This is the last automated gate before a human touches an ECU; it owes a verdict, not an
     # exception.
-    if fails:
-        print(f"\nNO-GO — {len(fails)} check(s) failed before the image could even be decoded: "
-              f"{fails}")
+    if fatal:
+        print(f"\nNO-GO — {len(fatal)} check(s) failed before the image could even be decoded: "
+              f"{fatal}")
         print("       This does not look like a calibration for THIS ECU. Refusing to go "
               "further.")
         return 2
@@ -764,6 +780,14 @@ def main(argv=None) -> int:
                    help="the ARCHIVED STOCK ROM that CUMULATIVE bounds are measured against "
                         "(not the image being patched): the sensor envelope for --tune-maf, "
                         "the retard floor for --tune-timing, and both under --verify-flash")
+    p.add_argument("--extrapolate-maf", action="store_true",
+                   help="with --tune-maf: extend the measured correction PLATEAU to breakpoints "
+                        "ABOVE the measured airflow span. Off by default -- the stage's rule is "
+                        "never to extrapolate. Turn it on when leaving those cells at stock is "
+                        "the MORE dangerous option: above the span the curve still under-reads "
+                        "~30%, closed-loop trims hide that but OPEN loop does not, and every "
+                        "error mode of extrapolating is the safe one (rich, and load reads high "
+                        "so timing indexes further into retard)")
     p.add_argument("--ack-knock", action="store_true",
                    help="with --tune-maf: HUMAN override of clamp_knock_auto_abort. Declares "
                         "that you have reviewed the knock in these logs and judged the "
@@ -793,7 +817,7 @@ def main(argv=None) -> int:
         return _verify_flash(args.verify_flash, args.rom, args.baseline_rom, args.expect)
     if args.tune_maf:
         return _tune_maf(args.tune_maf, args.rom, args.out, args.report_out, args.baseline_rom,
-                         args.ack_knock)
+                         args.ack_knock, args.extrapolate_maf)
     if args.tune_timing:
         return _tune_timing(args.tune_timing, args.rom, args.out, args.report_out,
                             args.baseline_rom)

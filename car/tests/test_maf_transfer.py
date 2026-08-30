@@ -197,3 +197,101 @@ def test_full_pipeline_applies_a_real_curve_correction():
     assert curve[2] > STOCK[2] and curve[3] > STOCK[3]
     assert curve[0] == STOCK[0] and curve[7] == STOCK[7]      # outside the span, untouched
     assert np.array_equal(tables.get(SENSOR_MAF_TRANSFER).values, STOCK)   # COPY semantics
+
+
+# --- extrapolation above the measured span (opt-in, 2026-08-30) ---------------------------
+
+def _baseline(values=STOCK):
+    t = Table(SENSOR_MAF_TRANSFER, "curve_1d", np.array(values, dtype=float), units="g/s")
+    return TableSet({SENSOR_MAF_TRANSFER: t})
+
+
+def test_extrapolation_is_off_by_default():
+    """Rule 1 of the module is still NEVER EXTRAPOLATE. Turning it on is a deliberate act."""
+    tables = _tables()
+    grid = _grid(tables, [4.0, 8.0], [20.0, 25.0])
+    prop, _ = propose_maf_correction(grid, tables, MafState(), CFG.algo)
+    assert max(e.col for e in prop.edits) == 3        # nothing above the measured span
+    assert "extrapolated" not in prop.metadata
+
+
+def test_extrapolation_holds_the_plateau_flat_rather_than_fitting_a_trend():
+    """The measured error PLATEAUS at the top (~+32% across 42-59 g/s on the real car), so the
+    honest continuation is flat. Fitting a slope through a plateau and projecting it invents a
+    rise the data does not show — the exact mistake the no-extrapolation rule guards against."""
+    tables = _tables()
+    grid = _grid(tables, [4.0, 8.0, 16.0], [20.0, 20.0, 20.0])
+    prop, _ = propose_maf_correction(grid, tables, MafState(), CFG.algo,
+                                     baseline=_baseline(), extrapolate=True)
+    assert prop.metadata["extrapolated"] is True
+    extra = [e for e in prop.edits if "EXTRAPOLATED" in e.reason]
+    assert extra, "expected cells above the measured span to move"
+    ratio = prop.metadata["plateau_ratio"]
+    for e in extra:
+        assert e.new_value == pytest.approx(STOCK[e.col] * ratio)   # same ratio, every cell
+    assert ratio <= prop.metadata["max_measured_ratio"] + 1e-9
+
+
+def test_extrapolation_only_extends_the_span_never_fills_a_hole_inside_it():
+    tables = _tables()
+    grid = _grid(tables, [4.0, 16.0], [20.0, 20.0])          # gap at cols 3 (8.0)
+    prop, _ = propose_maf_correction(grid, tables, MafState(), CFG.algo,
+                                     baseline=_baseline(), extrapolate=True)
+    inside = [e for e in prop.edits if e.col == 3]
+    assert inside and "EXTRAPOLATED" not in inside[0].reason, \
+        "an interior gap is INTERPOLATED from its neighbours, not extrapolated"
+
+
+def test_clamp_refuses_extrapolation_unless_a_HUMAN_enabled_it():
+    """The evidence rule is waived only by ctx.sensor_extrapolation_ok, which the CLI sets from
+    --extrapolate-maf. A proposal cannot vouch for itself."""
+    tables = _tables()
+    counts = {SENSOR_MAF_TRANSFER: tuple([40] * 4 + [0] * 4)}     # evidence only up to col 3
+    edit = CellEdit(SENSOR_MAF_TRANSFER, 0, 5, STOCK[5] * 1.30)
+    lying = Proposal("p", "maf_transfer", (edit,), "sensor", "llm:v1",
+                     {"extrapolated": True, "sensor_extrapolation_ok": True})
+    res = apply_clamps(lying, ClampContext(tables, CFG.safety, sensor_sample_counts=counts,
+                                           baseline_tables=_baseline()))
+    assert res.clamped_edits[0].new_value == pytest.approx(STOCK[5])   # held at stock
+    assert "insufficient_evidence" in {v.action for v in res.violations}
+
+
+def test_clamp_allows_extrapolation_above_the_span_when_enabled():
+    """Mirrors the real car: the evidenced region is ALREADY corrected +35% against stock, so
+    extending the plateau at +30% sits inside the largest measured correction."""
+    corrected = np.where(np.arange(len(STOCK)) < 4, STOCK * 1.35, STOCK)
+    tables = _tables(corrected)
+    counts = {SENSOR_MAF_TRANSFER: tuple([40] * 4 + [0] * 4)}
+    res = apply_clamps(_prop([CellEdit(SENSOR_MAF_TRANSFER, 0, 5, STOCK[5] * 1.30)]),
+                       ClampContext(tables, CFG.safety, sensor_sample_counts=counts,
+                                    baseline_tables=_baseline(),
+                                    sensor_extrapolation_ok=True))
+    assert res.clamped_edits[0].new_value == pytest.approx(STOCK[5] * 1.30)
+    assert "extrapolation_allowed" in {v.action for v in res.violations}
+
+
+def test_clamp_still_refuses_to_extrapolate_INSIDE_the_evidenced_span():
+    """Above the span is an extension; inside it is a hole the neighbours already answer."""
+    tables = _tables()
+    counts = {SENSOR_MAF_TRANSFER: (40, 40, 0, 40, 40, 0, 0, 0)}   # col 2 is a hole
+    res = apply_clamps(_prop([CellEdit(SENSOR_MAF_TRANSFER, 0, 2, STOCK[2] * 1.30)]),
+                       ClampContext(tables, CFG.safety, sensor_sample_counts=counts,
+                                    baseline_tables=_baseline(),
+                                    sensor_extrapolation_ok=True))
+    assert res.clamped_edits[0].new_value == pytest.approx(STOCK[2])
+    assert "insufficient_evidence" in {v.action for v in res.violations}
+
+
+def test_extrapolation_can_never_exceed_the_largest_correction_ever_MEASURED():
+    """A bad plateau estimate cannot run away: the clamp caps an evidence-free cell at the
+    biggest ratio-vs-stock among cells that actually have evidence."""
+    tight = np.array([10.0, 12.0, 14.0, 16.0, 40.0, 60.0, 80.0, 100.0])
+    tables = _tables(tight)                                    # current == 1.0x baseline here
+    counts = {SENSOR_MAF_TRANSFER: tuple([40] * 4 + [0] * 4)}
+    res = apply_clamps(_prop([CellEdit(SENSOR_MAF_TRANSFER, 0, 5, tight[5] * 1.30)]),
+                       ClampContext(tables, CFG.safety, sensor_sample_counts=counts,
+                                    baseline_tables=_tables(tight),
+                                    sensor_extrapolation_ok=True))
+    # every evidenced cell sits at exactly 1.0x its baseline, so no correction is permitted
+    assert res.clamped_edits[0].new_value == pytest.approx(tight[5])
+    assert "insufficient_evidence" in {v.action for v in res.violations}

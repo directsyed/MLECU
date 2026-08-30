@@ -467,6 +467,50 @@ def clamp_belief_envelope(prop: Proposal, ctx: ClampContext) -> ClampResult:
     return ClampResult(True, tuple(out), tuple(viols))
 
 
+def _extrapolation_allowed(e: CellEdit, ctx: ClampContext, counts: dict) -> bool:
+    """May this EVIDENCE-FREE breakpoint move? Three conditions, all checked here, none claimed.
+
+    1. A HUMAN enabled it (`ctx.sensor_extrapolation_ok`, set by `--extrapolate-maf` at the
+       command line). Not proposal metadata: the future LLM is a Proposal producer, and a bound
+       it can waive for itself is not a bound.
+    2. The cell sits ABOVE every breakpoint that has evidence. Extrapolation may extend the
+       measured span outward; it may never fill a hole inside it, where the neighbours already
+       say what the answer is.
+    3. The resulting correction does not exceed the LARGEST one actually measured on this car.
+       Extrapolation can hold the plateau or fall short of it — it can never amplify beyond
+       anything the data has ever shown, so a bad plateau estimate cannot run away.
+
+    Everything else still applies: the per-iteration displacement cap, the cumulative
+    `sensor_envelope` against stock, and strict monotonicity.
+    """
+    if not ctx.sensor_extrapolation_ok:
+        return False
+    per_table = counts.get(e.table_id)
+    if per_table is None:
+        return False
+    evidenced = [i for i, n in enumerate(per_table) if n >= ctx.safety.min_sensor_samples]
+    if not evidenced or e.col <= max(evidenced):
+        return False
+
+    base_tbl = ctx.baseline_tables
+    cur_tbl = ctx.tables.tables.get(e.table_id)
+    if base_tbl is None or cur_tbl is None:
+        return False
+    try:
+        base = base_tbl.tables[e.table_id].values.reshape(-1)
+        cur = cur_tbl.values.reshape(-1)
+    except (KeyError, AttributeError):
+        return False
+    if e.col >= len(base) or base[e.col] <= 0:
+        return False
+
+    ratios = [float(cur[i] / base[i]) for i in evidenced
+              if i < len(base) and i < len(cur) and base[i] > 0]
+    if not ratios:
+        return False
+    return float(e.new_value / base[e.col]) <= max(ratios) + 1e-9
+
+
 def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
     """MODIFIER — bound a SENSOR recalibration by evidence and displacement, not by velocity.
 
@@ -509,13 +553,16 @@ def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
         per_table = counts.get(e.table_id)
         if per_table is not None:
             n = per_table[e.col] if e.col < len(per_table) else 0
-            if n < ctx.safety.min_sensor_samples:
+            if n < ctx.safety.min_sensor_samples and not _extrapolation_allowed(e, ctx, counts):
                 keep = e.new_value if math.isnan(cur) else cur
                 out.append(CellEdit(e.table_id, e.row, e.col, keep, e.reason))
                 if keep != e.new_value:
                     viols.append(ClampViolation("sensor_calibration", e.table_id, e.row, e.col,
                                                 e.new_value, keep, "insufficient_evidence"))
                 continue
+            if n < ctx.safety.min_sensor_samples:
+                viols.append(ClampViolation("sensor_calibration", e.table_id, e.row, e.col,
+                                            e.new_value, e.new_value, "extrapolation_allowed"))
 
         # 2. DISPLACEMENT — per iteration, against the table's current value
         if math.isnan(cur) or abs(cur) < ctx.safety.zero_base_eps:

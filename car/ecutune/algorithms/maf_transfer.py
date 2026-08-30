@@ -99,6 +99,29 @@ def _measured_correction(grid: BinnedGrid) -> tuple[np.ndarray, np.ndarray]:
     return frac, total
 
 
+def plateau_ratio(total_ratio: np.ndarray, count: np.ndarray, confident: np.ndarray,
+                  n_plateau: int = 3) -> tuple[float, list[int]]:
+    """The settled correction ratio at the TOP of the measured span, for extrapolation.
+
+    Returns (count-weighted mean ratio, the breakpoint indices it came from). The caller decides
+    whether to use it; this function only reports what the data says.
+
+    Uses the highest `n_plateau` CONFIDENT breakpoints, weighted by sample count, because that
+    is where the error has stopped changing. On this car the measured total error rises to
+    ~+37% around 30-39 g/s and then settles at ~+31-33% from 42-59 g/s -- a plateau, not a
+    trend. Fitting a slope through it and projecting would be inventing a rise the data does
+    not show, which is the specific mistake `maf_transfer`'s no-extrapolation rule was written
+    to prevent.
+    """
+    idx = [i for i in np.flatnonzero(confident) if np.isfinite(total_ratio[i])]
+    if not idx:
+        return 1.0, []
+    top = idx[-n_plateau:]
+    w = np.asarray([max(count[i], 1.0) for i in top], dtype=float)
+    r = np.asarray([total_ratio[i] for i in top], dtype=float)
+    return float(np.average(r, weights=w)), [int(i) for i in top]
+
+
 def _interpolated_correction(frac: np.ndarray) -> np.ndarray:
     """Smooth the per-bin corrections across breakpoints, WITHOUT extrapolating.
 
@@ -120,7 +143,10 @@ def _interpolated_correction(frac: np.ndarray) -> np.ndarray:
 def propose_maf_correction(grid: BinnedGrid, tables: TableSet, state: MafState,
                            cfg: AlgoCfg,
                            provenance: str = "algorithm:maf_transfer",
-                           metadata: dict | None = None) -> tuple[Proposal, MafState]:
+                           metadata: dict | None = None,
+                           baseline: TableSet | None = None,
+                           extrapolate: bool = False,
+                           n_plateau: int = 3) -> tuple[Proposal, MafState]:
     """One bounded MAF-transfer Proposal from a log binned on this ROM's MAF breakpoints.
 
     Correction is DIRECT (`fueling.corrected_maf`): a positive trim means the ECU had to ADD
@@ -135,10 +161,16 @@ def propose_maf_correction(grid: BinnedGrid, tables: TableSet, state: MafState,
     if frac.size != stock.size:
         raise ValueError(f"grid has {frac.size} breakpoints, table has {stock.size} — "
                          "the GridSpec was not built from this table (use grid_spec_for)")
+    # Keep the PRE-deadband measurement: the deadband exists to stop the stage chasing noise in
+    # the correction it applies, but zeroing a real +1.8% before averaging would bias the
+    # extrapolation plateau low. Different questions, different inputs.
+    raw_frac = frac.copy()
     # Deadband BEFORE interpolation, so a sub-noise anchor cannot drag its neighbours either.
     deadband = getattr(cfg, "sensor_deadband", 0.0)
     frac = np.where(np.isfinite(frac) & (np.abs(frac) < deadband), 0.0, frac)
     applied = _interpolated_correction(frac) * cfg.damping
+    _anchors = np.flatnonzero(np.isfinite(frac))
+    idx_hi = int(_anchors[-1]) if _anchors.size else None
 
     edits: list[CellEdit] = []
     for i, f in enumerate(applied):
@@ -149,6 +181,58 @@ def propose_maf_correction(grid: BinnedGrid, tables: TableSet, state: MafState,
                               f"airflow bin {stock[i]:.2f} g/s: trim {f / cfg.damping * 100:+.1f}% "
                               f"-> applied {f * 100:+.1f}% (damping {cfg.damping})"))
 
+    # --- EXTRAPOLATION ABOVE THE MEASURED SPAN (opt-in, 2026-08-30) ---------------------
+    # Rule 1 of this module is NEVER EXTRAPOLATE, and it is still the default. It was written
+    # when the only data was vacuum-only and the curve looked non-monotonic at the top, so a
+    # trend fit would have invented a correction in the boost region. Three flashes later the
+    # top of the measured range is a FLAT PLATEAU (~+32% across 42-59 g/s, hundreds of samples),
+    # and the situation it was protecting against has inverted:
+    #
+    #   * Above the span the curve is STOCK, i.e. still ~30% under-reading. That is not a
+    #     neutral "no opinion" -- it is a known-wrong value.
+    #   * In CLOSED loop the trims hide it. In OPEN loop nothing does, and this car has never
+    #     been in power open loop, so the first full-throttle pull is the first time the error
+    #     is exposed with no safety net: commanded 12.5 AFR arrives as roughly 18.
+    #   * Every error mode of extrapolating is SAFE (over-correct -> rich, and load reads high
+    #     so timing is indexed further into retard). Every error mode of NOT extrapolating is
+    #     the fatal one, in both channels at once.
+    #
+    # So it is opt-in, it holds the measured plateau flat rather than fitting a slope, it is
+    # measured against the ARCHIVED STOCK ROM rather than the partially-corrected current curve,
+    # and every extrapolated cell says so in its reason string. Extrapolated cells are replaced
+    # by measurement the moment a drive produces data there -- this is a bridge, not a result.
+    extrap_meta: dict = {}
+    if extrapolate and baseline is not None and idx_hi is not None:
+        try:
+            base = np.asarray(baseline.get(SENSOR_MAF_TRANSFER).values, dtype=float).ravel()
+        except (KeyError, AttributeError):
+            base = None
+        if base is not None and base.size == stock.size:
+            with np.errstate(invalid="ignore", divide="ignore"):
+                cumulative = np.divide(stock, base, out=np.full(base.shape, np.nan),
+                                       where=np.abs(base) > 0)
+            total = cumulative * (1.0 + np.where(np.isfinite(raw_frac), raw_frac, 0.0))
+            ratio, from_idx = plateau_ratio(total, count, np.isfinite(raw_frac), n_plateau)
+            measured_max = float(np.nanmax(total)) if np.isfinite(total).any() else ratio
+            for i in range(idx_hi + 1, stock.size):
+                if not np.isfinite(base[i]) or base[i] <= 0:
+                    continue
+                new = float(base[i] * ratio)
+                if new <= stock[i]:
+                    continue                      # already at or above the plateau; leave it
+                edits.append(CellEdit(SENSOR_MAF_TRANSFER, 0, i, new,
+                                      f"airflow bin {base[i]:.2f} g/s: EXTRAPOLATED at the "
+                                      f"measured plateau {(ratio - 1) * 100:+.1f}% "
+                                      f"(from breakpoints {from_idx}, no samples of its own)"))
+            extrap_meta = {
+                "extrapolated": True,
+                "extrapolated_from_index": int(idx_hi),
+                "extrapolated_cells": int(sum(1 for e in edits if "EXTRAPOLATED" in e.reason)),
+                "plateau_ratio": float(ratio),
+                "plateau_from_breakpoints": from_idx,
+                "max_measured_ratio": measured_max,
+            }
+
     measured = frac[np.isfinite(frac)]
     meta = {
         "n_breakpoints": int(stock.size),
@@ -158,6 +242,7 @@ def propose_maf_correction(grid: BinnedGrid, tables: TableSet, state: MafState,
         "max_measured_correction": float(measured.max()) if measured.size else 0.0,
         "sample_counts": [int(c) for c in count],
     }
+    meta.update(extrap_meta)
     meta.update(metadata or {})
     prop = Proposal(f"maf-{state.iterations}", "maf_transfer", tuple(edits),
                     "sensor", provenance, meta)

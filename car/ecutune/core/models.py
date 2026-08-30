@@ -200,6 +200,12 @@ class ClampContext:
     # ceiling in one pass: the rate limit exists so a step can be observed on the next drive,
     # and there is nothing to observe in a cell with no samples. Inert when absent.
     cell_sample_counts: dict[str, object] | None = None
+    # --- 2026-08-30: permission to move breakpoints with NO evidence of their own -----------
+    # Set only by a human at the CLI (`--extrapolate-maf`), never by a proposal. It does NOT
+    # waive the displacement caps or monotonicity -- it waives ONLY the per-breakpoint evidence
+    # rule, and clamp_sensor_calibration still requires the cell to sit above every evidenced
+    # breakpoint and to stay within the largest correction actually measured on this car.
+    sensor_extrapolation_ok: bool = False
     fuel_trims_converged: bool = False    # gates fuel_before_timing
     steady_state_ok: bool = False         # gates steady_before_transient
     wideband_tracking: bool = False       # gates boost
