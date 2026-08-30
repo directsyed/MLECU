@@ -1285,3 +1285,48 @@ both actively misleading. Verified against the source, not assumed.
 Corollary, from the same source: writes are block-by-block and unmodified blocks are skipped
 (`get_changed_blocks()` / `if (block_modified[blockno])`). A stock→stock "rehearsal" flash would
 therefore write nothing at all and prove nothing — that plan was dropped for this reason.
+
+### D29 — Three safety-config rulings (Syed, 2026-08-30)
+
+**1. Timing ceiling is now LOAD-aware.** The rpm-only ceiling could not tell "40 deg at light
+cruise, entirely normal" from "40 deg at 0.9 g/rev in boost, dangerous" — on this car both
+happen at the same engine speed. The placeholders (25/18/14 deg) were also *below* normal cruise
+timing and would have gutted the map. Ratified:
+
+    load < 0.55   45 deg   cruise; the map's 40-45 here is normal and not knocking
+    load 0.55+    30 deg   the ECU DELIVERS 33.6 here and still pulls ~5 deg of knock
+    load 0.85+    22 deg   boost; EJ20X 9.5:1 against a map written for 8.4:1, on 93 octane
+
+Effective ceiling is `min(rpm limit, load limit)`, so load-awareness can only tighten. RPM limits
+raised to 46/40/32 so they no longer clip legitimate cruise advance.
+
+**2. Cumulative sensor displacement is now bounded (`sensor_envelope`, 0.40).** A real gap:
+`max_sensor_recal` bounds each iteration against the table's CURRENT value, and `belief_envelope`
+is fuel-only — so nothing bounded how far a sensor table could WALK across iterations. Exactly
+the hole that motivated `belief_envelope` for fuel. The MAF curve was already +31.6% from stock
+when this was found, and iteration 3 took it to **+35.2%** against the new 40% cap. The bound was
+not theoretical.
+
+Wiring note: the envelope must be measured against the ARCHIVED STOCK ROM, not the image being
+patched — `--tune-maf` previously passed the current tables as baseline, which would have made
+the bound vacuous (every iteration reads as 0% from baseline). New `--baseline-rom` flag.
+
+**3. `belief_envelope` moved into `config.yaml`.** It had been running on pydantic defaults whose
+own comment said "VALUES ARE SYED'S TO RATIFY". Same numbers, now visible and reviewable.
+
+### D30 — Fuel before timing, for a physical reason rather than a procedural one
+
+Syed proposed timing first, so the car could safely reach boost and generate the high-airflow data
+the MAF curve still lacks. Sound in isolation, but timing is indexed by LOAD and load is derived
+from AIRFLOW, so the two are coupled:
+
+  * At 45-70 g/s the MAF still under-read 17-24%, so the ECU looked up timing in a LIGHTER cell
+    than the engine was actually in — which carries MORE advance. Correcting the MAF alone
+    retards boost timing by **4 to 11 degrees** with no change to the timing map. For scale, the
+    corpus EJ20X swapper (doc 944) ran "timing down 5%", which is about 1.9 deg.
+  * The reverse order is actively worse: tuning timing against a load axis that is 20% wrong
+    assigns corrections to the wrong cells (the map's load steps are 0.85/0.90/1.00/1.15, so a
+    20% error is more than a full cell), and fixing the MAF afterwards moves them.
+
+So MAF-first is the shorter route, not the cautious one. Recorded because the intuition that
+"fix the dangerous thing first" points the other way, and will again.

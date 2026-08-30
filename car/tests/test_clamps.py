@@ -88,12 +88,49 @@ def test_afr_floor_ignores_below_boost_threshold():
     assert res.clamped_edits[0].new_value == 15.0  # +2% < 3%, and not at boost => untouched
 
 
+def _ceiling(rpm, load):
+    return SAFETY.timing_ceiling_for(rpm, load)
+
+
 def test_timing_ceiling_floors():
-    ts = _ts(_timing_map(10.0, rpm=4500))  # ceiling at 4500 rpm = 14.0 deg
-    res = apply_clamps(_timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, 20.0)]),
+    """Any timing edit above the cell's ceiling is floored to it. Reads the ceiling from config
+    rather than hardcoding a number, so ratifying new limits does not silently break the test."""
+    ts = _ts(_timing_map(10.0, rpm=4500, load=2.0))
+    ceiling = _ceiling(4500, 2.0)
+    res = apply_clamps(_timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, ceiling + 10.0)]),
                        _ctx(ts, fuel_trims_converged=True))  # pass the fuel-before-timing gate
-    assert res.clamped_edits[0].new_value == 14.0
+    assert res.clamped_edits[0].new_value == ceiling
     assert any(v.clamp == "timing_row_ceiling" for v in res.violations)
+
+
+def test_timing_ceiling_is_load_aware():
+    """The reason the load axis was added (2026-08-30): at the SAME rpm, a cruise cell and a
+    boost cell need very different limits, and an rpm-only ceiling cannot tell them apart."""
+    cruise = _ceiling(2400, 0.30)
+    boost = _ceiling(2400, 0.95)
+    assert boost < cruise, "a boost cell must be held tighter than a cruise cell at equal rpm"
+
+    ts = _ts(_timing_map(10.0, rpm=2400, load=0.95))
+    res = apply_clamps(_timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, 40.0)]),
+                       _ctx(ts, fuel_trims_converged=True))
+    assert res.clamped_edits[0].new_value == boost
+
+    # ...and the same 40 deg request at light cruise is left alone, because it is normal there.
+    ts2 = _ts(_timing_map(10.0, rpm=2400, load=0.30))
+    res2 = apply_clamps(_timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, 40.0)]),
+                        _ctx(ts2, fuel_trims_converged=True))
+    assert res2.clamped_edits[0].new_value == 40.0
+    assert res2.violations == ()
+
+
+def test_timing_ceiling_takes_the_tighter_of_the_two_axes():
+    """Effective ceiling is min(rpm limit, load limit), so adding load-awareness can only ever
+    tighten an existing limit, never loosen one."""
+    for rpm in (800, 2400, 4500, 6000):
+        for load in (0.2, 0.6, 1.2):
+            eff = SAFETY.timing_ceiling_for(rpm, load)
+            rpm_only = SAFETY.timing_ceiling_for(rpm, None)
+            assert eff <= rpm_only + 1e-9
 
 
 def test_fuel_before_timing_defers():

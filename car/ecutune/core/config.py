@@ -21,6 +21,18 @@ class TimingCeiling(BaseModel):
     max_advance: float  # degrees BTDC ceiling
 
 
+class LoadTimingCeiling(BaseModel):
+    """Timing ceiling keyed by LOAD — how hard the engine is actually working.
+
+    The rpm-only ceiling could not distinguish "40 deg at light cruise, entirely normal" from
+    "40 deg at 0.9 g/rev in boost, dangerous", because on this platform both happen at the same
+    engine speed. Load is the axis that separates them, and it is the axis the timing map itself
+    is indexed on. Ratified by Syed 2026-08-30.
+    """
+    load: float         # applies at/above this load (g/rev)
+    max_advance: float  # degrees BTDC ceiling
+
+
 class SafetyCfg(BaseModel):
     max_ve_step: float = 0.03            # +/-3% per iteration — the provable rate bound
     afr_floor: float = 11.5              # AFR leaner (greater) than this at boost => abort
@@ -31,6 +43,9 @@ class SafetyCfg(BaseModel):
     steady_tol: float = 0.05
     default_timing_ceiling: float = 25.0   # deg; used when no per-rpm override matches
     timing_ceilings: list[TimingCeiling] = Field(default_factory=list)
+    # The effective ceiling is the MINIMUM of the rpm-keyed and load-keyed limits, so adding
+    # load-awareness can only ever tighten, never loosen.
+    timing_ceilings_by_load: list[LoadTimingCeiling] = Field(default_factory=list)
     zero_base_eps: float = 1e-9          # below this |current|, the relative clamp can't apply
     # --- belief sanity envelope (2026-08-05) -------------------------------------------------
     # max_ve_step bounds RATE. Nothing bounded DISPLACEMENT: at 3%/iteration, twelve iterations
@@ -45,6 +60,13 @@ class SafetyCfg(BaseModel):
         "sensor.maf_transfer": 0.20,       # +/-20% of stock MAF scaling
     })
     belief_envelope_default: float = 0.25
+    # CUMULATIVE bound on sensor recalibration, measured against the ARCHIVED STOCK ROM.
+    # max_sensor_recal bounds each iteration against the table's CURRENT value, and
+    # belief_envelope is fuel-only, so nothing bounded how far a sensor table could WALK across
+    # repeated iterations -- the same hole that motivated belief_envelope for fuel. Found and
+    # closed 2026-08-30; the MAF curve was already +31.6% from stock at that point.
+    # Inert when no baseline is supplied.
+    sensor_envelope: float = 0.40
 
     # --- sensor recalibration (clamp_sensor_calibration, 2026-08-27) -------------------
     # A SENSOR calibration is a different act from a fuel-target correction, so it gets a
@@ -63,12 +85,20 @@ class SafetyCfg(BaseModel):
                                             # romread.plausible() rejects non-monotonic axes,
                                             # so a curve that breaks this is unflashable anyway
 
-    def timing_ceiling_for(self, rpm: float) -> float:
-        """Tightest configured ceiling whose rpm threshold the cell meets; else the default."""
+    def timing_ceiling_for(self, rpm: float, load: float | None = None) -> float:
+        """Tightest ceiling this cell qualifies for, across BOTH axes.
+
+        `load=None` keeps the old rpm-only behaviour for callers that cannot supply a load
+        (the sim harness, and any table without a load axis).
+        """
         best = self.default_timing_ceiling
         for tc in sorted(self.timing_ceilings, key=lambda t: t.rpm):
             if rpm >= tc.rpm:
                 best = tc.max_advance
+        if load is not None:
+            for lc in sorted(self.timing_ceilings_by_load, key=lambda t: t.load):
+                if load >= lc.load:
+                    best = min(best, lc.max_advance)
         return best
 
 

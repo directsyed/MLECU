@@ -198,7 +198,7 @@ def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> 
 
 
 def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
-              report_out: str | None) -> int:
+              report_out: str | None, baseline: str | None = None) -> int:
     """The full pipeline, end to end: ROM + drive logs -> a verified candidate image.
 
     ROM -> semantic tables -> bin the pooled logs on THIS ROM's MAF breakpoints -> the layer's
@@ -239,8 +239,21 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     counts = {SENSOR_MAF_TRANSFER: tuple(int(c) for c in grid.count.sum(axis=0))}
 
     prop, _ = propose_maf_correction(grid, tables, MafState(), cfg.algo)
+    # The cumulative sensor envelope is measured against the ARCHIVED STOCK ROM, not against
+    # the image being patched. Passing the current tables here would make the bound vacuous:
+    # every iteration would be "0% from baseline" and the curve could walk forever.
+    base_path = baseline or rom_path
+    if base_path != rom_path:
+        base_raw, _ = read_semantic_tables(RomImage(Path(base_path).read_bytes()), defs,
+                                           list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
+        baseline_tables = TableSet(base_raw)
+        print(f"  cumulative envelope measured against {Path(base_path).name}")
+    else:
+        baseline_tables = tables
+        print("  WARNING: no --baseline given; cumulative envelope is measured against the "
+              "image being patched, which makes it inert")
     ctx = ClampContext(tables, cfg.safety, sensor_sample_counts=counts,
-                       baseline_tables=tables)
+                       baseline_tables=baseline_tables)
     res = apply_clamps(prop, ctx)
     after, _ = apply_proposal(tables, prop, ctx)
 
@@ -408,6 +421,9 @@ def main(argv=None) -> int:
     p.add_argument("--verify-flash", metavar="CANDIDATE",
                    help="pre-flash audit of a candidate ROM against the stock image "
                         "(GO/NO-GO; exit 2 on any failure)")
+    p.add_argument("--baseline-rom", metavar="PATH",
+                   help="with --tune-maf: the ARCHIVED STOCK ROM the cumulative sensor "
+                        "envelope is measured against (not the image being patched)")
     p.add_argument("--report-out", metavar="PATH",
                    help="with --tune-maf: write the change report here instead of stdout")
     p.add_argument("--eval-version", type=int, choices=(1, 2), default=1,
@@ -429,7 +445,7 @@ def main(argv=None) -> int:
     if args.verify_flash:
         return _verify_flash(args.verify_flash, args.rom)
     if args.tune_maf:
-        return _tune_maf(args.tune_maf, args.rom, args.out, args.report_out)
+        return _tune_maf(args.tune_maf, args.rom, args.out, args.report_out, args.baseline_rom)
     if args.generate_eval_cases:
         return _generate_eval(args.generate_eval_cases, args.seed, args.eval_out,
                               args.eval_version)

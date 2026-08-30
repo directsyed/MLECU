@@ -21,17 +21,41 @@ safety:
   # velocity limit above (that one is for chasing a moving fuel target; a MAF curve is a
   # measurement that is simply wrong by a fixed amount). Measured worst point on the car is
   # +36.3%, so 0.40 is a real ceiling with margin.
-  max_sensor_recal: 0.40         # hard cap on |new/stock - 1| for any sensor.* cell
+  max_sensor_recal: 0.40         # per-iteration cap, measured against the CURRENT table
+  sensor_envelope: 0.40          # CUMULATIVE cap, measured against the archived STOCK ROM.
+                                 # Step bounds do not bound distance; without this, enough small
+                                 # iterations walk the curve arbitrarily far. Ratified 2026-08-30.
+
+  # Ratified 2026-08-30: moved out of the pydantic defaults, whose own comment said these were
+  # "SYED'S TO RATIFY" and never had been. No behaviour change -- same numbers, now visible.
+  belief_envelope:
+    fuel.injector_flow: 0.25     # +/-25% of the build-sheet ~500 cc/min
+    fuel.injector_latency: 0.30  # +/-30% of the stock dead time
+    sensor.maf_transfer: 0.20    # fuel-path only; the sensor path uses sensor_envelope above
+  belief_envelope_default: 0.25
   min_sensor_samples: 20         # steady log samples required before a breakpoint may move
   sensor_require_monotonic: true # corrected curve must stay strictly ascending
   default_timing_ceiling: 25.0   # deg BTDC; used when no per-rpm override matches
   # Per-row timing ceilings — PLACEHOLDER values, tighten under load. REVIEW before any
   # timing work (EJ20X on 93 oct wants less than the EJ255 base assumes). Not exercised by
   # the idle (fuel-only) convergence loop.
+  # RPM-keyed ceiling. Set generously on purpose: this car legitimately runs 40-45 deg at
+  # light cruise, so an rpm-only limit tight enough to protect boost would gut the cruise map.
+  # LOAD is the axis that separates those cases, so it is the primary limit below.
   timing_ceilings:
-    - {rpm: 0,    max_advance: 25.0}
-    - {rpm: 3000, max_advance: 18.0}
-    - {rpm: 4500, max_advance: 14.0}
+    - {rpm: 0,    max_advance: 46.0}
+    - {rpm: 4500, max_advance: 40.0}
+    - {rpm: 6000, max_advance: 32.0}
+
+  # LOAD-keyed ceiling — the primary timing limit. Ratified by Syed 2026-08-30.
+  # Effective ceiling = min(rpm limit, load limit), so this can only tighten.
+  #   < 0.55  cruise; the map's 40-45 deg here is normal and the car is not knocking
+  #   0.55+   the ECU currently DELIVERS 33.6 deg here and still pulls ~5 deg of knock
+  #   0.85+   boost region; EJ20X is 9.5:1 against the EJ255 map's 8.4:1, on 93 octane
+  timing_ceilings_by_load:
+    - {load: 0.00, max_advance: 45.0}
+    - {load: 0.55, max_advance: 30.0}
+    - {load: 0.85, max_advance: 22.0}
 
 engine:
   stoich: 14.7

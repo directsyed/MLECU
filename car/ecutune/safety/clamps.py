@@ -99,7 +99,8 @@ def clamp_timing_row_ceiling(prop: Proposal, ctx: ClampContext) -> ClampResult:
     for e in prop.edits:
         t = ctx.tables.tables.get(e.table_id)
         rpm = t.cell_rpm(e) if t is not None else None
-        ceiling = ctx.safety.timing_ceiling_for(rpm if rpm is not None else 0.0)
+        load = t.cell_x(e) if t is not None else None
+        ceiling = ctx.safety.timing_ceiling_for(rpm if rpm is not None else 0.0, load)
         if e.new_value > ceiling:
             out.append(CellEdit(e.table_id, e.row, e.col, ceiling, e.reason))
             viols.append(ClampViolation("timing_row_ceiling", e.table_id, e.row, e.col,
@@ -318,19 +319,38 @@ def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
                                                 e.new_value, keep, "insufficient_evidence"))
                 continue
 
-        # 2. DISPLACEMENT
+        # 2. DISPLACEMENT — per iteration, against the table's current value
         if math.isnan(cur) or abs(cur) < ctx.safety.zero_base_eps:
             out.append(e)
             continue
         lo, hi = cur * (1.0 - cap), cur * (1.0 + cap)
         lo, hi = min(lo, hi), max(lo, hi)
+
+        # 2b. CUMULATIVE DISPLACEMENT — against the ARCHIVED STOCK ROM. Step bounds do not bound
+        # distance: enough small iterations walk a sensor belief arbitrarily far from a
+        # calibration that was known-good. Inert without a baseline.
+        action = "recal_limited"
+        if ctx.baseline_tables is not None:
+            try:
+                base = ctx.baseline_tables.current(e)
+            except (KeyError, IndexError):
+                base = float("nan")
+            if not math.isnan(base) and abs(base) >= ctx.safety.zero_base_eps:
+                env = ctx.safety.sensor_envelope
+                blo, bhi = base * (1.0 - env), base * (1.0 + env)
+                blo, bhi = min(blo, bhi), max(blo, bhi)
+                if blo > lo or bhi < hi:
+                    lo, hi = max(lo, blo), min(hi, bhi)
+                    if not (lo <= e.new_value <= hi):
+                        action = "sensor_envelope_limited"
+
         if lo <= e.new_value <= hi:
             out.append(e)
         else:
             bounded = min(hi, max(lo, e.new_value))
             out.append(CellEdit(e.table_id, e.row, e.col, bounded, e.reason))
             viols.append(ClampViolation("sensor_calibration", e.table_id, e.row, e.col,
-                                        e.new_value, bounded, "recal_limited"))
+                                        e.new_value, bounded, action))
 
     # 3. MONOTONICITY — cross-cell, so it runs once over the surviving edits per table.
     if ctx.safety.sensor_require_monotonic:
