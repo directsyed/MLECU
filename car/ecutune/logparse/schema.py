@@ -16,6 +16,15 @@ CANONICAL_ROLES = (
     "rpm", "maf_gs", "load", "wideband_afr", "af_correction", "af_learning",
     "knock_retard", "fine_knock_learn", "timing_total", "injector_duty",
     "iat", "coolant", "tps", "battery_v", "fuel_system_status", "target_afr", "final_fueling_base", "af_learning_range",
+    # --- added 2026-08-30 for the ignition-timing stage ---------------------------------
+    # Both were logged by the car on 2026-08-30 and BOTH were being dropped or mis-assigned:
+    #   "IAM (1-byte)** (multiplier)"      matched no rule at all -> silently absent
+    #   "Ignition Base Timing* (degrees)"  matched r"\btiming\b" -> collided onto timing_total
+    # The second is the dangerous one: it is the ignition map's OWN output, and it was landing
+    # on the role that means FINAL commanded advance. It only lost to "Ignition Total Timing"
+    # because that column happened to come first -- the exact accident that has now produced
+    # five silent role collisions in this project.
+    "iam", "timing_base",
 )
 
 # SSM2 fuel-system status codes (def E33: "[8 = CL (normal)][10 = OL (normal)]
@@ -53,6 +62,11 @@ _RULES: list[tuple[re.Pattern, str]] = [
     # that would also swallow "Closed Loop Fueling Target", a different channel.
     (re.compile(r"\bcl\s*/\s*ol\b", re.I), "fuel_system_status"),
     (re.compile(r"fine\s*(learn\w*\s*)?knock", re.I), "fine_knock_learn"),
+    # MUST precede the bare knock rule only in spirit -- "IAM" contains no "knock" -- but it is
+    # kept here because IAM *is* the knock subsystem's state: the multiplier the ECU applies to
+    # its dynamic advance. It matched NO rule before 2026-08-30, so the channel that recorded
+    # the car withdrawing all advance for 52 s was invisible to the layer.
+    (re.compile(r"\biam\b", re.I), "iam"),
     (re.compile(r"knock", re.I), "knock_retard"),
     # MUST precede the wideband rule: "Closed Loop Fueling Target (2-byte)* (lambda)"
     # carries "lambda" in its units and was silently landing on wideband_afr, i.e. the
@@ -84,6 +98,11 @@ _RULES: list[tuple[re.Pattern, str]] = [
     # Bare "duty cycle" was removed: it caught the wastegate params. "Injector Duty Cycle" is
     # still matched by the injector-qualified alternative.
     (re.compile(r"injector\s*duty|inj\s*duty|\bipw\b|injector\s*pulse", re.I), "injector_duty"),
+    # MUST precede the timing_total rule. "Ignition Base Timing*" is the BASE MAP's own output
+    # -- the table this stage edits -- and r"\btiming\b" was sending it to timing_total, the
+    # role that means FINAL commanded advance. Keeping them apart is what lets the timing stage
+    # measure (base - total) directly instead of reconstructing it from the correction channels.
+    (re.compile(r"base\s*timing", re.I), "timing_base"),
     (re.compile(r"ignition\s*total|total\s*timing|timing\s*advance|\btiming\b", re.I), "timing_total"),
     (re.compile(r"intake\s*air\s*temp|\biat\b", re.I), "iat"),
     (re.compile(r"coolant|\bclt\b|\bect\b|water\s*temp", re.I), "coolant"),
@@ -114,7 +133,19 @@ _PREFER: dict[str, tuple[re.Pattern, ...]] = {
     # The ECU's own 4-byte internal load, not RomRaider's value derived from MAF and rpm.
     "load": (re.compile(r"4-?byte", re.I),),
     # Live knock feedback beats the IAM-scaled advance correction for "is it knocking NOW".
+    # NOTE this one is load-bearing, not cosmetic: on the 2026-08-30 log THREE headers claim
+    # knock_retard, and one of them is "Knock Sum* (count)" -- a cumulative COUNTER that was
+    # non-zero on 6425 of 7402 samples. Without this preference a reordered export would put a
+    # monotonically rising count into the role the timing evidence is computed from.
     "knock_retard": (re.compile(r"feedback\s*knock", re.I),),
+    # The 4-byte extended parameter. idle-20260819 carries both the 1-byte and 4-byte IAM and
+    # they agree exactly (max|diff| = 0.0), so this is a determinism choice, not a data choice.
+    "iam": (re.compile(r"4-?byte", re.I),),
+    # The DBW throttle PLATE angle, not the pedal-derived "Throttle Opening Angle". They track
+    # each other (r = 0.9992) but differ by up to 12.6 points during transitions, and the plate
+    # is what actually meters air -- it is also the channel the 86.03% open-loop trigger is
+    # defined against. Only the 2026-08-30 log carries both, so no earlier result moves.
+    "tps": (re.compile(r"plate", re.I),),
 }
 
 

@@ -46,6 +46,14 @@ class BinnedGrid:
     mean_afr: np.ndarray    # (ny, nx) mean wideband AFR (NaN where no wideband)
     mean_knock: np.ndarray  # (ny, nx) mean knock retard
     confidence: np.ndarray  # (ny, nx) bool: count >= min_samples
+    # --- ignition-timing channels (2026-08-30) ------------------------------------------
+    # All three are NaN where the cell has no VALID sample of that channel, never 0.0. The
+    # distinction is load-bearing here in a way it is not for trim: `timing_base` is present
+    # in exactly one of the ten drive logs, and a missing channel silently read as 0.0 would
+    # make (base - total) evidence look like a colossal retard demand on every other log.
+    mean_fine_knock: np.ndarray | None = None    # mean fine (learned) knock correction, deg
+    mean_timing_total: np.ndarray | None = None  # mean FINAL commanded advance, deg BTDC
+    mean_timing_base: np.ndarray | None = None   # mean BASE MAP output, deg BTDC
 
 
 def _nearest_idx(vals: np.ndarray, breaks: tuple[float, ...]) -> np.ndarray:
@@ -106,7 +114,29 @@ def bin_log(log: LogTable, spec: GridSpec) -> BinnedGrid:
         mean_knock = np.where(count > 0, sum_knock / count, np.nan)
         mean_afr = np.where(count_afr > 0, sum_afr / count_afr, np.nan)
 
-    return BinnedGrid(spec, count, mean_trim, mean_afr, mean_knock, count >= spec.min_samples)
+    def _nan_mean(role: str) -> np.ndarray | None:
+        """Per-cell mean of `role` over the selected samples, NaN where none were valid.
+
+        Returns None when the log does not carry the channel at all, so a caller can tell
+        "this log never measured it" apart from "measured, but not in this cell". Both are
+        safer than the 0.0 that `log.get(role, zeros)` would hand back.
+        """
+        v = log.get(role)
+        if v is None:
+            return None
+        s = np.zeros((ny, nx))
+        c = np.zeros((ny, nx))
+        valid = sel[~np.isnan(v[sel])]
+        np.add.at(s, (yi[valid], xi[valid]), v[valid])
+        np.add.at(c, (yi[valid], xi[valid]), 1.0)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            return np.where(c > 0, s / c, np.nan)
+
+    return BinnedGrid(spec, count, mean_trim, mean_afr, mean_knock,
+                      count >= spec.min_samples,
+                      mean_fine_knock=_nan_mean("fine_knock_learn"),
+                      mean_timing_total=_nan_mean("timing_total"),
+                      mean_timing_base=_nan_mean("timing_base"))
 
 
 def weighted_mean_trim(grid: BinnedGrid) -> float:
