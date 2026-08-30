@@ -1463,3 +1463,44 @@ would otherwise compute every timing-evidence figure from a rising integer.
 |---|---|---|
 | `max_timing_retard` | 20.0 deg | derived: the ratified ceilings themselves demand at most 18.117 deg, so anything below ~18.2 would fight them; 20.0 clears it with ~1.9 deg of evidence headroom |
 | `min_timing_advance` | 0.0 deg BTDC | a backstop, not a tuning limit; the stock map's own minimum is 2.148 deg |
+
+### D35 — Two IAM-gated behaviours we did not know about, found while answering "have we touched the knock tables?"
+
+We have **never modified a knock-correction table** — only read two of them (`Knock Correction
+Advance Max`, `Advance Multiplier (Initial)`) for the IAM deficit in D33. Reading the rest turned
+up two thresholds that change how the car behaves *right now*, and neither was in any prior note:
+
+| table | value | consequence |
+|---|---|---|
+| `Boost Control Disable (IAM)` @0xC0440 | **0.20 / 0.65** | boost control is DISABLED below IAM 0.20 and re-enabled only at 0.65 (a hysteresis pair; the axis is literally named "Boost Control") |
+| `Primary Open Loop Fuel Map Switch (IAM)` @0xC5E7C | **0.35** | below IAM 0.35 the ECU runs `Primary Open Loop Fueling (Failsafe)`, not the primary map |
+
+**The car has been driving with boost control disabled.** IAM sat at 0.000 for 52 s on the
+2026-08-30 drive and recovered only to 0.125 — under 0.20 the whole time. That is very likely why
+maximum observed boost is +6.53 psi: the wastegate has been running on spring pressure, not on a
+duty target. Every boost figure recorded in this project so far is a *boost-control-disabled*
+figure, and D30's "boost rose across the set" reasoning was measuring a car with its boost
+controller switched off.
+
+**Recovery is a compound hazard, and it happens without the driver doing anything.** The
+re-enable threshold (0.65) is ABOVE the initial IAM (0.50), so IAM must climb past its own
+starting value to restore boost control. If the timing map works, the first drive can cross
+**three** thresholds in sequence: 0.20 (boost control re-enables), 0.35 (open-loop fuelling
+switches from the Failsafe map to the leaner Primary map — 14.36 vs 13.63 AFR at 1.15 g/rev,
+2000 rpm), and 0.65 (full boost authority). More air and a leaner target, arriving together,
+triggered by the ECU rather than the throttle.
+
+This is also the strongest argument yet for having extrapolated the MAF curve first (D-prev):
+the drive that could restore boost control is the same drive that would have exposed an
+uncalibrated MAF in open loop.
+
+**Why the knock tables stay untouched for now.** They are the ECU's protective RESPONSE; the
+fault is the base map being over-advanced. Fixing the response before the cause is turning off a
+fire alarm. Every one of them moved in the "give advance back" direction — raising
+`Advance Multiplier (Initial)`, raising `Knock Correction Advance Max`, softening
+`Feedback Correction Negative Advance Value` (1.0 deg/event) — makes a knocking engine worse.
+The legitimate future uses all run the other way: LOWERING `Knock Correction Advance Max` in the
+boost region as belt-and-braces over the base map, pulling harder or sooner on knock
+(`Feedback Correction Negative Advance Value` / `Delay` = 250 counts), lowering
+`Fine Correction Advance Limit` (8.0 deg), or raising the boost-disable threshold so boost is cut
+sooner when IAM sags. Recorded so the option set is known, not because any of it is scheduled.
