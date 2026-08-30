@@ -40,14 +40,22 @@ def change_report(prop: Proposal, result: ClampResult, write: WriteResult,
     for e in write.edits:
         by_table.setdefault(e.table_id, []).append(e)
     for table_id, edits in by_table.items():
+        shape = np.asarray(before[table_id].values, float).shape
         b = np.asarray(before[table_id].values, float).ravel()
         a = np.asarray(after[table_id].values, float).ravel()
+        # Row-major with X fastest, matching patcher._cell_offset: the linear index is
+        # `row * n_x + col`, where n_x is the COLUMN COUNT. This previously read
+        # `e.row * a.shape[0]`, but `a` has already been raveled -- so shape[0] was the total
+        # element count (270 for Base Timing, not 15) and the first edit with row >= 1 either
+        # indexed past the end or reported a completely unrelated cell. Never hit because the
+        # only table ever written so far was a 1-D curve. Found 2026-08-30.
+        n_x = shape[1] if len(shape) == 2 else 1
         L.append(f"## {table_id}  ({before[table_id].units})")
         L.append("")
         L.append("| cell | before | after | change |")
         L.append("|---|---|---|---|")
         for e in sorted(edits, key=lambda x: (x.row, x.col)):
-            i = e.col if before[table_id].kind != "map_2d" else e.row * a.shape[0] + e.col
+            i = e.col if before[table_id].kind != "map_2d" else e.row * n_x + e.col
             pct = (a[i] / b[i] - 1) * 100 if b[i] else float("nan")
             L.append(f"| {e.row},{e.col} | {b[i]:.4g} | {a[i]:.4g} | {pct:+.1f}% |")
         L.append("")

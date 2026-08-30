@@ -4,6 +4,7 @@ hold for *any* input, not just hand-picked cases."""
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -152,3 +153,159 @@ def test_sensor_corrected_curve_never_breaks_a_sound_ordering(vals, new):
     out = list(curve)
     out[col] = res.clamped_edits[0].new_value
     assert all(b > a for a, b in zip(out, out[1:])), f"ordering broken: {out}"
+
+
+# --- ignition timing (clamp_timing_rate_limit, 2026-08-30) --------------------------------
+# Timing was bounded by exactly ONE clamp before this: the row ceiling. These are the bounds
+# that make "deterministic clamps give provable bounds" true for the category where the only
+# direction we ever move is retard — and where over-retard is silent on this car, which is
+# fully catless with no EGT sensor.
+
+_TIMING = "ignition.base_timing"
+# The Base Timing load axis as the ROM STORES it (float32). Using the decimal literals here
+# would test a ceiling the real map never selects — that was blocker 1.
+_ROM_LOADS = (0.25, 0.3999999761581421, 0.5499999523162842, 0.699999988079071,
+              0.8499999642372131, 0.8999999761581421, 1.0)
+_LSB = 0.3515625        # Base Timing is uint8 at 0.3516 deg/step
+
+
+def _timing_map(cur, load, rpm=2400.0):
+    return Table(_TIMING, "map_2d", np.array([[float(cur)]]), units="deg",
+                 x_axis=TableAxis("Engine Load", (load,), "g/rev"),
+                 y_axis=TableAxis("Engine Speed", (rpm,), "rpm"))
+
+
+def _timing_prop(new):
+    return Proposal("t", "timing_retard", (CellEdit(_TIMING, 0, 0, new),),
+                    "timing", "algorithm:test")
+
+
+def _clamped(cur, new, load, **ctxkw):
+    ts = TableSet({_TIMING: _timing_map(cur, load)})
+    ctxkw.setdefault("fuel_trims_converged", True)
+    res = apply_clamps(_timing_prop(new), ClampContext(ts, SAFETY, **ctxkw))
+    return res.clamped_edits[0].new_value if res.clamped_edits else None
+
+
+@settings(deadline=None, max_examples=400)
+@given(cur=st.floats(2.0, 45.0), new=st.floats(-50.0, 90.0),
+       load=st.sampled_from(_ROM_LOADS))
+def test_timing_never_advances_and_never_outruns_the_step(cur, new, load):
+    """For ANY current value and ANY requested value: the surviving timing edit is never more
+    advanced than the cell already is, and never moves further than max_timing_step.
+
+    The first half is the property clamp_knock_auto_abort and clamp_fuel_before_timing grant
+    their exemptions on, so it has to hold for arbitrary input, not just for what the stage
+    happens to emit."""
+    got = _clamped(cur, new, load)
+    assert got <= cur + 1e-9, "a timing edit ADVANCED the cell"
+    assert cur - got <= SAFETY.max_timing_step + 1e-9
+
+
+@settings(deadline=None, max_examples=400)
+@given(cur=st.floats(2.0, 45.0), new=st.floats(-50.0, 90.0),
+       load=st.sampled_from(_ROM_LOADS))
+def test_timing_respects_the_ceiling_as_far_as_one_step_allows(cur, new, load):
+    """A surviving edit sits at or below its ceiling UNLESS the 6 deg/iteration rate limit is
+    what stopped it. The ceiling picks the destination; the rate limit paces the journey (D31),
+    so the reachable bound in one pass is max(ceiling, cur - step)."""
+    got = _clamped(cur, new, load)
+    ceiling = SAFETY.timing_ceiling_for(2400.0, load)
+    assert got <= max(ceiling, cur - SAFETY.max_timing_step) + 1e-9
+
+
+@settings(deadline=None, max_examples=300)
+@given(cur=st.floats(2.0, 45.0), new=st.floats(-50.0, 90.0),
+       load=st.sampled_from(_ROM_LOADS))
+def test_timing_clamp_is_idempotent(cur, new, load):
+    """clamp(clamp(x)) == clamp(x) against an unchanged table. Without this the loop could
+    ratchet past the bound across re-evaluations of the same proposal."""
+    v1 = _clamped(cur, new, load)
+    v2 = _clamped(cur, v1, load)
+    assert abs(v2 - v1) <= 1e-9
+
+
+@settings(deadline=None, max_examples=200)
+@given(cur=st.floats(2.0, 45.0), new=st.floats(-50.0, 90.0),
+       load=st.sampled_from(_ROM_LOADS))
+def test_timing_bound_survives_uint8_storage(cur, new, load):
+    """The bound has to hold in the FLASHED BYTES, not just in memory.
+
+    This is the same class of defect as the float32 monotonicity collapse found on 2026-08-27:
+    an in-memory guarantee that does not survive encoding is not a guarantee. Base Timing is
+    uint8 at 0.3516 deg/step and the timing write uses round_mode='no_greater', so the stored
+    value may be up to one LSB further RETARDED than approved — and never one LSB advanced."""
+    from ecutune.romread.defs import Scaling
+    from ecutune.romread.reader import _apply
+    from ecutune.safety.romwrite.encoder import encode
+    sc = Scaling(name="BaseTiming", storagetype="uint8", toexpr="(x*.3515625)-20",
+                 frexpr="(x+20)/.3515625", units="deg", endian="big")
+    got = _clamped(cur, new, load)
+    blob, _ = encode(np.array([got]), sc, "no_greater")
+    stored = float(_apply(sc.toexpr, np.frombuffer(blob, dtype=">u1"))[0])
+    assert stored <= got + 1e-9, "encoding ADVANCED a value past what the clamp allowed"
+    assert cur - stored <= SAFETY.max_timing_step + _LSB + 1e-9
+
+
+def _converge(start, load, target, steps=40, **ctxkw):
+    """Re-run the clamp with the table updated each pass, as the real multi-iteration loop
+    does, and return where it settles."""
+    cur = start
+    for _ in range(steps):
+        nxt = _clamped(cur, target, load, **ctxkw)
+        assert nxt <= cur + 1e-9, "an iteration ADVANCED the cell"
+        if abs(nxt - cur) <= 1e-9:
+            return cur
+        cur = nxt
+    raise AssertionError(f"no fixed point after {steps} iterations (at {cur})")
+
+
+@settings(deadline=None, max_examples=100)
+@given(start=st.floats(23.0, 45.0), load=st.sampled_from(_ROM_LOADS))
+def test_unbounded_retard_requests_settle_on_the_absolute_floor(start, load):
+    """Asking for maximum retard, forever, settles at `min_timing_advance` — it does not walk.
+
+    THIS TEST FOUND A REAL HOLE (2026-08-30). The cumulative floor goes inert without a
+    baseline and the ceiling is a MAXIMUM, so before `min_timing_advance` existed this walked
+    a cell past 0 deg and on into after-TDC indefinitely — 12 iterations reached -49 deg. A
+    rate limit that bounds a single step does not bound a sequence.
+    """
+    settled = _converge(start, load, -100.0)
+    assert settled == pytest.approx(SAFETY.min_timing_advance)
+
+
+@settings(deadline=None, max_examples=100)
+@given(start=st.floats(30.0, 45.0), load=st.sampled_from(_ROM_LOADS[2:]))
+def test_iterations_converge_onto_the_ceiling_and_stop_there(start, load):
+    """The multi-pass behaviour Syed's 6 deg/iteration ruling implies: with the ceiling as the
+    target, the map walks DOWN to it over several passes, never below it, and then stops."""
+    ceiling = SAFETY.timing_ceiling_for(2400.0, load)
+    settled = _converge(start, load, ceiling)
+    assert settled == pytest.approx(min(start, ceiling))
+
+
+@settings(deadline=None, max_examples=100)
+@given(base=st.floats(30.0, 45.0), load=st.sampled_from(_ROM_LOADS))
+def test_iterations_settle_on_the_cumulative_floor_when_a_baseline_is_present(base, load):
+    """With the archived stock ROM supplied, the sequence stops at `max_timing_retard` below
+    stock — or at the absolute floor, whichever is reached first."""
+    stock = TableSet({_TIMING: _timing_map(base, load)})
+    settled = _converge(base, load, -100.0, baseline_tables=stock)
+    assert settled == pytest.approx(max(base - SAFETY.max_timing_retard,
+                                        SAFETY.min_timing_advance))
+
+
+@settings(deadline=None, max_examples=200)
+@given(base=st.floats(20.0, 45.0), cur_off=st.floats(0.0, 25.0), load=st.sampled_from(_ROM_LOADS))
+def test_cumulative_retard_floor_holds_against_stock(base, cur_off, load):
+    """No surviving edit ever sits more than max_timing_retard below the ARCHIVED STOCK ROM,
+    for any starting point. Step bounds do not bound distance."""
+    cur = base - cur_off
+    ts = TableSet({_TIMING: _timing_map(cur, load)})
+    stock = TableSet({_TIMING: _timing_map(base, load)})
+    res = apply_clamps(_timing_prop(-100.0),
+                       ClampContext(ts, SAFETY, baseline_tables=stock,
+                                    fuel_trims_converged=True))
+    got = res.clamped_edits[0].new_value
+    assert got <= cur + 1e-9
+    assert base - got <= SAFETY.max_timing_retard + 1e-9 or got == pytest.approx(cur)

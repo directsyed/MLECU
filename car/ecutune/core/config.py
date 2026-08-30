@@ -42,11 +42,35 @@ class SafetyCfg(BaseModel):
     fuel_trim_converged_tol: float = 0.05  # |trim| under this => converged (fuel-before-timing)
     steady_tol: float = 0.05
     default_timing_ceiling: float = 25.0   # deg; used when no per-rpm override matches
+    # --- ignition timing stage (2026-08-30) -------------------------------------------------
+    # Before this, timing was bounded by exactly ONE clamp: clamp_timing_row_ceiling. Every
+    # other bound in the layer gates on targets_kind being "fuel" or "sensor", so a timing
+    # proposal had no rate limit, no cumulative envelope against stock, and no floor at all --
+    # retard was unbounded in a category where the ONLY direction we ever move is retard.
+    max_timing_step: float = 6.0          # deg per iteration (Syed, 2026-08-30)
+    max_timing_retard: float = 20.0       # deg below stock, cumulative, per cell
+    # Absolute floor that does NOT depend on a baseline being supplied. See config.yaml.
+    min_timing_advance: float = 0.0       # deg BTDC
+    # IAM is a GLOBAL multiplier on the advance the ECU adds above the base map. A cell that
+    # logged no knock while IAM was collapsed is not proven safe -- it ran with that advance
+    # already withdrawn. See config.yaml for the derivation and the ratification flag.
+    iam_advance_authority_deg: float = 2.0
+    iam_reference: float = 1.0
     timing_ceilings: list[TimingCeiling] = Field(default_factory=list)
     # The effective ceiling is the MINIMUM of the rpm-keyed and load-keyed limits, so adding
     # load-awareness can only ever tighten, never loosen.
     timing_ceilings_by_load: list[LoadTimingCeiling] = Field(default_factory=list)
     zero_base_eps: float = 1e-9          # below this |current|, the relative clamp can't apply
+    # Axis breakpoints come out of the ROM as float32, so a threshold written as a decimal
+    # literal in config.yaml is NOT the number the axis actually holds: the Base Timing load
+    # axis stores 0.55 as 0.5499999523162842 and 0.85 as 0.8499999642372131, and a bare
+    # `load >= 0.55` is FALSE at the very column the ceiling was ratified to cover. Both
+    # ratified load bands were silently starting one column late -- col 3 (0.70 g/rev) got the
+    # 45 deg cruise ceiling instead of 30, and col 4 (0.85, where this car makes boost) got 30
+    # instead of 22. Found 2026-08-30. float32 carries ~1.2e-7 relative precision, so a 1e-6
+    # relative tolerance clears the representation error with an order of margin while staying
+    # far tighter than the ~0.15 g/rev gap between real breakpoints.
+    axis_match_eps_rel: float = 1e-6
     # --- belief sanity envelope (2026-08-05) -------------------------------------------------
     # max_ve_step bounds RATE. Nothing bounded DISPLACEMENT: at 3%/iteration, twelve iterations
     # compounds to 43% away from the stock calibration, and a sustained wrong diagnosis walks a
@@ -85,19 +109,28 @@ class SafetyCfg(BaseModel):
                                             # romread.plausible() rejects non-monotonic axes,
                                             # so a curve that breaks this is unflashable anyway
 
+    def _at_or_above(self, value: float, threshold: float) -> bool:
+        """`value >= threshold`, tolerant of float32 axis storage. See axis_match_eps_rel."""
+        return value >= threshold - max(abs(threshold) * self.axis_match_eps_rel,
+                                        self.zero_base_eps)
+
     def timing_ceiling_for(self, rpm: float, load: float | None = None) -> float:
         """Tightest ceiling this cell qualifies for, across BOTH axes.
 
         `load=None` keeps the old rpm-only behaviour for callers that cannot supply a load
         (the sim harness, and any table without a load axis).
+
+        Both comparisons are epsilon-tolerant because the ROM stores its axes as float32 and
+        the thresholds are decimal literals -- see `axis_match_eps_rel` for the failure this
+        fixes.
         """
         best = self.default_timing_ceiling
         for tc in sorted(self.timing_ceilings, key=lambda t: t.rpm):
-            if rpm >= tc.rpm:
+            if self._at_or_above(rpm, tc.rpm):
                 best = tc.max_advance
         if load is not None:
             for lc in sorted(self.timing_ceilings_by_load, key=lambda t: t.load):
-                if load >= lc.load:
+                if self._at_or_above(load, lc.load):
                     best = min(best, lc.max_advance)
         return best
 

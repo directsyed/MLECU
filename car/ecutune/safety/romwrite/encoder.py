@@ -51,13 +51,30 @@ def quantisation_step(scaling: Scaling, near: float) -> float:
     return abs(float(hi) - float(lo))
 
 
-def encode(values: np.ndarray, scaling: Scaling) -> tuple[bytes, float]:
+def encode(values: np.ndarray, scaling: Scaling,
+           round_mode: str = "nearest") -> tuple[bytes, float]:
     """Engineering values -> big-endian raw bytes. Returns (bytes, max round-trip error).
 
     Raises EncodingError rather than storing an approximation it was not asked for.
+
+    `round_mode` controls what happens when a value falls between two storage steps:
+
+      "nearest"    — closest representable value (default). Correct when the error is
+                     symmetric, i.e. everywhere the approved value is a TARGET.
+      "no_greater" — never store a value ABOVE the one approved. Required for ignition
+                     timing: `Base Timing` is uint8 at 0.3516 deg/step, so rounding to
+                     nearest can land up to +0.176 deg ADVANCED of the number the clamps
+                     allowed. A clamp ceiling that the storage layer then exceeds is not a
+                     ceiling, and advance is the direction that breaks engines.
+
+    "no_greater" is expressed in ENGINEERING units, not raw ones: the correcting step is
+    taken in whichever raw direction actually decreases the decoded value, so it stays right
+    for a decreasing scaling like `2707090/x` where flooring the raw value would raise it.
     """
     if scaling.storagetype not in _DTYPES:
         raise EncodingError(f"unsupported storage type {scaling.storagetype!r}")
+    if round_mode not in ("nearest", "no_greater"):
+        raise EncodingError(f"unknown round_mode {round_mode!r}")
     vals = np.asarray(values, dtype=np.float64).ravel()
     if not np.all(np.isfinite(vals)):
         raise EncodingError("cannot encode non-finite values")
@@ -69,6 +86,13 @@ def encode(values: np.ndarray, scaling: Scaling) -> tuple[bytes, float]:
     if scaling.storagetype != "float":
         lo, hi = _INT_RANGES[scaling.storagetype]
         raw = np.rint(raw)
+        if round_mode == "no_greater":
+            # Direction of increasing ENGINEERING value in raw space, measured from the def
+            # itself rather than assumed. +1 for a rising toexpr, -1 for a falling one.
+            step_up = _apply(scaling.toexpr, raw + 1.0) - _apply(scaling.toexpr, raw)
+            direction = np.sign(step_up)
+            over = _apply(scaling.toexpr, raw) > vals + 1e-12
+            raw = np.where(over, raw - direction, raw)
         if raw.min() < lo or raw.max() > hi:
             raise EncodingError(
                 f"raw value out of range for {scaling.storagetype}: "
@@ -83,10 +107,19 @@ def encode(values: np.ndarray, scaling: Scaling) -> tuple[bytes, float]:
         raise EncodingError(f"only big-endian scalings are supported, got {scaling.endian!r}")
     back = _apply(scaling.toexpr, np.frombuffer(blob, dtype=_DTYPES[scaling.storagetype]))
     err = float(np.max(np.abs(back - vals))) if vals.size else 0.0
-    tol = max(quantisation_step(scaling, float(vals[0])) / 2.0, 1e-9) if vals.size else 1e-9
+    half_step = quantisation_step(scaling, float(vals[0])) / 2.0 if vals.size else 0.0
+    # "no_greater" gives up the symmetric half-step: a value just above a storage step is
+    # pushed a whole step DOWN rather than a half step up, so the honest bound is a full step.
+    tol = max(half_step * (2.0 if round_mode == "no_greater" else 1.0), 1e-9)
     # Scale the tolerance with magnitude for float storage: float32 carries ~7 significant
     # digits, so a 296 g/s cell cannot round-trip to 1e-9 absolute.
     tol = max(tol, float(np.max(np.abs(vals))) * 1e-6) if vals.size else tol
+    if round_mode == "no_greater" and vals.size and np.any(back > vals + 1e-9):
+        worst = float(np.max(back - vals))
+        raise EncodingError(
+            f"round_mode='no_greater' but the stored value exceeds the approved one by "
+            f"{worst:.6g} for scaling {scaling.name!r} — refusing to write a value more "
+            "advanced than the clamps allowed")
     if err > tol:
         raise EncodingError(
             f"round-trip error {err:.6g} exceeds tolerance {tol:.6g} for scaling "

@@ -68,8 +68,17 @@ def _cell_offset(td: TableDef, sc: Scaling, table: Table, edit: CellEdit) -> int
 
 
 def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
-          resolved: dict[str, ResolvedDef]) -> WriteResult:
-    """Apply clamped edits to a copy of `stock`. Returns a verified image or raises."""
+          resolved: dict[str, ResolvedDef],
+          round_modes: dict[str, str] | None = None) -> WriteResult:
+    """Apply clamped edits to a copy of `stock`. Returns a verified image or raises.
+
+    `round_modes` maps a semantic table id to the storage rounding policy for that table
+    (see `encoder.encode`). Default is "nearest" for everything, which is right whenever the
+    approved value is a target. `ignition.base_timing` needs "no_greater": it is uint8 at
+    0.3516 deg/step, so rounding to nearest can store up to +0.176 deg MORE ADVANCE than the
+    clamps approved, and a ceiling the storage layer is free to exceed is not a ceiling.
+    """
+    round_modes = round_modes or {}
     if not result.ok:
         raise WriteVerificationError(f"refusing to patch an aborted proposal "
                                      f"({result.aborted_by})")
@@ -80,6 +89,9 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
     allowed: list[tuple[int, int]] = []
     max_err = 0.0
     notes: list[str] = []
+    # (table_id, row, col) -> (byte offset, width, the value those bytes decode to). Checked
+    # again at the end against the FINAL image, after the checksum repair has also written.
+    expected: dict[tuple[str, int, int], tuple[int, int, float]] = {}
 
     by_table: dict[str, list[CellEdit]] = {}
     for e in result.clamped_edits:
@@ -93,10 +105,11 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
                 f"{table_id}: no resolved def — the write path must patch the address that WON "
                 "reconciliation, and re-deriving it from a fixed def id risks the +0x20 drift "
                 "between A2WC410D and A2WC412D")
+        mode = round_modes.get(table_id, "nearest")
         notes.append(f"{table_id}: def {rd.def_id} @0x{rd.table_def.address:X} "
-                     f"({rd.scaling.storagetype}, {rd.scaling.name})")
+                     f"({rd.scaling.storagetype}, {rd.scaling.name}, rounding={mode})")
         for e in edits:
-            blob, err = encode(np.asarray([e.new_value]), rd.scaling)
+            blob, err = encode(np.asarray([e.new_value]), rd.scaling, mode)
             off = _cell_offset(rd.table_def, rd.scaling, table, e)
             if off + len(blob) > len(buf):
                 raise WriteVerificationError(f"{table_id} cell ({e.row},{e.col}) at 0x{off:X} "
@@ -104,6 +117,10 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
             buf[off:off + len(blob)] = blob
             allowed.append((off, off + len(blob)))
             max_err = max(max_err, err)
+            expected[(table_id, e.row, e.col)] = (
+                off, len(blob),
+                float(_apply(rd.scaling.toexpr,
+                             np.frombuffer(blob, dtype=_DTYPES[rd.scaling.storagetype]))[0]))
 
     # (d) checksum — must run before the whitelist check, since its own write is whitelisted
     repaired = checksum.repair(buf)
@@ -142,6 +159,22 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
                 f"{table_id}: stock curve was strictly ascending but the ENCODED curve is not "
                 f"(cells {bad[:5].tolist()}) — the storage type cannot represent the ordering "
                 "the clamp promised")
+
+    # (b) READ-BACK, per-cell half — applies to EVERY table kind, not just curves.
+    # The ordering check above only covers curve_1d, so before 2026-08-30 a map_2d write had
+    # no value-level read-back at all: it was protected by the byte whitelist and the checksum,
+    # neither of which can tell a correct cell from one written at the wrong index. Decoding
+    # each edited cell out of the FINAL image (after the checksum repair has also written)
+    # closes that, and it is the check that would catch a _cell_offset regression on a 2-D map.
+    for (table_id, row, col), (off, width, want) in expected.items():
+        rd = resolved[table_id]
+        got = float(_apply(rd.scaling.toexpr,
+                           np.frombuffer(bytes(buf[off:off + width]),
+                                         dtype=_DTYPES[rd.scaling.storagetype]))[0])
+        if not np.isclose(got, want, rtol=0.0, atol=1e-9):
+            raise WriteVerificationError(
+                f"{table_id} cell ({row},{col}) at 0x{off:X} reads back as {got:.6g}, not the "
+                f"{want:.6g} that was written — the image does not contain what was approved")
 
     # (d, cont.) checksum re-verified on the final image
     if checksum.verify(buf):

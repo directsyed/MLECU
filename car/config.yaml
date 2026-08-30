@@ -36,6 +36,53 @@ safety:
   min_sensor_samples: 20         # steady log samples required before a breakpoint may move
   sensor_require_monotonic: true # corrected curve must stay strictly ascending
   default_timing_ceiling: 25.0   # deg BTDC; used when no per-rpm override matches
+
+  # --- ignition timing stage (2026-08-30) — SYED REVIEWS THESE NUMBERS ----------------
+  # Syed's ruling, 2026-08-30: 6 deg per iteration, re-log between passes. This is the
+  # ONLY thing bounding how fast timing moves -- ve_rate_limit is fuel-only. Note it takes
+  # 4 iterations to reach the ratified ceiling at the worst cell (18.12 deg at 2400 rpm /
+  # 0.85 g/rev), which is the intended cost of being able to watch each step on the car.
+  max_timing_step: 6.0           # deg, per iteration, against the table's CURRENT value
+
+  # CUMULATIVE floor, measured against the archived STOCK ROM. The ceilings bound how much
+  # ADVANCE a cell may carry; nothing bounded how much RETARD could accumulate, and a
+  # sustained wrong diagnosis at 6 deg/iteration walks the whole map to zero in four passes.
+  # Heavy retard does not detonate -- it dumps heat into the turbine, and this car is fully
+  # catless with no EGT sensor, so there is no instrument that would catch it.
+  # DERIVATION, not a guess: the largest retard the ratified ceilings THEMSELVES demand is
+  # 18.117 deg (stock 40.12 at 2400 rpm / 0.85 g/rev against the 22 deg boost ceiling), so
+  # anything below ~18.2 would fight the ceilings. 20.0 clears that with ~1.9 deg of
+  # evidence-driven headroom and still refuses a runaway.  ** RATIFY OR CHANGE THIS **
+  max_timing_retard: 20.0        # deg below stock, cumulative, per cell
+
+  # ABSOLUTE last-resort floor, independent of any baseline. max_timing_retard goes INERT when
+  # no archived stock ROM is supplied (the same "inert without a baseline" pattern as
+  # belief_envelope and sensor_envelope), and the ceiling is a MAXIMUM -- so with no baseline
+  # there was nothing at all stopping repeated iterations walking a cell past 0 deg and on into
+  # after-TDC territory. Found 2026-08-30 by the convergence property test, not by inspection.
+  # This is NOT the tuning limit -- the ceiling, the cumulative floor and the 6 deg rate cap are
+  # -- it is the bound that says "no legitimate ignition-retard stage ever fires after TDC".
+  # The stock map's own minimum is 2.148 deg.
+  min_timing_advance: 0.0        # deg BTDC; a clamp may never take a cell below this
+
+  # --- IAM deficit: BOTH of these are FALLBACKS ONLY ---------------------------------
+  # IAM scales the advance the ECU adds ABOVE the base map, so a cell that logged no knock
+  # while IAM was collapsed is not proven safe -- it ran with that advance already withdrawn
+  # and gets it back when IAM recovers. Both halves of that sum are READ FROM THE ROM when the
+  # ROM exposes them, which for this car it does:
+  #   authority per cell <- "Knock Correction Advance Max" (0xC8FB0). On this ROM it is 0.0
+  #       across the ENTIRE idle and cruise region (load <= 0.55) and 3.16-9.14 deg where the
+  #       car makes boost. The 2.0 flat constant below was therefore retarding the validated
+  #       knock-free idle band while UNDER-correcting the boost cells that needed it.
+  #   reference       <- "Advance Multiplier (Initial)" = 0.5, NOT 1.0. An observed IAM of
+  #       0.500 is this calibration's FACTORY value, not a halved one (the step is 0.25).
+  #       Measuring from a hardcoded 1.0 would invent a permanent 50% deficit on a healthy
+  #       engine -- and the 2026-08-26 analysis did read 0.500 as "already halved".
+  # These two are used only when a ROM does not expose those tables (another platform, or a
+  # def that lacks them). Applied from the drive's WORST IAM, never a per-cell mean: IAM is
+  # global, so a per-cell mean encodes only WHEN in the drive each cell was visited.
+  iam_advance_authority_deg: 2.0   # fallback deg of advance authority when the ROM has no map
+  iam_reference: 1.0               # fallback healthy IAM when the ROM has no initial value
   # Per-row timing ceilings — PLACEHOLDER values, tighten under load. REVIEW before any
   # timing work (EJ20X on 93 oct wants less than the EJ255 base assumes). Not exercised by
   # the idle (fuel-only) convergence loop.

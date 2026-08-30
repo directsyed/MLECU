@@ -6,6 +6,7 @@ import numpy as np
 from ecutune.core.config import load_config
 from ecutune.core.models import CellEdit, ClampContext, Proposal, Table, TableAxis, TableSet
 from ecutune.safety import apply_clamps
+from ecutune.safety import clamps
 
 SAFETY = load_config().safety
 
@@ -92,13 +93,20 @@ def _ceiling(rpm, load):
     return SAFETY.timing_ceiling_for(rpm, load)
 
 
+# These two exercise clamp_timing_row_ceiling DIRECTLY rather than through apply_clamps.
+# Since 2026-08-30 the pipeline also carries clamp_timing_rate_limit, which is retard-only and
+# caps a step at 6 deg, so a request that ADVANCES a cell from 10 deg to the ceiling no longer
+# survives the full fold — correctly, but it would stop these from measuring what they are for.
+# The ceiling's own behaviour is isolated here; the composition of the two is pinned in
+# tests/test_timing_retard.py::test_ceiling_then_rate_limit_compose.
+
 def test_timing_ceiling_floors():
     """Any timing edit above the cell's ceiling is floored to it. Reads the ceiling from config
     rather than hardcoding a number, so ratifying new limits does not silently break the test."""
     ts = _ts(_timing_map(10.0, rpm=4500, load=2.0))
     ceiling = _ceiling(4500, 2.0)
-    res = apply_clamps(_timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, ceiling + 10.0)]),
-                       _ctx(ts, fuel_trims_converged=True))  # pass the fuel-before-timing gate
+    res = clamps.clamp_timing_row_ceiling(
+        _timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, ceiling + 10.0)]), _ctx(ts))
     assert res.clamped_edits[0].new_value == ceiling
     assert any(v.clamp == "timing_row_ceiling" for v in res.violations)
 
@@ -111,14 +119,14 @@ def test_timing_ceiling_is_load_aware():
     assert boost < cruise, "a boost cell must be held tighter than a cruise cell at equal rpm"
 
     ts = _ts(_timing_map(10.0, rpm=2400, load=0.95))
-    res = apply_clamps(_timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, 40.0)]),
-                       _ctx(ts, fuel_trims_converged=True))
+    res = clamps.clamp_timing_row_ceiling(
+        _timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, 40.0)]), _ctx(ts))
     assert res.clamped_edits[0].new_value == boost
 
     # ...and the same 40 deg request at light cruise is left alone, because it is normal there.
     ts2 = _ts(_timing_map(10.0, rpm=2400, load=0.30))
-    res2 = apply_clamps(_timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, 40.0)]),
-                        _ctx(ts2, fuel_trims_converged=True))
+    res2 = clamps.clamp_timing_row_ceiling(
+        _timing_prop([CellEdit("ignition.timing_comp_a", 0, 0, 40.0)]), _ctx(ts2))
     assert res2.clamped_edits[0].new_value == 40.0
     assert res2.violations == ()
 

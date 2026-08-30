@@ -47,21 +47,96 @@ def _viol_all(name: str, ctx: ClampContext, prop: Proposal, action: str) -> tupl
     )
 
 
+def _is_retard_only(prop: Proposal, ctx: ClampContext) -> bool:
+    """True iff this is a timing proposal in which NO cell ends up more advanced than it is now.
+
+    VERIFIED, NOT DECLARED. The check reads `ctx.tables` — the values the ECU is actually
+    running — and deliberately ignores `prop.metadata`. Metadata travels with the proposal and
+    the future LLM is a proposal producer, so a metadata flag would be a safety gate that an
+    untrusted party could open for itself. A structural fact about the live tables cannot be
+    lied to.
+
+    Two gates use this to grant a narrow exemption (2026-08-30). Both exist to stop us ADDING
+    RISK, and both were, as written, refusing the one class of change that removes it:
+
+      * `clamp_knock_auto_abort`  — this car knocks; that is why the timing stage exists, so
+        every log that could justify a retard also trips the abort.
+      * `clamp_fuel_before_timing` — "a lean miss + extra timing = detonation". The hazard in
+        that sentence is EXTRA TIMING. Retarding a cell whose fuel is still off is strictly
+        safer than leaving it, so requiring convergence first only protects the fuel error.
+
+    A single edit that advances anything disqualifies the WHOLE proposal from both exemptions.
+    """
+    if prop.targets_kind != "timing" or not prop.edits:
+        return False
+    eps = ctx.safety.zero_base_eps
+    for e in prop.edits:
+        cur = _cur(ctx, e)
+        if math.isnan(cur) or e.new_value > cur + eps:
+            return False
+    return True
+
+
 # --- GATES ------------------------------------------------------------------
 
 def clamp_knock_auto_abort(prop: Proposal, ctx: ClampContext) -> ClampResult:
     """Knock feedback active => STOP. Hard abort, no edit survives. The single most important
-    clamp: a knock event means the engine is already at risk; we do not negotiate."""
-    if ctx.knock_active:
-        return ClampResult(False, (), _viol_all("knock_auto_abort", ctx, prop, "aborted"),
-                           aborted_by="knock_auto_abort")
-    return ClampResult(True, tuple(prop.edits))
+    clamp: a knock event means the engine is already at risk; we do not negotiate.
+
+    ONE NARROW EXEMPTION (2026-08-30): a proposal that ONLY RETARDS TIMING.
+
+    Wiring `knock_active` from real logs for the first time exposed a deadlock. This car
+    knocks -- that is the entire reason the timing stage exists -- so every log that could
+    justify a timing correction also sets `knock_active`, and the clamp would abort the one
+    change that reduces the hazard it is reacting to. "Do not negotiate" has to mean "do not
+    take on more risk", not "do not put the fire out".
+
+    The exemption is VERIFIED, NOT DECLARED. It is granted only when this clamp can prove from
+    `ctx.tables` that every edit moves its cell to a value at or below the one the ECU is
+    running now. It deliberately does NOT read `prop.metadata`: metadata travels with the
+    proposal, and the future LLM is a proposal producer, so a metadata flag would be a safety
+    gate an untrusted party could open for itself. A structural check on the live tables cannot
+    be lied to.
+
+    Everything else -- fuel, sensor, boost, and any timing proposal containing even one cell
+    that ADVANCES -- still hard-aborts. The exemption is recorded in the audit trail as a
+    single whole-proposal entry (row/col -1) so an allowance is never silent.
+    """
+    if not ctx.knock_active:
+        return ClampResult(True, tuple(prop.edits))
+
+    if _is_retard_only(prop, ctx):
+        note = ClampViolation("knock_auto_abort", prop.edits[0].table_id, -1, -1,
+                              float(len(prop.edits)), float(len(prop.edits)),
+                              "knock_retard_exemption")
+        return ClampResult(True, tuple(prop.edits), (note,))
+
+    return ClampResult(False, (), _viol_all("knock_auto_abort", ctx, prop, "aborted"),
+                       aborted_by="knock_auto_abort")
 
 
 def clamp_fuel_before_timing(prop: Proposal, ctx: ClampContext) -> ClampResult:
-    """Never advance timing while fuel is still wrong. A timing proposal is deferred until the
-    fuel trims have converged (a lean miss + extra timing = detonation)."""
+    """Never ADVANCE timing while fuel is still wrong. A timing proposal is deferred until the
+    fuel trims have converged (a lean miss + extra timing = detonation).
+
+    EXEMPTION (2026-08-30): a verified retard-only proposal passes. See `_is_retard_only` for
+    why, and for why the check cannot be satisfied by a metadata claim.
+
+    The concrete case that forced this: after three MAF flashes, 26 of 27 confident airflow
+    bands sit within +/-3.7%, but one -- 59.31 g/s, 29 samples, the very top of the measured
+    range -- reads +7.44%, past the 5% tolerance. Closing it needs high-airflow data; getting
+    high-airflow data means sustained boost; and sustained boost is what the timing work exists
+    to make safe. That is the same circularity Syed struck down in D21 ("no boost before the
+    smoke test", when the shop is a highway drive away), arriving on a different axis. Retard is
+    not the direction this gate protects against, so it is not the direction it should block.
+    """
     if prop.targets_kind == "timing" and not ctx.fuel_trims_converged:
+        if _is_retard_only(prop, ctx):
+            return ClampResult(True, tuple(prop.edits),
+                               (ClampViolation("fuel_before_timing", prop.edits[0].table_id,
+                                               -1, -1, float(len(prop.edits)),
+                                               float(len(prop.edits)),
+                                               "retard_only_exemption"),))
         return ClampResult(False, (), _viol_all("fuel_before_timing", ctx, prop, "deferred"))
     return ClampResult(True, tuple(prop.edits))
 
@@ -107,6 +182,96 @@ def clamp_timing_row_ceiling(prop: Proposal, ctx: ClampContext) -> ClampResult:
                                         e.new_value, ceiling, "floored"))
         else:
             out.append(e)
+    return ClampResult(True, tuple(out), tuple(viols))
+
+
+def clamp_timing_rate_limit(prop: Proposal, ctx: ClampContext) -> ClampResult:
+    """MODIFIER — the three bounds timing never had. Runs AFTER clamp_timing_row_ceiling.
+
+    WHY THIS EXISTS (2026-08-30). Timing was bounded by exactly one clamp, the row ceiling.
+    `ve_rate_limit`, `belief_envelope` and `sensor_calibration` all gate on `targets_kind`
+    being "fuel" or "sensor", so a timing proposal had no rate limit, no cumulative bound
+    against stock, and no floor -- in the one category where the only direction we ever move
+    is retard, and where over-retard is silent on this car (fully catless, no EGT sensor).
+
+    Three bounds, applied in order, each of which can only make the value LESS retarded or
+    hold it still:
+
+      1. RETARD ONLY   — an edit that ADVANCES timing is refused outright and held at the
+                         current value. Nothing in this stage should ever add advance, and
+                         this is also the property clamp_knock_auto_abort's exemption checks.
+      2. CUMULATIVE FLOOR — no cell may sit more than `safety.max_timing_retard` below the
+                         ARCHIVED STOCK ROM. Step bounds do not bound distance: at 6 deg an
+                         iteration, four passes walk the whole map to zero. Inert without a
+                         baseline, matching belief_envelope and sensor_calibration.
+      3. STEP          — |new - current| <= `safety.max_timing_step` (Syed's 6 deg/iteration,
+                         re-log between passes).
+
+    ORDER MATTERS, AND IT IS NOT THE ORDER THE PLAN SPECIFIED. `docs/PLAN-timing-stage-
+    2026-08-30.md` put this clamp BEFORE the row ceiling. That is wrong: the ceiling is a
+    hard floor-to-a-value operation, so running it last lets it drop a cell 18.12 deg in a
+    single pass and Syed's ratified 6 deg/iteration limit becomes decorative -- the same
+    failure as the load ceilings that silently never fired. The ceiling decides WHERE a cell
+    is going; this clamp decides HOW FAST it gets there, so it has to have the last word.
+    Recorded in decisions.md D31.
+    """
+    if prop.targets_kind != "timing":
+        return ClampResult(True, tuple(prop.edits))
+
+    step = ctx.safety.max_timing_step
+    max_retard = ctx.safety.max_timing_retard
+    out: list[CellEdit] = []
+    viols: list[ClampViolation] = []
+
+    for e in prop.edits:
+        cur = _cur(ctx, e)
+        if math.isnan(cur):
+            out.append(e)
+            continue
+        v = e.new_value
+        actions: list[str] = []
+
+        # 1. RETARD ONLY
+        if v > cur:
+            v = cur
+            actions.append("advance_refused")
+
+        # 2. CUMULATIVE FLOOR against the archived stock ROM
+        if ctx.baseline_tables is not None:
+            try:
+                base = ctx.baseline_tables.current(e)
+            except (KeyError, IndexError):
+                base = float("nan")
+            if not math.isnan(base):
+                limit = base - max_retard
+                if v < limit:
+                    # min(cur, limit) so relieving the envelope can never ADVANCE past the
+                    # value the ECU is running now -- bound 1 must survive bound 2.
+                    v = min(cur, limit)
+                    actions.append("retard_envelope_limited")
+
+        # 2b. ABSOLUTE FLOOR — does not depend on a baseline being present.
+        # Bound 2 goes inert without `baseline_tables`, and the ceiling is a MAXIMUM, so with
+        # no baseline nothing stopped repeated iterations walking a cell down through zero and
+        # into after-TDC. `min(cur, ...)` keeps bound 1 intact: if a cell somehow already sits
+        # below the floor we hold it, we never advance it back up.
+        floor = ctx.safety.min_timing_advance
+        if v < floor:
+            v = min(cur, floor)
+            actions.append("min_advance_limited")
+
+        # 3. STEP — last, so it is the final word on how far one iteration may move
+        if abs(v - cur) > step:
+            v = cur + _sign(v - cur) * step
+            actions.append("rate_limited")
+
+        if v != e.new_value:
+            out.append(CellEdit(e.table_id, e.row, e.col, v, e.reason))
+            viols.append(ClampViolation("timing_rate_limit", e.table_id, e.row, e.col,
+                                        e.new_value, v, "+".join(actions) or "adjusted"))
+        else:
+            out.append(e)
+
     return ClampResult(True, tuple(out), tuple(viols))
 
 
