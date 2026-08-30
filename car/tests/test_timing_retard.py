@@ -441,3 +441,27 @@ def test_end_to_end_timing_candidate_on_the_real_rom():
     moved = [s for s in raw if s != IGNITION_BASE_TIMING
              and not np.array_equal(raw[s].values, back[s].values)]
     assert moved == [], f"unrelated tables moved: {moved}"
+
+
+def test_verify_flash_returns_NO_GO_not_a_traceback_for_a_foreign_rom():
+    """A ROM from ANOTHER CAR must produce a verdict, not an exception.
+
+    Found 2026-08-30 by passing a real reference tune (AZ1E401A, an 08 WRX) in as a candidate
+    against our A2WC411D. Every identity check fired correctly and then the run died inside
+    read_semantic_tables -- reconciliation rightly refuses to guess on a foreign image, but the
+    audit swallowed that as a crash. This is the last automated gate before a human touches an
+    ECU; a person should not have to interpret a Python stack trace to learn the answer is
+    "do not flash this".
+    """
+    from ecutune.cli import _verify_flash
+    rom = _rom_paths()[0]
+    foreign = bytearray(rom.read_bytes())
+    foreign[0x2000:0x2010] = b"\xff\xff LAZ1E401A\x00ZR1"  # another car's calibration ID (16 B)
+    foreign[0x100:0x200] = b"\x00" * 0x100                 # ...and a different boot region
+    tmp = rom.parent.parent / "reference-roms-DO-NOT-FLASH" / "_pytest_foreign.bin"
+    tmp.parent.mkdir(exist_ok=True)
+    tmp.write_bytes(bytes(foreign))
+    try:
+        assert _verify_flash(str(tmp), str(rom)) == 2      # clean NO-GO, no exception
+    finally:
+        tmp.unlink()

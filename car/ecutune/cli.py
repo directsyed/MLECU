@@ -560,17 +560,44 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
           cand[0x2000:0x2008].decode("ascii", "replace"))
     check(stock[:0x2000] == cand[:0x2000], "boot/vector region 0x0-0x1FFF untouched")
 
+    # SHORT-CIRCUIT once IDENTITY is in doubt. Everything above answers "is this even the same
+    # ECU's calibration?", and if the answer is no there is nothing to be gained by decoding it
+    # -- reconciliation will refuse a foreign image ("defs disagree ... refusing to guess") and
+    # raise, so the audit would die on a traceback instead of printing a verdict.
+    #
+    # Found 2026-08-30 by passing a REAL foreign ROM in as a candidate: a reference tune from
+    # another car (AZ1E401A, an 08 WRX) against our A2WC411D. Every identity check fired
+    # correctly and then the run crashed before reaching the summary. A person reading that
+    # output has to interpret a Python stack trace to learn the answer is "do not flash this".
+    # This is the last automated gate before a human touches an ECU; it owes a verdict, not an
+    # exception.
+    if fails:
+        print(f"\nNO-GO — {len(fails)} check(s) failed before the image could even be decoded: "
+              f"{fails}")
+        print("       This does not look like a calibration for THIS ECU. Refusing to go "
+              "further.")
+        return 2
+
+    # Only now is it safe to diff: _diff_ranges raises on a size mismatch, so it has to sit
+    # AFTER the size check has been allowed to fail the audit rather than before it.
     ranges = _diff_ranges(stock, cand)
     nbytes = sum(b - a for a, b in ranges)
     check(0 < len(ranges) < 64, f"{len(ranges)} changed byte-range(s), {nbytes} bytes total")
 
     defs = EcuFlashDefs(DEFAULT_DEFS)
-    s_tab, s_rep = read_semantic_tables(RomImage(stock), defs, list(SIBLING_DEFS),
+    try:
+        s_tab, s_rep = read_semantic_tables(RomImage(stock), defs, list(SIBLING_DEFS),
+                                            TO_PLATFORM, VARIANTS)
+        c_tab, _ = read_semantic_tables(RomImage(cand), defs, list(SIBLING_DEFS),
                                         TO_PLATFORM, VARIANTS)
-    c_tab, _ = read_semantic_tables(RomImage(cand), defs, list(SIBLING_DEFS),
-                                    TO_PLATFORM, VARIANTS)
-    b_tab, _ = read_semantic_tables(RomImage(base_path.read_bytes()), defs, list(SIBLING_DEFS),
-                                    TO_PLATFORM, VARIANTS)
+        b_tab, _ = read_semantic_tables(RomImage(base_path.read_bytes()), defs,
+                                        list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
+    except ValueError as e:
+        # romread refuses rather than guessing when sibling defs disagree and plausibility
+        # cannot pick a winner. That refusal is correct; surfacing it as a crash is not.
+        check(False, "the image decodes through our definition set", str(e)[:160])
+        print(f"\nNO-GO — {len(fails)} check(s) failed: {fails}")
+        return 2
     moved = [k for k in s_tab if not np.array_equal(s_tab[k].values, c_tab[k].values)]
     check(len(moved) == 1, "exactly one semantic table changed", str(moved) if moved else "none")
     if len(moved) != 1:
