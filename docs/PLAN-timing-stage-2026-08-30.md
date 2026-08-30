@@ -1,5 +1,36 @@
 # Plan — the ignition timing stage
 
+> ## STATUS: BUILT AND EXECUTED, 2026-08-30. A reviewed candidate image is waiting.
+>
+> All five blockers cleared, the stage and its clamp built, `--tune-timing` and a parameterised
+> `--verify-flash` wired, 187 tests green (was 143). Iteration 1 is generated, audited **GO**,
+> and sitting at `car/ecu/rom write/CANDIDATE_timing_iter1_2026-08-30.bin` with its change
+> report beside it. **Nothing is flashed.**
+>
+> **Four material divergences from the plan below — all recorded in `decisions.md` D31–D34:**
+>
+> 1. **D31 — the rate limit runs AFTER the ceiling, not before.** §2 below has the order
+>    backwards: the ceiling drops the worst cell 18.12 deg in one move, so running it last
+>    would override Syed's ratified 6 deg/iteration. The plan's own acceptance test ("rate limit
+>    holds for any input") is only satisfiable in the corrected order.
+> 2. **D32 — two gates needed a VERIFIED retard-only exemption.** Wiring `knock_active` and
+>    `fuel_trims_converged` for real deadlocked the stage: this car knocks, and one airflow band
+>    still reads +7.44%. Both gates now pass a proposal in which no cell ends up more advanced,
+>    checked against the live tables and never against proposal metadata. Fuel/sensor proposals
+>    get no exemption — only a human `--ack-knock`.
+> 3. **D33 — the IAM term is read from the ROM, not configured.** `Advance Multiplier (Initial)`
+>    is 0.5, not 1.0, and IAM multiplies `Knock Correction Advance Max` — which is 0.00 across
+>    the whole idle/cruise region. The flat constant this plan implies was retarding the
+>    validated knock-free idle band.
+> 4. **D34 — a new absolute `min_timing_advance` floor.** A property test walked a cell to
+>    -49 deg BTDC when no baseline was supplied. `--tune-timing` now *refuses* without
+>    `--baseline-rom`.
+>
+> Also: the "no cell exceeds its ceiling" post-condition in **Verification** below is wrong for a
+> single pass — it is a property of the converged sequence. The audit asserts the correct
+> single-pass invariant instead (a cell still above its ceiling must have taken a full
+> rate-limited step).
+
 > **Committed copy of the working plan** (the live one lives outside the repo in
 > `~/.claude/plans/`, which a fresh agent cannot see). Paired with
 > `sessions/handoffs/2026-08-30-maf-solved-first-flashes-timing-next.md` — read the handoff

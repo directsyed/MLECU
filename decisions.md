@@ -1330,3 +1330,136 @@ from AIRFLOW, so the two are coupled:
 
 So MAF-first is the shorter route, not the cautious one. Recorded because the intuition that
 "fix the dangerous thing first" points the other way, and will again.
+
+## 2026-08-30 (later) — the timing stage: five blockers cleared, and four rulings
+
+The plan (`docs/PLAN-timing-stage-2026-08-30.md`) listed five defects to fix before any timing
+code ran. All five are closed and each has a named regression test that was **verified to fail
+when the original bug is reintroduced** — a pin, not a claim:
+
+| blocker | what it was | pin |
+|---|---|---|
+| 1 | load ceilings never fired (float32 axis vs decimal literal) | `test_load_ceilings_fire_at_the_ROMs_real_float32_breakpoints` |
+| 2 | `knock_active` / `fuel_trims_converged` / `steady_state_ok` never set outside tests | `logparse/signals.py` + 8 tests |
+| 3 | `report.py` indexed a 2-D map with `row * a.shape[0]` on a RAVELED array | `test_change_report_indexes_a_2d_cell_correctly` |
+| 4 | timing had no rate limit, no cumulative bound, no floor | `clamp_timing_rate_limit` + 6 property tests |
+| 5 | `_verify_flash` hardcoded to the MAF curve | `_FLASH_PROFILES`, `--expect` |
+
+Fuel behaviour is provably unchanged: re-deriving MAF iteration 3 from its own log reproduces
+`POSTFLASH3…bin` **byte-for-byte** (sha256 `3e64b627d0f532f8…`).
+
+### D31 — The timing rate limit runs AFTER the ceiling, not before. The plan had it backwards.
+
+`PLAN-timing-stage-2026-08-30.md` §2 specified inserting `clamp_timing_rate_limit` *before*
+`clamp_timing_row_ceiling`. That is wrong, and wrong in the same way blocker 1 was wrong — a
+ratified limit that silently never binds.
+
+The ceiling is a floor-to-a-value operation: on this ROM it drops the worst cell **18.12 deg in
+one move** (40.12 deg at 2400 rpm / 0.85 g/rev, against the 22 deg boost ceiling). Running it
+last would override Syed's ratified 6 deg/iteration and leave the rate cap decorative. The
+plan's own acceptance criterion — *"rate limit holds for any input"* — is only satisfiable in
+the other order.
+
+**Ceiling decides WHERE a cell is going; the rate limit decides HOW FAST it gets there, so the
+rate limit has the last word.** Consequence, stated plainly: the worst cell needs **4 passes**
+to reach its ceiling, with a drive and a re-log between each. That is the cost of the ruling,
+and it is the point of it.
+
+### D32 — Two gates get a VERIFIED retard-only exemption (and fuel gets a human override)
+
+Wiring the live signals for the first time produced two deadlocks, both of the same shape: a
+gate written to stop us ADDING risk was refusing the only change that REMOVES it.
+
+* `clamp_knock_auto_abort` — this car knocks; that is the entire reason the timing stage
+  exists. Every log that could justify a retard also trips the abort.
+* `clamp_fuel_before_timing` — after three MAF flashes, 26 of 27 confident airflow bands sit
+  within ±3.7%, but one (**59.31 g/s, 29 samples**, the very top of the measured range) reads
+  **+7.44%**, past the 5% tolerance. Closing it needs high-airflow data; that needs sustained
+  boost; and sustained boost is what the timing work exists to make safe. **That is D21's
+  circularity arriving on a different axis.**
+
+Both now pass a proposal in which no cell ends up more advanced than it currently is. The
+exemption is **verified against `ctx.tables`, never declared**: it deliberately ignores
+`prop.metadata`, because metadata travels with the proposal and the future LLM is a proposal
+producer — a metadata flag would be a safety gate an untrusted party could open for itself.
+One advancing cell disqualifies the whole proposal. Both exemptions are recorded in the audit
+trail. Pinned by `test_knock_exemption_cannot_be_unlocked_by_metadata`.
+
+The gate's own docstring already said the hazard: *"a lean miss + extra timing = detonation"*.
+The hazard is **extra timing**. Retard is not the direction it protects against.
+
+**Fuel and sensor proposals get no such structural argument**, so for those the abort stands and
+the only way past is `--ack-knock`: a flag typed by a human at the command line, printed loudly,
+and stamped into the change report. That is the "human-reviewed" leg of the architecture doing
+its job, and it is categorically different from a proposal vouching for itself.
+
+### D33 — The IAM deficit is read from the ROM. Two guesses were replaced, and one earlier reading was wrong.
+
+The stage's first cut applied a flat 2.0 deg of "lost dynamic advance" to every confident cell,
+measured from an assumed healthy IAM of 1.0. Both halves were wrong, and the ROM says so:
+
+**1. `Advance Multiplier (Initial)` = 0.5, not 1.0.** An observed IAM of 0.500 is this
+calibration's **factory value**, not a halved one — the step is 0.25. The 2026-08-26 analysis
+read "an engine whose `IAM` already sits at 0.500" as evidence of prior damage; on this ROM it
+is simply the starting value. **The collapse to 0.000 on 2026-08-30 is still entirely real** —
+that is a full deficit, not a half one — but the baseline it is measured from was wrong, and
+measuring from 1.0 would invent a permanent 50% deficit on a healthy engine.
+
+**2. IAM multiplies `Knock Correction Advance Max` (0xC8FB0), a real 18×16 map.** Commanded
+advance on this family is `Base + IAM × KnockCorrAdvMax + feedback + fine learning + comps`. So
+the advance a cell loses is that cell's own entry — and on this ROM that entry is **0.00 across
+the entire idle and cruise region** (load ≤ 0.55) and **3.16–9.14 deg** where the car makes
+boost.
+
+The flat constant was thus wrong in both directions at once: it retarded the idle band — which
+`car/CLAUDE.md` records as independently validated *knock-free* — by 2.11 deg, while
+under-correcting the boost cells that needed up to 4.57. Reading the ROM removed 20 spurious
+edits and raised the boost-region term. Two new read-only semantic tables carry it
+(`ignition.knock_advance_max`, `ignition.advance_multiplier_initial`); the config numbers remain
+only as fallbacks for a platform that lacks them.
+
+**The lesson is the project's own, again: the ROM already knew.** The same shape as the MAF arc,
+where `core/tables.py` had annotated the platform as MAF-based while the plan still assumed a VE
+table.
+
+### D34 — `min_timing_advance`: an absolute floor, found by a property test rather than by reading
+
+`max_timing_retard` (cumulative, vs the archived stock ROM) goes **inert when no baseline is
+supplied** — the same "inert without a baseline" pattern as `belief_envelope` and
+`sensor_envelope`. The ceiling is a *maximum*. So with no baseline there was **nothing at all**
+bounding retard from below, and a convergence property test walked a cell to **−49 deg** — past
+TDC — in twelve iterations.
+
+Two fixes, because one was not enough:
+* `min_timing_advance` (0.0 deg BTDC): an absolute clamp-level floor that needs no baseline. Not
+  the tuning limit — the ceiling, cumulative floor and rate cap are — it is the bound that says
+  *no ignition-retard stage ever fires after TDC*.
+* `--tune-timing` now **refuses to run** without `--baseline-rom`, rather than warning. For
+  `--tune-maf` an inert envelope still leaves the per-iteration cap doing real work; here it
+  would leave the backstop as the only bound below.
+
+**A rate limit that bounds a single step does not bound a sequence.** Worth stating on its own:
+every per-iteration bound in this layer deserves the question "and what does N iterations do?",
+which is exactly the question `belief_envelope` was created to answer for fuel in August.
+
+### Two more silent schema collisions (five and six)
+
+`IAM (1-byte)** (multiplier)` matched **no rule at all** — the channel recording the ECU
+withdrawing all advance for 52 s was invisible to the layer. `Ignition Base Timing*` matched
+`\btiming\b` and landed on `timing_total`, the role meaning FINAL commanded advance; it lost to
+`Ignition Total Timing` only because that column came first. Both now have their own roles
+(`iam`, `timing_base`). `tps` and `iam` gained explicit `schema.prefer()` entries — `tps` now
+resolves to the **DBW plate angle** (max 49.8%, matching the handoff's figure) rather than the
+pedal-derived channel.
+
+Also worth recording: `Knock Sum* (count)` — a cumulative counter, non-zero on 6425 of 7402
+samples — is one of **three** headers claiming `knock_retard` on the 2026-08-30 log. It loses
+only because of the existing `prefer()` rule. Now pinned by a test, because a reordered export
+would otherwise compute every timing-evidence figure from a rising integer.
+
+### Numbers that still need Syed's ruling
+
+| number | value | basis |
+|---|---|---|
+| `max_timing_retard` | 20.0 deg | derived: the ratified ceilings themselves demand at most 18.117 deg, so anything below ~18.2 would fight them; 20.0 clears it with ~1.9 deg of evidence headroom |
+| `min_timing_advance` | 0.0 deg BTDC | a backstop, not a tuning limit; the stock map's own minimum is 2.148 deg |

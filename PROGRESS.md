@@ -9,6 +9,83 @@ ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the
 
 ---
 
+## 2026-08-30 — THE TIMING STAGE: five blockers cleared, a 2-D map tuner, and the ROM correcting two of my own numbers
+
+The car has spent its entire knock-adaptation budget: on the post-flash-3 drive `IAM` collapsed
+from 0.500 to **0.000 and stayed there for 52 seconds** while running. This arc builds the stage
+that answers it — the first in the project to tune a **2-D map**, and the first whose correction
+basis is a hazard limit rather than a measurement to converge on.
+
+**Five blockers had to be cleared before any timing code could run**, all found during planning,
+all now pinned by tests that were *verified to fail when the original bug is reintroduced*:
+
+1. **The load ceilings Syed ratified never fired.** The ROM stores its load axis as float32, so
+   `0.55` reads back as `0.5499999523` and `load >= 0.55` is **False at the very column the limit
+   was written for**. Both ratified bands silently started one column late — the 0.85 g/rev boost
+   column, where this car makes boost, was getting 30° instead of 22°.
+2. **Three clamp inputs were never set outside tests.** `knock_active`, `fuel_trims_converged` and
+   `steady_state_ok` defaulted to `False` everywhere in production, which made the clamp its own
+   docstring calls *"the single most important clamp"* inert, and made `clamp_fuel_before_timing`
+   defer **every** timing proposal outright. A gate that always fires and a gate that never fires
+   are the same bug. Now computed from the log by a new `logparse/signals.py`.
+3. **A map-2D index bug** in the change report (`row * a.shape[0]` on an already-raveled array —
+   270 instead of 15). Never hit, because every table written so far was a 1-D curve.
+4. **Timing was bounded by exactly one clamp.** Every other bound gates on `targets_kind` being
+   `"fuel"` or `"sensor"`, so timing had no rate limit, no cumulative bound and no floor — in the
+   one category where the only direction we ever move is retard.
+5. **The pre-flash audit was hardcoded to the MAF curve** and would have NO-GO'd a timing
+   candidate on three checks that do not apply to it while skipping every check that does.
+
+**The ROM corrected two numbers I had guessed.** The stage's first cut applied a flat 2.0° of
+"lost dynamic advance" to every driven cell, measured from an assumed healthy IAM of 1.0. Reading
+the ROM instead: `Advance Multiplier (Initial)` is **0.5, not 1.0** — an observed IAM of 0.500 is
+this calibration's *factory* value, not a halved one (the 2026-08-26 analysis had read it as
+damage); and IAM multiplies **`Knock Correction Advance Max`**, a real 18×16 map that is **0.00
+across the entire idle and cruise region** and 3.16–9.14° in boost. The flat constant was wrong in
+both directions at once — it retarded the idle band, which the project has independently validated
+as *knock-free*, by 2.11°, while under-correcting the boost cells that needed up to 4.57°. Reading
+the ROM removed 20 spurious edits. Same lesson as the MAF arc: **the ROM already knew.**
+
+**A property test found a safety hole that reading the code did not.** The cumulative retard floor
+goes inert without an archived baseline, and a ceiling only bounds from above — so with no
+baseline nothing bounded retard at all, and iterating the clamp walked a cell to **−49° BTDC**,
+past TDC. Fixed with an absolute `min_timing_advance` backstop *and* by making `--baseline-rom`
+mandatory for the timing path. **A rate limit that bounds a single step does not bound a sequence.**
+
+**Two gates needed a narrow exemption, and it is verified rather than declared.** This car knocks —
+that is why the stage exists — so every log that justifies a retard also trips the knock abort.
+And one airflow band (59.31 g/s, 29 samples) still reads +7.44%, so the fuel-before-timing gate
+stays shut; closing it needs high-airflow data, which needs boost, which is what the timing work
+exists to make safe — **D21's circularity on a new axis**. Both gates now pass a proposal in which
+no cell ends up more advanced than it is now, checked against the live tables and *deliberately
+ignoring proposal metadata*, since the future LLM is a proposal producer. Fuel and sensor
+proposals get no such structural argument: for those the abort stands and the only way past is a
+human typing `--ack-knock`, which is printed loudly and stamped into the change report.
+
+**End to end on the real car** (`ecutune --tune-timing`): ROM + the post-flash-3 drive → bin on the
+timing map's own axes → stage → clamps → patch → read-back → change report → GO/NO-GO audit.
+**184 of 270 cells** edited, 188 bytes in 15 ranges plus the checksum, worst advance vs the current
+ROM **+0.0000°**, no other semantic table moved, audit **GO**. Fuel behaviour is provably
+untouched: re-deriving MAF iteration 3 from its own log reproduces the flashed ROM **byte-for-byte**.
+
+**Nothing has been flashed.** This is a candidate file for Syed to review.
+
+| date | metric | value | conditions |
+|---|---|---|---|
+| 2026-08-30 | IAM floor on the post-flash-3 drive | **0.000** (ref 0.500) | 509 samples ≈ 52 s at zero, while running |
+| 2026-08-30 | knock onsets / worst retard | **23** / **−7.00°** | post-flash-3 drive, reproduced from the published figure |
+| 2026-08-30 | cells above their ratified ceiling (stock map) | **178 of 270** | worst 18.117° over, at 2400 rpm / 0.85 g/rev |
+| 2026-08-30 | iteration 1: cells edited | **184 of 270** | 23 evidence-driven, 161 ceiling-only |
+| 2026-08-30 | iteration 1: mean / worst pull | **3.92° / 6.33°** | 6.0° rate cap + one uint8 LSB (0.3516°) |
+| 2026-08-30 | passes still needed to reach the ceiling | **2 more** | 156 cells remain above, worst by 11.79° |
+| 2026-08-30 | worst advance introduced by the write path | **+0.0000°** | retard-only, re-proved on the flashed bytes |
+| 2026-08-30 | IAM advance authority (ROM) | **0.00° / 3.16–9.14°** | idle+cruise (load ≤ 0.55) / boost region |
+| 2026-08-30 | confident airflow bands within ±3.7% | **26 of 27** | outlier 59.31 g/s at +7.44%, 29 samples |
+| 2026-08-30 | MAF iteration 3 reproduced byte-exact | **sha256 3e64b627…** | fuel path unchanged by this session |
+| 2026-08-30 | test suite | **187 passed** (was 143) | +44, incl. 6 new hypothesis properties |
+
+---
+
 ## 2026-08-27 — ★ ROOT CAUSE FOUND, AND THE WRITE PATH BUILT: the pipeline now produces a flashable candidate ROM
 
 The arc that turns six drives into a verified candidate image, with a human as the only remaining gate.
