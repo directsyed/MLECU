@@ -69,8 +69,17 @@ def test_load_ceilings_fire_at_the_ROMs_real_float32_breakpoints():
 
     Asserted against the stored breakpoints, never against the decimal literals.
     """
+    # Values track the ratified timing_ceiling_map; what this test pins is that the ROM's
+    # float32 breakpoints SELECT THE INTENDED COLUMN. 0.5499999523 must land in the 0.55 band
+    # and 0.8499999642 in the 0.85 band -- a bare `>=` puts both one column late.
     ceilings = [CFG.safety.timing_ceiling_for(3200.0, b) for b in ROM_LOAD_BREAKS]
-    assert ceilings == [45.0, 45.0, 30.0, 30.0, 22.0, 22.0, 22.0, 22.0]
+    m = CFG.safety.timing_ceiling_map
+    row = m.ceilings[[i for i, r in enumerate(m.rpm_breaks) if 3200.0 >= r][-1]]
+    want = [row[max(j for j, l in enumerate(m.load_breaks) if b >= l - 1e-6)]
+            for b in ROM_LOAD_BREAKS]
+    assert ceilings == want
+    assert ceilings[2] == row[1] and ceilings[4] == row[2], "a band started one column late"
+    assert ceilings[2] != ceilings[1], "the 0.55 band must differ from the cruise band"
 
 
 def test_the_epsilon_does_not_reach_the_neighbouring_breakpoint():
@@ -125,9 +134,10 @@ def test_ceiling_then_rate_limit_compose():
     Running it after the rate limit would let it override the ratified step. Running it BEFORE
     means the ceiling picks the destination and the rate limit paces the journey.
     """
-    ts = _ts([[45.0] * 5], loads=ROM_LOAD_BREAKS[:5])   # col 4 == 0.85 -> 22 deg ceiling
+    ts = _ts([[45.0] * 5], loads=ROM_LOAD_BREAKS[:5])
     res = apply_clamps(_prop([CellEdit(IGNITION_BASE_TIMING, 0, 4, 45.0)]), _ctx(ts))
-    assert CFG.safety.timing_ceiling_for(800.0, ROM_LOAD_BREAKS[4]) == 22.0
+    ceiling = CFG.safety.timing_ceiling_for(800.0, ROM_LOAD_BREAKS[4])
+    assert ceiling < 45.0 - CFG.safety.max_timing_step, "test needs a ceiling beyond one step"
     assert res.clamped_edits[0].new_value == pytest.approx(45.0 - CFG.safety.max_timing_step)
 
 
@@ -223,8 +233,10 @@ def test_undriven_cells_get_the_ceiling_and_nothing_else():
     prop, _ = propose_timing_retard(_grid_for(ts, _log([(800.0, 0.25)])), ts, TimingState(),
                                     CFG.algo, CFG.safety)
     by_col = {e.col: e.new_value for e in prop.edits}
-    assert by_col[4] == pytest.approx(22.0)      # ceiling at 0.85 g/rev
-    assert by_col[2] == pytest.approx(30.0)      # ceiling at 0.55 g/rev
+    for col in (2, 4):
+        assert by_col[col] == pytest.approx(
+            CFG.safety.timing_ceiling_for(800.0, ROM_LOAD_BREAKS[col]))
+    assert by_col[4] < by_col[2], "the boost column must be held tighter than the cruise column"
     assert 0 not in by_col and 1 not in by_col   # 40 deg is under the 45 deg cruise ceiling
 
 
@@ -465,3 +477,75 @@ def test_verify_flash_returns_NO_GO_not_a_traceback_for_a_foreign_rom():
         assert _verify_flash(str(tmp), str(rom)) == 2      # clean NO-GO, no exception
     finally:
         tmp.unlink()
+
+
+def test_cumulative_retard_bound_can_actually_reach_the_ratified_ceiling():
+    """`max_timing_retard` and the ceiling must not fight each other.
+
+    The cumulative floor is measured against the archived stock ROM; the ceiling is an absolute
+    cap. If the floor is tighter than the deepest cut the ceiling demands, those cells stall
+    short of the ceiling FOREVER and no number of iterations closes the gap -- a standoff
+    between two safety limits that each look correct alone.
+
+    This bit for real on 2026-08-30: re-shaping the ceiling took the worst demand from 18.1 to
+    27.1 deg while `max_timing_retard` was still 20.0, leaving 35 cells permanently unreachable.
+    The relationship is what needs pinning, not either number.
+    """
+    data = _rom_paths()[0].read_bytes()
+    defs = EcuFlashDefs(DEFAULT_DEFS)
+    raw, _ = read_semantic_tables(RomImage(data), defs, list(SIBLING_DEFS),
+                                  TO_PLATFORM, VARIANTS)
+    t = raw[IGNITION_BASE_TIMING]
+    stock = np.asarray(t.values, float)
+    target = np.maximum(ceiling_grid(t, CFG.safety), CFG.safety.min_timing_advance)
+    worst = float(np.max(np.maximum(stock - target, 0.0)))
+    assert worst <= CFG.safety.max_timing_retard + 1e-9, (
+        f"the ceiling demands {worst:.3f} deg of retard but max_timing_retard is "
+        f"{CFG.safety.max_timing_retard} — cells would stall short of their own ceiling")
+
+
+def test_undriven_cell_reaches_its_ceiling_in_one_pass():
+    """Syed's ruling (2026-08-30): a cell the car has never visited is not rate limited.
+
+    The rate limit exists so a step can be OBSERVED on the next drive. A cell with zero samples
+    has nothing to observe, so staging it buys no information and leaves it dangerous meanwhile.
+    """
+    ts = _ts([[45.0] * 5], loads=ROM_LOAD_BREAKS[:5])
+    ceiling = CFG.safety.timing_ceiling_for(800.0, ROM_LOAD_BREAKS[4])
+    assert 45.0 - ceiling > CFG.safety.max_timing_step, "test needs a gap beyond one step"
+    counts = {IGNITION_BASE_TIMING: np.zeros((1, 5))}          # never driven
+    res = apply_clamps(_prop([CellEdit(IGNITION_BASE_TIMING, 0, 4, ceiling)]),
+                       _ctx(ts, cell_sample_counts=counts))
+    assert res.clamped_edits[0].new_value == pytest.approx(ceiling)
+    assert "undriven_to_ceiling" in {v.action for v in res.violations}
+
+
+def test_a_DRIVEN_cell_is_still_rate_limited():
+    ts = _ts([[45.0] * 5], loads=ROM_LOAD_BREAKS[:5])
+    ceiling = CFG.safety.timing_ceiling_for(800.0, ROM_LOAD_BREAKS[4])
+    counts = {IGNITION_BASE_TIMING: np.full((1, 5), 40.0)}     # plenty of samples
+    res = apply_clamps(_prop([CellEdit(IGNITION_BASE_TIMING, 0, 4, ceiling)]),
+                       _ctx(ts, cell_sample_counts=counts))
+    assert res.clamped_edits[0].new_value == pytest.approx(45.0 - CFG.safety.max_timing_step)
+    assert "rate_limited" in {v.action for v in res.violations}
+
+
+def test_the_undriven_exemption_cannot_go_below_the_ceiling():
+    """It waives the STEP, never the ceiling. An undriven cell asked to go far below its own
+    ceiling is still rate limited — otherwise the exemption would be an unbounded pull."""
+    ts = _ts([[45.0] * 5], loads=ROM_LOAD_BREAKS[:5])
+    counts = {IGNITION_BASE_TIMING: np.zeros((1, 5))}
+    res = apply_clamps(_prop([CellEdit(IGNITION_BASE_TIMING, 0, 4, -50.0)]),
+                       _ctx(ts, cell_sample_counts=counts))
+    assert res.clamped_edits[0].new_value == pytest.approx(45.0 - CFG.safety.max_timing_step)
+
+
+def test_the_undriven_exemption_ignores_proposal_metadata():
+    """Same discipline as the knock and fuel-before-timing exemptions: anything that RELAXES a
+    bound must come from context the proposal producer does not control."""
+    ts = _ts([[45.0] * 5], loads=ROM_LOAD_BREAKS[:5])
+    ceiling = CFG.safety.timing_ceiling_for(800.0, ROM_LOAD_BREAKS[4])
+    lying = Proposal("p", "timing_retard", (CellEdit(IGNITION_BASE_TIMING, 0, 4, ceiling),),
+                     "timing", "llm:v1", {"undriven": True, "cell_sample_counts": 0})
+    res = apply_clamps(lying, _ctx(ts))                        # no counts in the CONTEXT
+    assert res.clamped_edits[0].new_value == pytest.approx(45.0 - CFG.safety.max_timing_step)

@@ -260,17 +260,50 @@ def clamp_timing_rate_limit(prop: Proposal, ctx: ClampContext) -> ClampResult:
             v = min(cur, floor)
             actions.append("min_advance_limited")
 
-        # 3. STEP — last, so it is the final word on how far one iteration may move
-        if abs(v - cur) > step:
+        # 3. STEP — last, so it is the final word on how far one iteration may move.
+        #
+        # ONE EXEMPTION (Syed, 2026-08-30): a cell the car has NEVER VISITED, going no lower
+        # than its own ceiling, is not rate limited. The rate limit exists so that each step can
+        # be OBSERVED on the next drive; a cell with zero samples has nothing to observe, so
+        # staging it buys no information and simply leaves it dangerous for another two drives.
+        # On this ROM that is 125 of the 156 cells needing more than one pass -- high rpm at
+        # boost load, where an unexpected excursion would meet 34 deg of advance on a 9.5:1
+        # engine. Being "careful" in unexplored territory means LESS ADVANCE, not slower change.
+        #
+        # Bounded three ways so it cannot become a hole: the cell must have zero samples in
+        # `ctx.cell_sample_counts` (measured from the log by the CLI, not claimed by the
+        # proposal), the destination must be at or above the cell's own ceiling, and bounds 1,
+        # 2 and 2b above have already run. It can only ever land a cell exactly on the ceiling.
+        undriven_to_ceiling = False
+        counts = (ctx.cell_sample_counts or {}).get(e.table_id)
+        if counts is not None and abs(v - cur) > step:
+            try:
+                n = float(counts[e.row][e.col])
+            except (IndexError, KeyError, TypeError):
+                n = -1.0
+            if n == 0.0:
+                t = ctx.tables.tables.get(e.table_id)
+                rpm = t.cell_rpm(e) if t is not None else None
+                load = t.cell_x(e) if t is not None else None
+                ceiling = ctx.safety.timing_ceiling_for(rpm if rpm is not None else 0.0, load)
+                if v >= min(ceiling, cur) - ctx.safety.zero_base_eps:
+                    undriven_to_ceiling = True
+                    actions.append("undriven_to_ceiling")
+
+        if abs(v - cur) > step and not undriven_to_ceiling:
             v = cur + _sign(v - cur) * step
             actions.append("rate_limited")
 
+        # Record whenever a bound ACTED, even if the value came through unchanged -- waiving
+        # the rate limit is an event the audit trail owes the reader just as much as clamping
+        # one, and an exemption that leaves no trace is indistinguishable from a bug.
         if v != e.new_value:
             out.append(CellEdit(e.table_id, e.row, e.col, v, e.reason))
-            viols.append(ClampViolation("timing_rate_limit", e.table_id, e.row, e.col,
-                                        e.new_value, v, "+".join(actions) or "adjusted"))
         else:
             out.append(e)
+        if actions:
+            viols.append(ClampViolation("timing_rate_limit", e.table_id, e.row, e.col,
+                                        e.new_value, v, "+".join(actions)))
 
     return ClampResult(True, tuple(out), tuple(viols))
 

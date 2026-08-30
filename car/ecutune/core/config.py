@@ -21,6 +21,29 @@ class TimingCeiling(BaseModel):
     max_advance: float  # degrees BTDC ceiling
 
 
+class TimingCeilingMap(BaseModel):
+    """The load x rpm advance ceiling — the primary timing limit since 2026-08-30.
+
+    It replaced a separable `min(rpm limit, load limit)` because the real constraint is not
+    separable: 40 deg at 1200 rpm / 1.3 g/rev is lugging under load, the most knock-prone cell
+    in the map, while 40 deg at 4400 rpm / 1.3 g/rev is ordinary. Two independent 1-D limits
+    cannot express that.
+
+    Semantics are STEPWISE, never interpolated: a cell takes the row for the highest `rpm_breaks`
+    entry at or below its rpm, and the column for the highest `load_breaks` entry at or below its
+    load. A ceiling is a limit, so between two breakpoints it holds the tighter (lower-indexed)
+    value rather than averaging toward the looser one.
+    """
+    load_breaks: list[float] = Field(default_factory=list)   # ascending, "at or above"
+    rpm_breaks: list[float] = Field(default_factory=list)    # ascending, "at or above"
+    ceilings: list[list[float]] = Field(default_factory=list)  # [rpm_break][load_break], deg BTDC
+
+    def valid(self) -> bool:
+        return (bool(self.load_breaks) and bool(self.rpm_breaks)
+                and len(self.ceilings) == len(self.rpm_breaks)
+                and all(len(r) == len(self.load_breaks) for r in self.ceilings))
+
+
 class LoadTimingCeiling(BaseModel):
     """Timing ceiling keyed by LOAD — how hard the engine is actually working.
 
@@ -48,7 +71,7 @@ class SafetyCfg(BaseModel):
     # proposal had no rate limit, no cumulative envelope against stock, and no floor at all --
     # retard was unbounded in a category where the ONLY direction we ever move is retard.
     max_timing_step: float = 6.0          # deg per iteration (Syed, 2026-08-30)
-    max_timing_retard: float = 20.0       # deg below stock, cumulative, per cell
+    max_timing_retard: float = 30.0       # deg below stock, cumulative, per cell
     # Absolute floor that does NOT depend on a baseline being supplied. See config.yaml.
     min_timing_advance: float = 0.0       # deg BTDC
     # IAM is a GLOBAL multiplier on the advance the ECU adds above the base map. A cell that
@@ -60,6 +83,10 @@ class SafetyCfg(BaseModel):
     # The effective ceiling is the MINIMUM of the rpm-keyed and load-keyed limits, so adding
     # load-awareness can only ever tighten, never loosen.
     timing_ceilings_by_load: list[LoadTimingCeiling] = Field(default_factory=list)
+    # The 2-D map SUPERSEDES timing_ceilings_by_load when supplied (see TimingCeilingMap).
+    # The rpm-keyed `timing_ceilings` list still applies as an additional global cap, so the
+    # effective ceiling remains the tightest of everything configured.
+    timing_ceiling_map: TimingCeilingMap = Field(default_factory=TimingCeilingMap)
     zero_base_eps: float = 1e-9          # below this |current|, the relative clamp can't apply
     # Axis breakpoints come out of the ROM as float32, so a threshold written as a decimal
     # literal in config.yaml is NOT the number the axis actually holds: the Base Timing load
@@ -128,10 +155,27 @@ class SafetyCfg(BaseModel):
         for tc in sorted(self.timing_ceilings, key=lambda t: t.rpm):
             if self._at_or_above(rpm, tc.rpm):
                 best = tc.max_advance
-        if load is not None:
-            for lc in sorted(self.timing_ceilings_by_load, key=lambda t: t.load):
-                if self._at_or_above(load, lc.load):
-                    best = min(best, lc.max_advance)
+        if load is None:
+            return best
+
+        m = self.timing_ceiling_map
+        if m.valid():
+            ri = ci = None
+            for i, r in enumerate(m.rpm_breaks):
+                if self._at_or_above(rpm, r):
+                    ri = i
+            for j, l in enumerate(m.load_breaks):
+                if self._at_or_above(load, l):
+                    ci = j
+            # Below the lowest break in either axis the map has nothing to say, so the cell
+            # falls back to the rpm-keyed cap rather than silently taking row/column zero.
+            if ri is not None and ci is not None:
+                return min(best, m.ceilings[ri][ci])
+            return best
+
+        for lc in sorted(self.timing_ceilings_by_load, key=lambda t: t.load):
+            if self._at_or_above(load, lc.load):
+                best = min(best, lc.max_advance)
         return best
 
 

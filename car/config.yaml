@@ -49,11 +49,14 @@ safety:
   # sustained wrong diagnosis at 6 deg/iteration walks the whole map to zero in four passes.
   # Heavy retard does not detonate -- it dumps heat into the turbine, and this car is fully
   # catless with no EGT sensor, so there is no instrument that would catch it.
-  # DERIVATION, not a guess: the largest retard the ratified ceilings THEMSELVES demand is
-  # 18.117 deg (stock 40.12 at 2400 rpm / 0.85 g/rev against the 22 deg boost ceiling), so
-  # anything below ~18.2 would fight the ceilings. 20.0 clears that with ~1.9 deg of
-  # evidence-driven headroom and still refuses a runaway.  ** RATIFY OR CHANGE THIS **
-  max_timing_retard: 20.0        # deg below stock, cumulative, per cell
+  # DERIVATION, not a guess: it must clear the largest retard the ratified ceiling ITSELF
+  # demands, or the two fight and cells stall short of the ceiling forever. Under the 2-D
+  # timing_ceiling_map that worst case is 27.141 deg (stock 34.14 at 6400 rpm / 2.05 g/rev
+  # against a 7 deg ceiling), and 35 of 270 cells demand more than the old 20.0. Set to 30.0:
+  # clears 27.141 with ~2.9 deg of evidence-driven headroom and still refuses a runaway.
+  # Revised 2026-08-30 when the ceiling was re-shaped; it tracks the ceiling by construction
+  # and a test pins that relationship.  ** RATIFY OR CHANGE THIS **
+  max_timing_retard: 30.0        # deg below stock, cumulative, per cell
 
   # ABSOLUTE last-resort floor, independent of any baseline. max_timing_retard goes INERT when
   # no archived stock ROM is supplied (the same "inert without a baseline" pattern as
@@ -94,15 +97,41 @@ safety:
     - {rpm: 4500, max_advance: 40.0}
     - {rpm: 6000, max_advance: 32.0}
 
-  # LOAD-keyed ceiling — the primary timing limit. Ratified by Syed 2026-08-30.
-  # Effective ceiling = min(rpm limit, load limit), so this can only tighten.
-  #   < 0.55  cruise; the map's 40-45 deg here is normal and the car is not knocking
-  #   0.55+   the ECU currently DELIVERS 33.6 deg here and still pulls ~5 deg of knock
-  #   0.85+   boost region; EJ20X is 9.5:1 against the EJ255 map's 8.4:1, on 93 octane
-  timing_ceilings_by_load:
-    - {load: 0.00, max_advance: 45.0}
-    - {load: 0.55, max_advance: 30.0}
-    - {load: 0.85, max_advance: 22.0}
+  # LOAD x RPM ceiling — the primary timing limit. REPLACES the 3-band load-keyed list
+  # (45 / 30 / 22) ratified 2026-08-30, which a reference tune proved wrong in BOTH directions.
+  #
+  # WHY IT IS NOW 2-D. The old limit was separable: min(rpm limit, load limit). The real
+  # constraint is not. "40 deg at 1200 rpm and 1.3 g/rev" is lugging under load and is the most
+  # knock-prone condition in the map; "40 deg at 4400 rpm and 1.3 g/rev" is ordinary. A min() of
+  # two independent 1-D functions cannot say that, so the ceiling became a coarse map.
+  #
+  # WHERE THE NUMBERS COME FROM. A tuned ROM from another EJ20X-into-EJ255-ECU swap, same VF48,
+  # same catless exhaust (AZ1E401A, an 08 WRX — see car/ecu/reference-roms-DO-NOT-FLASH/). The
+  # rule is mechanical and reproducible, not hand-drawn:
+  #
+  #     ceiling = min(reference "Base Timing Primary Non-Cruise" over this rpm band) - 3 deg
+  #               floored at 5 deg, capped at 45, non-increasing in load from 0.55 up
+  #
+  # load < 0.55 is left at the ratified 45: we have thousands of samples there, it is where the
+  # car cruises, and nothing in our data or the reference argues against it.
+  #
+  # NOTE THIS IS NOT A PURE TIGHTENING. Between 0.55 and 1.00 g/rev it is LOOSER than the 30/22
+  # it replaces — the old flat ceiling would have pulled 8-16 deg out of a region where a working
+  # reference tune runs 38-44 and our own measured knock is 0.4-1.5 deg. Above ~1.15 g/rev it is
+  # far TIGHTER: the old 22 would have permitted ~20 deg more advance than the reference at
+  # 2.05+ g/rev, in cells this car has never visited and with no EGT instrumentation.
+  # ** SYED RATIFIES THIS TABLE. It is a re-shaping, not a tightening. **
+  timing_ceiling_map:
+    #                     load (g/rev), "at or above"
+    load_breaks: [0.00, 0.55, 0.85, 1.00, 1.15, 1.30, 1.45, 1.75, 2.05]
+    rpm_breaks:  [0, 1200, 1600, 2400, 3200, 4400]
+    ceilings:    # one row per rpm break, one column per load break; deg BTDC
+      - [45, 20, 15, 11,  5,  5,  5,  5,  5]   #    0+ rpm  (idle / just off idle)
+      - [45, 26, 23, 18,  6,  5,  5,  5,  5]   # 1200+      (lugging — worst knock condition)
+      - [45, 40, 33, 25, 11,  5,  5,  5,  5]   # 1600+
+      - [45, 41, 35, 31, 22, 10,  5,  5,  5]   # 2400+
+      - [45, 41, 34, 31, 27, 18, 14,  9,  6]   # 3200+
+      - [45, 41, 33, 28, 24, 20, 17, 11,  7]   # 4400+
 
 engine:
   stoich: 14.7

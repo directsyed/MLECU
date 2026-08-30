@@ -442,6 +442,7 @@ def _tune_timing(drive_csvs: list[str], rom: str | None, out: str | None,
         return 2
 
     ctx = ClampContext(tables, cfg.safety, baseline_tables=baseline_tables,
+                       cell_sample_counts={IGNITION_BASE_TIMING: grid.count},
                        **sig.as_context_kwargs())
     res = apply_clamps(prop, ctx)
     after_tables, _ = apply_proposal(tables, prop, ctx)
@@ -649,7 +650,7 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
                   f"({cfg.safety.sensor_envelope:.0%})", f"worst {cum:+.1%}")
 
     elif target == "ignition.base_timing":
-        from .algorithms import ceiling_grid
+        from .algorithms import ceiling_grid  # noqa: F401  (used by the checks below)
         # RETARD ONLY. This is the property clamp_knock_auto_abort and clamp_fuel_before_timing
         # granted their exemptions on, so it is re-proved here against the actual BYTES rather
         # than trusted from the in-memory proposal.
@@ -663,9 +664,19 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
         # excess can only ever be extra retard -- the advance check above is exact.
         step_tol = quantisation_step(sc, float(old.max())) + 1e-9
         moved_deg = float(np.max(np.abs(cur - old)))
-        check(moved_deg <= cfg.safety.max_timing_step + step_tol,
-              f"no cell moved more than max_timing_step ({cfg.safety.max_timing_step} deg)",
-              f"worst {moved_deg:.4f} deg (+{step_tol:.4f} uint8 storage slack, retard only)")
+        # A cell may exceed the step ONLY by landing on its own ceiling — that is the undriven-
+        # cell exemption (Syed, 2026-08-30), and it is checkable from the image alone: the clamp
+        # verified "never driven" against the log, and the bytes must show "arrived at the
+        # ceiling". Anything that moved further than a step and did NOT land on its ceiling is
+        # an unbounded pull, whatever produced it.
+        ceil_here = ceiling_grid(s_tab[target], cfg.safety)
+        big = np.abs(cur - old) > cfg.safety.max_timing_step + step_tol
+        landed = np.abs(cur - np.maximum(ceil_here, cfg.safety.min_timing_advance)) <= step_tol
+        check(bool(np.all(~big | landed)),
+              f"every cell moved at most max_timing_step ({cfg.safety.max_timing_step} deg), or "
+              "landed exactly on its ceiling",
+              f"worst move {moved_deg:.4f} deg; {int(big.sum())} cell(s) beyond one step, "
+              f"{int((big & ~landed).sum())} of them not on a ceiling")
 
         # NOT "every cell is at or below its ceiling" -- that is a post-condition of the whole
         # CONVERGED sequence, not of one pass. Syed ratified 6 deg per iteration precisely so

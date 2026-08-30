@@ -16,7 +16,13 @@ destroys an engine — deterministic clamps give provable bounds; the LLM gives 
 - **EJ20X 2.0 L JDM** (92×75 mm, **CR ~9.5:1**) dropped into a car whose ECU/ROM is calibrated for the **EJ255 2.5 L (~8.4:1)**. High CR + smaller displacement is the core reason it needs a re-tune.
 - **Intake: the ENTIRE OEM 2005 FXT (EJ255) intake manifold + injectors + wiring harness** (kept for a plug-in swap on the FXT ECU). **Injectors = OEM 2005 FXT side-feed, ~500 cc/min → MATCHED to the stock ROM** (injector scaling & latency are already correct). **TGVs deleted** (tumble valves removed → idle airflow/tumble changed; TGV sensors → codes).
 - **Factory drive-by-wire** (FXT was DBW from 2004 — "cable throttle" notes are WRONG).
-- **VF48 turbo, 04–08 STI top-mount IC.** **Fully catless 3″ exhaust:** 3″ single-pipe cat-back → catless 3″ bellmouth downpipe → catless 04–21 STI up-pipe. **No cats anywhere; no EGT/cat-temp sensor on the up-pipe → expect a code** (plus rear-O2 / cat-monitor codes). Unconnected O2 bung remains.
+- **VF48 turbo, 04–08 STI top-mount IC.** **Fully catless 3″ exhaust:** 3″ single-pipe cat-back → catless 3″ bellmouth downpipe → catless 04–21 STI up-pipe. **No cats anywhere; no EGT/cat-temp sensor on the up-pipe → expect a code** (plus rear-O2 / cat-monitor codes).
+**NO SPARE BUNGS (corrected 2026-08-30).** The EGT sensor lived on the STOCK up-pipe, which is
+gone; the old narrowband bung on the catless downpipe now holds the AEM wideband. **There is no
+EGT provision without welding a new bung** — so the one instrument that would warn of over-retard
+does not exist on this car, and Syed has decided not to add one for now. That is why the timing
+ceiling is set conservatively at high load: heavy retard fails thermally (turbine, exhaust valves),
+slowly and silently, where detonation fails fast and loudly.
 - **Intake AVCS operational** (ECU-controlled); **exhaust AVCS deleted**, oil ports blocked, exhaust cam mechanically fixed at the gear (NOT flashed).
 - **ROM read DONE 2026-08-16 — ECU is bone stock, PROVEN.** **32-bit** (05–06 DBW family; RomRaider *logging* needs no green-connector jumper — but the *read* did). **ECU ID `3B12504206`** (SSM2, 2026-08-08); = **`A2WC411D`**, the correct 05/USDM/FXT/AT/SH7058/sti05 part (`car/ecu/defs/README.md`). The full 1 MB stock ROM was read (`car/ecu/rom read/`, `PROVENANCE.md`, commit `f27aad8`) and is **byte-identical to a harvested known-stock reference** — so it is genuinely un-tuned (the "stock-looking ID ≠ untuned" caveat is discharged). **The read had been blocked at kernel upload**; the fix was **joining the green test-mode connectors** (a read/write PERMISSION gate, not a lock and not a format problem). History: `car/ecu/ROM-READ-BLOCKER.md` (RESOLVED banner).
 - **The car idles, and idles poorly; never driven by Syed.** This is the starting problem.

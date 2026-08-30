@@ -192,6 +192,14 @@ class ClampContext:
     # working; the clamp's cap/monotonicity checks still run without it, only the per-cell
     # evidence test goes inert (the same pattern baseline_tables uses).
     sensor_sample_counts: dict[str, tuple[int, ...]] | None = None
+    # --- 2026-08-30: per-CELL evidence behind a 2-D map edit ---------------------------------
+    # {table_id: 2-D array of steady-sample counts, same shape as the table}. Measured from the
+    # log by the CLI, never asserted by the proposal -- the future LLM is a Proposal producer,
+    # so anything that can RELAX a bound has to come from a source it does not control.
+    # clamp_timing_rate_limit uses it to let a cell the car has NEVER VISITED go straight to its
+    # ceiling in one pass: the rate limit exists so a step can be observed on the next drive,
+    # and there is nothing to observe in a cell with no samples. Inert when absent.
+    cell_sample_counts: dict[str, object] | None = None
     fuel_trims_converged: bool = False    # gates fuel_before_timing
     steady_state_ok: bool = False         # gates steady_before_transient
     wideband_tracking: bool = False       # gates boost
