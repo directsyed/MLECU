@@ -24,7 +24,38 @@ Confirmed empirically: the car runs.
 **This failed at the single luckiest moment available.** The same failure 40% into a write would
 have left a half-erased ECU and a car that does not start.
 
-## Most likely cause: a ground loop through the OBD port
+## ⚠ FIRST HYPOTHESIS WITHDRAWN (2026-08-31, same day)
+
+I proposed a ground loop. **Syed's actual setup rules it out:** the laptop was on its own
+battery with no charger connected, and nothing was in the 12 V accessory outlet. Only a battery
+pack was on the car. A ground loop needs two mains-referenced paths to circulate between; with
+the laptop floating there is no return path through the USB ground, so no loop can form.
+
+Recorded rather than deleted, in the same spirit as D30: the reasoning was sound for the setup
+I assumed and wrong about the setup that existed. **The checklist change it prompted stands on
+its own merits** — laptop on battery is still correct practice and costs nothing — but it is no
+longer an explanation of THIS failure, and it should not be cited as one.
+
+### Revised hypotheses, in order
+
+1. **A transient on the 12 V rail from the battery pack.** Now the leading candidate, because it
+   is the only mains- or supply-side variable that was actually present. Cheap chargers and
+   maintainers — especially anything with a pulse/desulfation mode — can put spikes well above
+   14 V on the battery terminals. Pin 16 of the OBD connector feeds the interface's regulator
+   directly, and a clone has no TVS clamp in front of it. **Open question for Syed: what kind of
+   pack — a mains-powered maintainer/charger, or a portable lithium jump pack?** A maintainer in
+   desulfation mode is a very different risk from a passive lithium pack.
+2. **The clone simply failed.** Random hardware mortality on an unprotected board, exposed by the
+   one operation that stresses it: the mode switch into programming changes current draw and
+   holds the bus hard. Hours of logging never stressed it that way.
+3. **ESD during handling**, plugging into the OBD port.
+
+Note the failure is on the **power section specifically**: the device does not enumerate on USB
+(which powers it independently of the car) AND does not light on the OBD port (which supplies
++12 V independently of USB). Losing both supply paths at once points at the regulator/input
+stage rather than at the FTDI or the PIC.
+
+## Superseded: the ground-loop reasoning
 
 The pre-flash checklist said **"battery charger on, laptop on AC"** (`docs/ROADMAP.md`, and the
 footer of every change report). That puts **two mains-earthed devices** — the laptop PSU and the
@@ -54,16 +85,23 @@ connectors joined** (retested 2026-08-29), which is why FastECU is the only usab
 
 ## Diagnosis order before replacing anything
 
-1. **Check the car's OBD / cigarette-lighter fuse.** If the interface shorted on its way out it
-   may have taken the fuse with it — and a dead OBD port also produces "no LEDs", which would
-   mislead the diagnosis. This must be checked before any replacement is plugged in.
-2. Different USB cable, different port, no hub.
-3. Device Manager with hidden devices shown — does anything appear/disappear on plug-in?
-4. Heat or smell at the connector shell.
+1. **Measure the OBD port with a multimeter: pin 16 (+12 V) to pin 4 or 5 (ground).** Should read
+   battery voltage, ~12.4 V. This settles the car side definitively in one minute and is far
+   better than reasoning about fuses. A blown OBD fuse **sets no DTC** — nothing monitors that
+   circuit; the connector's power exists for the scan tool, not for the ECU — so "no code" is not
+   evidence the port is healthy.
+2. **Try the interface on a different PC.** Rules out the laptop's USB stack and drivers in one
+   step. Highest-value test after the multimeter.
+3. **Watch Device Manager on plug-in** (View → Show hidden devices), and listen for the connect
+   chime. "Unknown Device" or a USB\VID_0000 entry means the USB PHY is alive and it is a
+   firmware/driver problem. **Literally nothing** means the device is not powering up at all.
+4. Inspect the captive USB cable at the strain relief; check the connector shell for heat or
+   smell.
 
-**No LEDs when connected to the OBD port is close to conclusive on its own**: pin 16 supplies
-+12 V independently of USB, so a device that does not light there has lost its power section —
-unless the fuse in step 1 is blown.
+**The tool is dead independently of the car.** Pin 16 supplies +12 V and USB supplies 5 V by
+separate paths, and it responds to neither. A blown OBD fuse would explain the missing LEDs on
+the car but cannot explain the missing USB enumeration. Step 1 therefore is not about diagnosing
+the interface — it is about not plugging a new one into a faulty circuit.
 
 ## Recommendation
 
