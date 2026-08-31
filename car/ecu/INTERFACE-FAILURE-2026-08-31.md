@@ -103,6 +103,23 @@ separate paths, and it responds to neither. A blown OBD fuse would explain the m
 the car but cannot explain the missing USB enumeration. Step 1 therefore is not about diagnosing
 the interface — it is about not plugging a new one into a faulty circuit.
 
+## Measurements taken 2026-08-31, and two corrections to my reasoning
+
+| measurement | result | meaning |
+|---|---|---|
+| CAR's OBD pin 16 → pin 4, DC volts | **12.7 V** | car side is healthy. Port live, fuse intact, wiring fine. A replacement can be plugged in safely. |
+| DEVICE's OBD plug pin 16 → pin 4, Ω | **11 kΩ** | **NOT shorted.** The input stage is intact — this rules out the failure I thought most likely, and rules out the mode that would have taken the car's fuse. |
+
+**CORRECTION 1 — "no LEDs on the OBD port" may prove nothing.** I treated it as near-conclusive.
+The genuine Openport 2.0 can run from vehicle power for standalone SD logging, but **many clones
+omit that and are USB-powered only**. If this clone is USB-powered, then no LEDs when connected
+to the car alone is NORMAL behaviour, not evidence of death. The real evidence is the USB side:
+it no longer enumerates on any PC.
+
+**CORRECTION 2 — a genuine Openport 2.0 is not a practical replacement.** It has been out of
+production for years and now sells for thousands. The earlier recommendation to "buy genuine" was
+written without checking that, and it is not actionable. See the revised recommendation.
+
 ## Metering the INTERFACE itself
 
 A meter can prove the interface is dead; it cannot prove it is alive. A shorted input is
@@ -128,10 +145,19 @@ Not measurable with a meter: the FTDI USB bridge, the PIC, and the K-line transc
 state cannot be inferred from resistance, so "no short found" ends the meter's usefulness and the
 next step is a different PC.
 
-## Recommendation
+## Recommendation (revised 2026-08-31)
 
-Replace with a **genuine Tactrix Openport 2.0**, not another clone. The argument is not brand
-loyalty, it is exposure: several more writes are scheduled (timing pass 2, MAF iteration 4 on
-real high-airflow data, and whatever those reveal). A clone dying mid-write costs a bricked ECU,
-a tow and a replacement + reflash. That dwarfs the price difference, and this incident is the
-demonstration rather than a hypothetical.
+A genuine Openport 2.0 is out of production and priced in the thousands, so "buy genuine" is not
+an option. The realistic plan:
+
+**Buy TWO of the exact same clone** — Washinglee Openport 2.0, the same model and seller. Two
+reasons for the same model rather than a different one: this specific unit is *proven* against
+this ECU with FastECU's `sub_ecu_denso_sh7058` profile, and clone firmware varies enough between
+vendors that an unknown one may fail in an entirely new way on a car that is already awkward
+(EcuFlash's SecurityAccess is rejected here regardless of cable). Two reasons for buying two:
+they are cheap, and the project has several writes left. **Treat these as consumables, not
+instruments.**
+
+Keep the dead one. If it turns out to be a broken solder joint at the captive cable — a common
+and very repairable failure — it becomes a **logging-only spare**. It logged for hours without
+complaint and died the instant it was asked to write, so it never touches a flash again.
