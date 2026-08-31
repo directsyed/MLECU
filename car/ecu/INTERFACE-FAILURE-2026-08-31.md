@@ -110,11 +110,37 @@ the interface — it is about not plugging a new one into a faulty circuit.
 | CAR's OBD pin 16 → pin 4, DC volts | **12.7 V** | car side is healthy. Port live, fuse intact, wiring fine. A replacement can be plugged in safely. |
 | DEVICE's OBD plug pin 16 → pin 4, Ω | **11 kΩ** | **NOT shorted.** The input stage is intact — this rules out the failure I thought most likely, and rules out the mode that would have taken the car's fuse. |
 
-**CORRECTION 1 — "no LEDs on the OBD port" may prove nothing.** I treated it as near-conclusive.
-The genuine Openport 2.0 can run from vehicle power for standalone SD logging, but **many clones
-omit that and are USB-powered only**. If this clone is USB-powered, then no LEDs when connected
-to the car alone is NORMAL behaviour, not evidence of death. The real evidence is the USB side:
-it no longer enumerates on any PC.
+**CORRECTION 1, ITSELF WITHDRAWN.** I first called "no LEDs on the OBD port" near-conclusive,
+then withdrew that on the grounds that many clones are USB-powered only. **Syed confirms this
+unit has always lit its LEDs from the OBD port with no laptop attached.** So it IS
+vehicle-powered, the original reading was right, and the withdrawal was wrong. No LEDs from pin
+16 is real evidence.
+
+**HARDWARE DETAIL THAT MATTERS: the device side is USB MINI-B, not Type-A.** The cable is
+DETACHABLE, not captive. Two consequences: a suspect cable can be eliminated by substitution in
+thirty seconds, and the Mini-B *socket* on the board becomes a candidate in its own right —
+those are small surface-mount parts whose pads crack from repeated plugging.
+
+## What the combination actually implies
+
+Both supply paths are dead:
+
+* **vehicle power** enters at OBD pin 16 → normally lights the LEDs → now nothing
+* **USB power** enters at Mini-B pin 1 → normally enumerates → now nothing
+
+Those two inputs arrive on different pins, through different front-end components. **When two
+independent inputs both stop working, suspect what they SHARE** — and what they share is the
+internal regulator and the rail it feeds (and the micro on that rail, which is what actually
+drives the LEDs).
+
+The 11 kΩ from pin 16 to ground supports this. At 12.7 V that path draws ~1.15 mA; a working
+interface draws tens of milliamps. That reads like a bleeder or divider still present while the
+main supply path is not conducting — consistent with an open series element or a dead regulator,
+and inconsistent with a healthy board.
+
+**Leading hypothesis is now the internal voltage regulator (or the micro it feeds).** That is a
+single-point failure explaining every symptom at once, and it is cheap and realistic to repair if
+the part can be identified.
 
 **CORRECTION 2 — a genuine Openport 2.0 is not a practical replacement.** It has been out of
 production for years and now sells for thousands. The earlier recommendation to "buy genuine" was
