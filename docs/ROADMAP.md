@@ -39,7 +39,8 @@ priorities · quality-over-scale corpus doctrine · EPYC only after fine-tune-be
 2. **Openport clone validation before trust** (principles.md doctrine): read ROM ID via the
    KKL/FreeSSM path AND via Openport; identical IDs + identical sample logs = clone certified
    for reads. (Flash trust comes later, after Stage-2 need arises.)
-3. **THE FIRST ROM READ** (read-only, battery charger on, laptop on AC):
+3. **THE FIRST ROM READ** (read-only, battery maintainer on the car, laptop on its OWN BATTERY
+   — see `car/ecu/INTERFACE-FAILURE-2026-08-31.md` for why "laptop on AC" was wrong):
    - Read via ECUFlash → save .srf/.bin.
    - Archive: `car/ecu/rom-archive/` + `data-backups/` + a copy off-machine (3 places; sacred).
    - **Verify with our own tooling:** `romread` confirms internal ID @0x2000 — expected
@@ -152,7 +153,7 @@ skeleton in `car/ecutune`:
    against def min/max. Module emits a human-readable CHANGE REPORT (table, cell, old→new,
    which log evidence, which clamps fired).
 5. **Human gate:** Syed reviews the change report + diff in the dashboard, ticks the flash
-   checklist (battery charger, AC power, stock-ROM archived), and ONLY then is the flash file
+   checklist (battery maintainer on the car, laptop on BATTERY, stock-ROM archived), and ONLY then is the flash file
    released to him. **Flashing itself stays a human act in ECUFlash** — we generate files, we
    never drive the flash tool programmatically. (This is the "LLM never writes the ECU"
    doctrine extended one layer: OUR CODE never writes the ECU either; it writes files a human

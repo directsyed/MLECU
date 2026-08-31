@@ -88,8 +88,18 @@ def change_report(prop: Proposal, result: ClampResult, write: WriteResult,
 
     L.append("---")
     L.append("**Nothing has been flashed.** This file is a candidate image; flashing stays a "
-             "human act, against the checklist (battery charger, AC power, green test-mode "
-             "connectors joined, stock ROM archived in three places).")
+             "human act, against the checklist:")
+    L.append("")
+    L.append("- battery **maintainer on the car** (prevents a voltage sag mid-write)")
+    L.append("- **laptop on its OWN BATTERY, fully charged — NOT on mains.** Revised "
+             "2026-08-31: the old checklist said \"AC power\", and a mains-powered laptop plus a "
+             "mains-powered charger are two earthed devices bonded through the OBD ground pin. "
+             "A J2534 clone has no galvanic isolation, so any potential difference between them "
+             "flows through the interface. See `ecu/INTERFACE-FAILURE-2026-08-31.md`.")
+    L.append("- green test-mode connectors joined")
+    L.append("- stock ROM archived in three places")
+    L.append("- **the interface's LEDs confirmed lit before starting** — no lights means no "
+             "power section, and starting anyway is how you brick an ECU mid-write")
     L.append("")
     L.append("Tool: **FastECU** (stock upstream build, profile `sub_ecu_denso_sh7058`). EcuFlash "
              "cannot be used on this ECU -- its SecurityAccess key is rejected even with the "
