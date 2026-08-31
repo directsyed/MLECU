@@ -103,6 +103,31 @@ separate paths, and it responds to neither. A blown OBD fuse would explain the m
 the car but cannot explain the missing USB enumeration. Step 1 therefore is not about diagnosing
 the interface — it is about not plugging a new one into a faulty circuit.
 
+## Metering the INTERFACE itself
+
+A meter can prove the interface is dead; it cannot prove it is alive. A shorted input is
+conclusive; the absence of a short is not, because an open regulator and a dead microcontroller
+both measure the same as a healthy board. Run these anyway — the shorted case is the most likely
+one and it is the one that also endangers the next tool.
+
+**Disconnect from BOTH the car and the PC first.** Resistance readings on a powered circuit are
+meaningless and can damage the meter.
+
+| measure | mode | healthy | failed |
+|---|---|---|---|
+| OBD pin 16 → pin 4 or 5 | Ω, then diode, **both polarities** | high (tens of kΩ+), or a diode drop one way and high the other | **near 0 Ω either way = input stage shorted** |
+| USB plug: the two OUTER contacts (VBUS ↔ GND) | Ω | high; may drift upward as input caps charge | **near 0 Ω = shorted VBUS**, which is exactly what makes Windows report "USB device has malfunctioned" and shut the port down |
+| OBD pin 4 → pin 5 | continuity | usually continuous (grounds bonded internally) | informational only |
+| OBD pin 4/5 → USB connector shell | continuity | usually continuous | an open here means a broken ground in the captive cable |
+
+**A short from pin 16 to ground is the signature to look for.** It explains the instant USB
+complaint, the total absence of LEDs, and it is the failure mode that blows the car's OBD fuse on
+its way out — so finding it also tells you to check that fuse before plugging anything else in.
+
+Not measurable with a meter: the FTDI USB bridge, the PIC, and the K-line transceiver. Their
+state cannot be inferred from resistance, so "no short found" ends the meter's usefulness and the
+next step is a different PC.
+
 ## Recommendation
 
 Replace with a **genuine Tactrix Openport 2.0**, not another clone. The argument is not brand
