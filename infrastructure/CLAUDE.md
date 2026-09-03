@@ -16,9 +16,9 @@ Live hardware facts: `../context/hardware-state.md` (the most frequently-changin
 - **Storage:** **ZFS DEFERRED** (per Syed, not near-term). H730 → HBA mode is the path when stood up.
 
 ## Domain hard rules (from ../context/principles.md §3, §6)
-- **PSU safety:** redundant PSUs do NOT add capacity (2×495W = 495W usable); never improvise dual-PSU to one GPU (needs an ADD2PSU sync board); **never force a card backplate against the SW RAID standup pins** (short risk); **multimeter every GPU power cable end before first connect.**
+- **PSU safety:** redundant PSUs do NOT add capacity (2×495W = 495W usable); never improvise dual-PSU to one GPU (needs an ADD2PSU sync board); **never force a card backplate against the SW RAID standup pins** (short risk); multimeter every GPU power cable end before first connect.
 - **iDRAC:** 100% fans on an unrecognized card is expected, tame with `ipmitool raw` (manual mode disables auto-ramp → raise % before any load).
-- **BIOS update with the known-good CPU installed before any CPU generation change.**
+- BIOS update with the known-good CPU installed before any CPU generation change.
 - No PCIe bifurcation (Dell firmware lock, irrelevant, each GPU gets its own x16). Never boot two machines from the same clone (IP collision on 10.0.0.200).
 
 ## Next thread (LEARNING-PRIORITY, teach, don't auto-complete; see root CLAUDE.md)

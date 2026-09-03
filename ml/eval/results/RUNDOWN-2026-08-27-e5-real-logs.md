@@ -26,7 +26,7 @@ were used for scoring and never shown.
 | raw rows | forced choice | `injector_flow_lean` | ✗ |
 | **raw rows** | **open-ended** | **MAF scaling curve** | **✓** |
 
-**1 of 4.** Notably, no arm chose `vacuum_leak`: the confound we genuinely cannot rule out from
+**1 of 4.** No arm chose `vacuum_leak`: the confound we genuinely cannot rule out from
 logs. The three failures went to a third hypothesis that the data actively refutes.
 
 ## The discriminator, and who used it

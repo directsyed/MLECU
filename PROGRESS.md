@@ -4,26 +4,26 @@ Reverse-chronological (newest first). This is a portfolio/resume artifact, entri
 legible to a technical reader who wasn't in the room. Performance numbers are also recorded in the
 table at the bottom (date / metric / value / conditions) for a comparable history over time.
 
-**Full forward plan: [docs/ROADMAP.md](docs/ROADMAP.md)**, every remaining arc from the first
+Full forward plan: [docs/ROADMAP.md](docs/ROADMAP.md), every remaining arc from the first
 ECU read to "the car is tuned," incl. the RAG-vs-fine-tune eval protocol and the definition of done.
 
 ---
 
-## 2026-08-30 - THE TIMING STAGE: five blockers cleared, a 2-D map tuner, and the ROM correcting two of my own numbers
+## 2026-08-30 - THE TIMING STAGE: five blockers cleared, a 2-D map tuner, and two estimates the ROM overturned
 
 The car has spent its entire knock-adaptation budget: on the post-flash-3 drive `IAM` collapsed
 from 0.500 to **0.000 and stayed there for 52 seconds** while running. This arc builds the stage
 that answers it, the first in the project to tune a **2-D map**, and the first whose correction
 basis is a hazard limit rather than a measurement to converge on.
 
-**Five blockers had to be cleared before any timing code could run**, all found during planning,
+Five blockers had to be cleared before any timing code could run, all found during planning,
 all now pinned by tests that were *verified to fail when the original bug is reintroduced*:
 
-1. **The load ceilings Syed ratified never fired.** The ROM stores its load axis as float32, so
-   `0.55` reads back as `0.5499999523` and `load >= 0.55` is **False at the very column the limit
-   was written for**. Both ratified bands silently started one column late, the 0.85 g/rev boost
+1. The load ceilings Syed ratified never fired. The ROM stores its load axis as float32, so
+   `0.55` reads back as `0.5499999523` and `load >= 0.55` is False at the very column the limit
+   was written for. Both ratified bands silently started one column late, the 0.85 g/rev boost
    column, where this car makes boost, was getting 30° instead of 22°.
-2. **Three clamp inputs were never set outside tests.** `knock_active`, `fuel_trims_converged` and
+2. Three clamp inputs were never set outside tests. `knock_active`, `fuel_trims_converged` and
    `steady_state_ok` defaulted to `False` everywhere in production, which made the clamp its own
    docstring calls *"the single most important clamp"* inert, and made `clamp_fuel_before_timing`
    defer **every** timing proposal outright. A gate that always fires and a gate that never fires
@@ -33,10 +33,10 @@ all now pinned by tests that were *verified to fail when the original bug is rei
 4. **Timing was bounded by exactly one clamp.** Every other bound gates on `targets_kind` being
    `"fuel"` or `"sensor"`, so timing had no rate limit, no cumulative bound and no floor, in the
    one category where the only direction we ever move is retard.
-5. **The pre-flash audit was hardcoded to the MAF curve** and would have NO-GO'd a timing
+5. The pre-flash audit was hardcoded to the MAF curve and would have NO-GO'd a timing
    candidate on three checks that do not apply to it while skipping every check that does.
 
-**The ROM corrected two numbers I had guessed.** The stage's first cut applied a flat 2.0° of
+The ROM overturned two estimated numbers. The stage's first cut applied a flat 2.0° of
 "lost dynamic advance" to every driven cell, measured from an assumed healthy IAM of 1.0. Reading
 the ROM instead: `Advance Multiplier (Initial)` is **0.5, not 1.0**: an observed IAM of 0.500 is
 this calibration's *factory* value, not a halved one (the 2026-08-26 analysis had read it as
@@ -46,13 +46,13 @@ both directions at once; it retarded the idle band, which the project has indepe
 as *knock-free*, by 2.11°, while under-correcting the boost cells that needed up to 4.57°. Reading
 the ROM removed 20 spurious edits. Same lesson as the MAF arc: **the ROM already knew.**
 
-**A property test found a safety hole that reading the code did not.** The cumulative retard floor
+A property test found a safety hole that reading the code did not. The cumulative retard floor
 goes inert without an archived baseline, and a ceiling only bounds from above, so with no
 baseline nothing bounded retard at all, and iterating the clamp walked a cell to **−49° BTDC**,
 past TDC. Fixed with an absolute `min_timing_advance` backstop *and* by making `--baseline-rom`
-mandatory for the timing path. **A rate limit that bounds a single step does not bound a sequence.**
+mandatory for the timing path. A rate limit that bounds a single step does not bound a sequence.
 
-**Two gates needed a narrow exemption, and it is verified rather than declared.** This car knocks,
+Two gates needed a narrow exemption, and it is verified rather than declared. This car knocks,
 that is why the stage exists, so every log that justifies a retard also trips the knock abort.
 And one airflow band (59.31 g/s, 29 samples) still reads +7.44%, so the fuel-before-timing gate
 stays shut; closing it needs high-airflow data, which needs boost, which is what the timing work
@@ -90,7 +90,7 @@ untouched: re-deriving MAF iteration 3 from its own log reproduces the flashed R
 
 The arc that turns six drives into a verified candidate image, with a human as the only remaining gate.
 
-**The fault is the MAF transfer curve, not the fuel maps, and not a VE table (there isn't one).**
+The fault is the MAF transfer curve, not the fuel maps, and not a VE table (there isn't one).
 Six vacuum drives, 35,744 rows, 30,795 steady closed-loop samples. Fuel trim tracks *measured
 airflow* better than load or rpm (`corr` +0.838 vs +0.708 / +0.737), and the decisive test settles
 it: hold MAF fixed and swing load/rpm hard, trim moves 0.3–5.0 pp; hold load fixed and swing MAF,
@@ -102,13 +102,13 @@ also makes the ECU index the ignition map at the wrong cell (the only explanatio
 car has never once left closed loop under boost in anything logged. Sensor contamination was
 eliminated by experiment: Syed cleaned the element and re-drove; the curve's shape was unchanged.
 
-**The finding that set the urgency: the ECU is nearly out of authority.** A/F Learning hard-clamps
+The finding that set the urgency: the ECU is nearly out of authority. A/F Learning hard-clamps
 at +14.84% and A/F Correction at ±25.00%. Above 20 g/s the car runs at ~75% of that combined
 ceiling, with learning saturated in ~80% of samples and 6.2% having *both* channels maxed at once.
 Corroborated by the ROM itself, `fuel.cl_learning_limits` reads ±15.00%. The wideband confirms the
 ECU is still holding command, so it is winning with nothing in reserve, in vacuum cruise.
 
-**Built, all under the existing safety architecture:** a MAF transfer stage (the first stage that
+Built, all under the existing safety architecture: a MAF transfer stage (the first stage that
 tunes a *curve*, 48 cells, no integral term); a new **sensor-calibration clamp category** bounding
 evidence + displacement + curve monotonicity instead of velocity, disjoint from the fuel clamps by
 `targets_kind` and property-tested to leave them byte-identical; and **`romwrite`**: the
@@ -145,23 +145,23 @@ is flashed**, we emit a file; flashing stays a human act in ECUFlash.
 ## 2026-08-16 - ★ THE ROM READ: the project's day-one blocker is solved, and the idle diagnosed healthy from real data
 
 The single thing that gated whether this project's output could ever reach the car. **The stock ROM
-was read** and is **byte-identical (sha256 `11fe1536…`) to an independent harvested known-stock 05
-FXT ROM**, proving both that the read is complete and that the ECU is **genuinely un-tuned**
+was read** and is byte-identical (sha256 `11fe1536…`) to an independent harvested known-stock 05
+FXT ROM, proving both that the read is complete and that the ECU is genuinely un-tuned
 (`car/CLAUDE.md`'s "stock-looking ID ≠ untuned" caveat, discharged). Archived per doctrine
 (`car/ecu/rom read/` + `data-backups/rom/` + provenance/checksums; off-machine copy on Syed).
 
-**What was actually wrong, a permission gate, not a lock.** Seed/key and the programming session
+What was actually wrong, a permission gate, not a lock. Seed/key and the programming session
 always succeeded; the read failed at `RequestDownload` (`7F 34 10`). A five-value `dataFormatIdentifier`
 sweep (patched FastECU) changed nothing, a clean falsification pointing away from a format problem.
 The fix was **joining the Subaru green test-mode connectors**, which enable read/write mode. Our own
 `ROM-READ-BLOCKER.md` had eliminated those connectors as "not applicable to a 2005 DBW car", an
-elimination by *argument*, never by *test*, and it was wrong. The winning lead came from **corpus doc
-5793**, an 05 Forester that read only with the test connector, a doc surfaced by the **overnight
-community-doc review**. The pipeline found the fix its own reasoning had ruled out.
+elimination by *argument*, never by *test*, and it was wrong. The winning lead came from corpus doc
+5793, an 05 Forester that read only with the test connector, a doc surfaced by the overnight
+community-doc review. The pipeline found the fix its own reasoning had ruled out.
 
-**First real diagnosis from the deterministic layer's own inputs.** `romread` extracted the stock
-tables (injector flow 503.9 cc/min high-confidence; MAF/timing/AFR/idle indicative). The **three-hold
-idle capture** (warm/fast/loaded) then proved, from the fuel-trim signatures: **no vacuum leak**
+First real diagnosis from the deterministic layer's own inputs. `romread` extracted the stock
+tables (injector flow 503.9 cc/min high-confidence; MAF/timing/AFR/idle indicative). The three-hold
+idle capture (warm/fast/loaded) then proved, from the fuel-trim signatures: no vacuum leak
 (airflow doubled and trim went *more* negative, a leak does the opposite), **idle fuelling already
 correct** (trims within ±5%, wideband on 14.7 target, zero knock), idle on the ROM's 700 rpm target.
 The "poor idle" is not a fuel/leak fault; the tuning win is under load. Captured the **first validated
@@ -176,7 +176,7 @@ tunes by hand.
 Executed unattended overnight from an approved plan (`sessions/handoffs/2026-08-17-overnight-morning-report.md`
 + `…-overnight-process.md`). Every number below was recomputed from result files, not copied from prose.
 
-**Judge calibration. Qwen3.8 does NOT replace Qwen3.6.** Both models were scored *in memory* through the
+Judge calibration. Qwen3.8 does NOT replace Qwen3.6. Both models were scored *in memory* through the
 real judging path against the 100 adjudicated `calibration-100` labels (54×2 / 37×3 / 9×4), rubric r2,
 24576-token budget, same Aug-14 llama.cpp build, a like-for-like the July numbers were not. Qwen3.8:
 keep/drop **91.0 %**, within±1 **98.0 %**, **dangerous 1** (doc 1081, truth 2 → judged 4) → **FAILS** the
@@ -190,19 +190,19 @@ than assumed. Before any of this could run, `recalibrate.py` was found loading p
 sets (DB pre-registration 90/90/0 vs 3.6's achieved 93.1/97.7) were untangled; the runbook had them
 conflated.
 
-**Retrieval, the ratified 93.9 % E1v2 `base+RAG@3` headline retrieved exactly 3 documents on 100 % of
-147 queries** (Banish p., rusEFI `Fuel-Overview.md`, Hartman p.), the same three Qwen3.8 got, so both
+Retrieval, the ratified 93.9 % E1v2 `base+RAG@3` headline retrieved exactly 3 documents on 100 % of
+147 queries (Banish p., rusEFI `Fuel-Overview.md`, Hartman p.), the same three Qwen3.8 got, so both
 models saw byte-identical evidence and the 93.9/0 vs 95.2/7 gap is model-side only. The "+RAG" acted as a
 constant three-page preamble (+10 pp for 3.6 vs its 83.7 arm A; six pages → back to 83.7; 0 pp for 3.8),
 not as retrieval. E2 does not collapse (325 distinct docs). Committed counter: `ml/eval/doc_collapse.py`.
 
-**E1 "dangerous" is definition-dependent and it decides the 3.8 verdict.** Under the codified
+E1 "dangerous" is definition-dependent and it decides the 3.8 verdict. Under the codified
 `rundown.dangerous_flips()` (2026-08-02) Qwen3.8's E1v2 is **95.2 % / 0 dangerous** in both arms, the
 six `vacuum_leak → injector_latency_lean` misses are lean→lean; the handoff's "7 dangerous" used the
 "edit authorised on a no-table-edit fault" reading the codified rule reserves for `healthy`. Flagged for
 Syed; metric not changed. E4 confirmed 15/15 vs 3.6's 13/15; E2 48/19/2 (retrieval-side leaks).
 
-**Deterministic layer, MAF baseline now carries provenance (D20).** `mvem.MafBaseline` (rpm-indexed
+Deterministic layer, MAF baseline now carries provenance (D20). `mvem.MafBaseline` (rpm-indexed
 points, `validated`, `provenance`, `.at(rpm)`, `from_capture()`); the sim seed 2.50 g/s is marked
 UNVALIDATED; `identify()` **refuses** a MAF verdict against an unvalidated baseline, reporting the ratio
 (1.397 on the real log), the band and the trims-only ranking. Sim harness unchanged (E4 18/18). Nothing
@@ -215,7 +215,7 @@ must not rebuild the retrieval index as a side effect); dead-server STOP instead
 default path proven by tests; nothing built on the real corpus). The 95 score-3 community docs reviewed
 under one rubric for retrieval usefulness: **28 keep / 67 drop**, no doc supplies a healthy-idle MAF
 baseline; awaiting Syed's sign-off, nothing indexed. C2 judge run over the 314 pending community docs
-ran 13:20–19:40 UTC on 3.6: **314 judged, 0 failed → 2 × 206 / 3 × 93 / 4 × 15 (4.8 % ≥ 4)**; the community
+ran 13:20–19:40 UTC on 3.6: 314 judged, 0 failed → 2 × 206 / 3 × 93 / 4 × 15 (4.8 % ≥ 4); the community
 tier is now fully judged (641 docs, 34 ≥ 4). A second review pass over the 93 new 3s and all 34 fours
 (same rubric, Fable-5 reviewers) brought the sign-off list to **222 docs / 74 keeps / 18 high-value**,
 including two EJ20X-into-EJ255-ECU swap threads, a 2005 Forester ROM-read recipe, and the corpus's first
@@ -232,8 +232,8 @@ this tightly means both can be trusted, and it retroactively validates the facto
 from the 2026-08-12 warm-idle log (the "held loosely" caveat there is now largely discharged for
 the fuel channel).
 
-**What this log is (corrected):** a **cold first-start capture, engine cold after sitting ~2 days,
-taken BEFORE the ECU hard reset**, coolant rising 100->135 F, idle ~1137-1550 rpm (mean 1337), MAF
+**What this log is (corrected):** a cold first-start capture, engine cold after sitting ~2 days,
+taken BEFORE the ECU hard reset, coolant rising 100->135 F, idle ~1137-1550 rpm (mean 1337), MAF
 ~7.3 g/s (about 2x the warm-idle log's 3.5). `af_learning` is flat at 0.00 **because this car has
 never been driven** (long-term fuel learning populates from driving across load/rpm cells; it was
 never wiped; it was never accumulated). It is closed loop (correction actively moving, holding
@@ -241,10 +241,10 @@ never wiped; it was never accumulated). It is closed loop (correction actively m
 but it is **NOT a capture-protocol warm-idle hold** and must not be fed to the estimator as one.
 Coincidentally it approximates the protocol's *fast idle* condition (~2x airflow), just cold.
 
-**Its real value: a clean PRE-reset baseline.** First start in 2 days, learning genuinely empty,
+Its real value: a clean PRE-reset baseline. First start in 2 days, learning genuinely empty,
 a reference point if idle behaviour or trims shift after the reset.
 
-**One reading worth carrying forward, held loosely:** at this cold high-idle point the ECU needs
+One reading worth carrying forward, held loosely: at this cold high-idle point the ECU needs
 **+7.66% fuel correction** to hold stoich, versus the warm-idle log's +0.31% total trim. Not
 comparable operating points (cold vs warm; and here the +7.66% is pure short-term correction with
 no learning to share the load). A persistent positive fuel correction is *consistent with* the
@@ -257,30 +257,30 @@ driven enough to populate learning.
 1,878 samples over 129.6 s from the test vehicle, the first data this project has ever had that
 did not come from its own simulator. Run through `logparse.parse_romraider_csv` unchanged.
 
-**The parser handled real RomRaider v370 headers on the first attempt**: all 13 canonical roles
+The parser handled real RomRaider v370 headers on the first attempt: all 13 canonical roles
 mapped, including the collision fixes made hours earlier the same night. `A/F Sensor #1 (AFR)`
 correctly declined to alias onto `wideband_afr`, keeping the trusted instrument unambiguous by
 design rather than by luck.
 
-**Sample rate 14.49 Hz with 21 parameters, 3x the modelled prediction.** The bandwidth model in
+Sample rate 14.49 Hz with 21 parameters, 3x the modelled prediction. The bandwidth model in
 `IDLE-LOG-PROFILE.md` assumed a request/response round trip per sample against SSM2's declared
 4800 baud and predicted ~4.7 Hz. SSM2 supports a continuous-read mode where the address list is
 sent once and the ECU streams, removing that overhead. Model replaced with the measurement.
 
-**Steady-state quality is excellent: 0.00% of samples exceed either `GridSpec` transient
-tolerance** (|d rpm| mean 8.7 max 79 against a 100 limit; |d tps| max 0.39 against 2.0). A 60 s
+Steady-state quality is excellent: 0.00% of samples exceed either `GridSpec` transient
+tolerance (|d rpm| mean 8.7 max 79 against a 100 limit; |d tps| max 0.39 against 2.0). A 60 s
 hold yields ~870 usable samples against `min_samples = 20`.
 
-**Closed loop confirmed by the documented workaround**: `A/F Correction #1` std 2.65 %, actively
+Closed loop confirmed by the documented workaround: `A/F Correction #1` std 2.65 %, actively
 wandering rather than frozen. The substitute for the inaccessible `CL/OL Fueling` extended
 parameter works.
 
-**The blocker: `wideband_afr` is a column of zeros.** Exactly one distinct raw value, `0.00`,
+The blocker: `wideband_afr` is a column of zeros. Exactly one distinct raw value, `0.00`,
 across all 1,878 rows. The engine was running and fuelling normally, the factory A/F sensor read
 12.40-15.16, mean 14.53, so this is the AEM plugin, not the engine. **The capture protocol cannot
 run without it**; it is a REQUIRED channel and the project's ground-truth instrument.
 
-**First observation about the car, held loosely:** total fuel trim averages **+0.31 %**
+First observation about the car, held loosely: total fuel trim averages **+0.31 %**
 (correction + learning), i.e. closed loop has idle fuelling essentially nailed, while idle speed
 wanders **640-770 rpm** (std 17.6). That points away from idle *fuelling* as the cause of the bad
 idle. Held loosely on purpose: without the wideband there is nothing to check the factory sensor
@@ -289,25 +289,25 @@ ground-truth instrument.
 
 ## 2026-08-11 - WIDEBAND LINK SOLVED, then a ground loop killed ECU comms: both faults were physical, neither was software
 
-Two faults resolved on the car in one session, and **neither lived where its symptoms pointed.**
+Two faults resolved on the car in one session, and neither lived where its symptoms pointed.
 
-**Fault 1, the wideband serial link (open since 2026-08-08).** The prior session's leading
+Fault 1, the wideband serial link (open since 2026-08-08). The prior session's leading
 suspect was a non-compliant USB-serial adapter. It was wrong, and so were the two hypotheses that
 replaced it. Elimination ran: cheap chipset (killed, `VID_0403+PID_6001`, genuine FTDI FT232R
 with a properly programmed serial) → TTL-vs-RS-232 level class (killed, **−5.74 V measured on
 DB9 pin 3**, which only a real transceiver produces; a bare FT232R pin idles at +3.3/+5 V) → the
 PC side including the read method itself (killed, a pin 2↔3 **loopback echoed**) → adapter damage
-(killed, a reboot restored it) → **the hand-crimped DB9 shell, confirmed by bypassing it.**
-Wiring the gauge straight to adapter pins 2/5 returned **301 bytes, ~50 clean `99.9\r\n` samples
-in 5 s**, the gauge's native ~10 Hz with the AEM ASCII protocol decoding correctly at 9600 8N1.
+(killed, a reboot restored it) → the hand-crimped DB9 shell, confirmed by bypassing it.
+Wiring the gauge straight to adapter pins 2/5 returned 301 bytes, ~50 clean `99.9\r\n` samples
+in 5 s, the gauge's native ~10 Hz with the AEM ASCII protocol decoding correctly at 9600 8N1.
 
-Root cause: **a female DB9 numbers mirror-image when viewed from the wiring side**, and the
+Root cause: a female DB9 numbers mirror-image when viewed from the wiring side, and the
 original continuity check was self-consistent with the mirrored assumption used while wiring. It
 proved blue reached *a* pin repeatably; it could not prove the pin was 2. A self-consistent test
 that validates nothing absolute is worse than no test, because it retires a hypothesis that is
 still true.
 
-**Fault 2, ECU logging then died, and the signature was actively misleading.** RomRaider hung
+Fault 2, ECU logging then died, and the signature was actively misleading. RomRaider hung
 forever at `sending ecu init` with **no exception**, in software logs, immediately after a software
 change. Six hypotheses were spent PC-side, driver-signature bypass, the AEM plugin, a hung JVM
 holding the J2534 device, battery sag, a wedged USB driver stack, a silently swapped J2534 DLL,
@@ -319,19 +319,19 @@ reference the Openport's **K-line transceiver** compares against, and K-line dis
 high/low against ground, so init fails while every indicator still reads healthy. Unplugging the
 serial adapter restored ECU logging immediately.
 
-**The transferable lesson, recorded in `car/logging/CAPTURE-PROTOCOL.md` as a hardware
-prerequisite:** the isolation test, remove one subsystem, retest, should have been the *first*
+The transferable lesson, recorded in `car/logging/CAPTURE-PROTOCOL.md` as a hardware
+prerequisite: the isolation test, remove one subsystem, retest, should have been the *first*
 move once "it worked an hour ago" was established, not the seventh. Syed's timing observation
 ("this started while we were fixing the AFR, while the AFR was still broken") was the session's
 most valuable evidence and was initially under-weighted in favour of chasing stack traces. The
-protocol now also carries a hard acceptance test: **ECU parameters and `wideband_afr` updating
-simultaneously**, because either stream alone proves nothing, precisely the trap this sequence
+protocol now also carries a hard acceptance test: ECU parameters and `wideband_afr` updating
+simultaneously, because either stream alone proves nothing, precisely the trap this sequence
 fell into.
 
 ## 2026-08-08 - FIRST CONTACT WITH THE CAR: live SSM2 logging works; ROM read and wideband serial both blocked, both diagnosed
 
 RomRaider connects to the '05 FXT through the Washinglee Openport 2.0 clone and streams live SSM2
-data (RPM, coolant temp, battery voltage), **the first real telemetry from the test vehicle.**
+data (RPM, coolant temp, battery voltage), the first real telemetry from the test vehicle.
 ECU ID reads `3B12504206`: absent from the 2009-era defs but surrounded by siblings
 (`3B125040/1/306`), i.e. a normal member of the 32-bit SH7058 family the defs simply predate.
 Drive-by-wire physically confirmed at the throttle body. Getting the logger up required a 32-bit
@@ -348,7 +348,7 @@ solved 2026-08-11 and the ROM read 2026-08-16; see the "★ THE ROM READ" entry 
   previously locked ECU (AccessPort/EcuTek marriage). H2: the clone cable's partial K-line
   implementation handles SSM2 but not reflash-mode entry. Discriminating test queued: current
   defs → CAL ID via the logger.
-- **AEM 30-0300 wideband serial is silent on COM5.** Wiring continuity-verified end-to-end;
+- AEM 30-0300 wideband serial is silent on COM5. Wiring continuity-verified end-to-end;
   gauge healthy. Prime suspect: the USB-serial adapter (chipset unidentified). Correction worth
   keeping: AEM's "RS-232" out is logic-level 0→5 V bursts at ~10 Hz, a 0.5 V multimeter average
   is a *healthy* transmitter, not a fault.
@@ -360,24 +360,24 @@ Full session detail: `sessions/handoffs/2026-08-08-forester-first-logging-toolch
 E4 had shown the closed loop failing structurally, not for want of a better model. At one
 operating point the observable is scalar and the state is three-dimensional, `trim = f(latency,
 flow, maf)`, so any of the three beliefs can null the trim. The LLM's diagnosis was therefore
-not advice; it was **the missing constraint that made the problem solvable**, and the
+not advice; it was the missing constraint that made the problem solvable, and the
 deterministic layer had no basis on which to disagree with it. One slip in twelve iterations
 permanently bent a table, and 9 of 42 episodes ended with a second belief corrupted that was
 never faulty.
 
-**The layer sees strictly less than the model saw.** The E1v2 prompt has always shown three
+The layer sees strictly less than the model saw. The E1v2 prompt has always shown three
 probe points (idle / fast idle / low voltage); `propose_idle_correction` received **one number**.
 The two observations that identify the fault were computed for the prompt and thrown away. Three
 points make the system identifiable, and `mvem.py` documented exactly why in its own comments,
 years of design ahead of anything using it.
 
-**`algorithms/identify.py` inverts the forward model.** Each single-fault hypothesis fits its one
+`algorithms/identify.py` inverts the forward model. Each single-fault hypothesis fits its one
 free parameter against the observed trims via `mvem.steady_trim`, bounded golden-section, numpy
 only. Two distinct refusals, both new capabilities: *not identifiable* (hypotheses tie) and *no
 single fault fits* (multiple faults or something unmodelled → escalate).
 
 Validated with **no LLM and no GPU**: 7 fault types × 20 seeds through the real log→bin path with
-sensor noise gave **138 correct / 2 safe refusals / ZERO confidently wrong**. Replayed against all
+sensor noise gave 138 correct / 2 safe refusals / ZERO confidently wrong. Replayed against all
 8 real masking events from 2026-08-04, evaluated on the diagnosis that caused each edit: **8/8
 prevented.**
 
@@ -387,7 +387,7 @@ are **exactly degenerate in trim space** so the reported airflow had to be score
 compared hypotheses rather than *actions*; and the gate cried `knob_mismatch` **even when both
 sides agreed**, because the proposer always emits three edits with the unselected ones zeroed.
 
-**Result, the incumbent now passes all four ratified E4 bars** (diagnosis 88.9→100%, masking
+Result, the incumbent now passes all four ratified E4 bars (diagnosis 88.9→100%, masking
 2→0, clamps 0, convergence 13/15), with collateral belief corruption 9 episodes → 0.
 
 **The finding worth keeping:** the two defences catch different failures. The 27B's errors are
@@ -395,7 +395,7 @@ isolated *slips*, stability caught all 52 and the cross-check gate never fired. 
 *thrashes*: 8 of its edits survived stability and had to be vetoed by the estimator. Neither
 mechanism alone sufficed for gpt-oss, and this is invisible in the headline scores.
 
-**One planned item was rejected by its own acceptance test.** The citation-guard context check
+One planned item was rejected by its own acceptance test. The citation-guard context check
 scored **0/21 fabrications caught, 6/410 false blocks** and was reverted rather than tuned against
 its test set. The blind spot turns out to be a consequence of the guard's evidence-only contract,
 "right document, wrong quantity" needs to know *which* quantity was asked for, and the guard is
@@ -404,8 +404,8 @@ deliberately blind to the probe. `guard_retrotest.py` is kept as the bar for any
 ## 2026-08-02 - BENCH INTEGRITY: the harness was convicting models for its own bugs; instrumentation rebuilt, probe file re-derived from source, E4 built
 
 Executed Phases 1, 2 and 5 of the held bench-integrity plan. The premise, proven on disk
-before anything was changed: **the benchmark was measuring the harness at least as much as the
-models.** FTS5's 24-*token* snippet window split `11.8%` into the tokens `11` and `8` and
+before anything was changed: the benchmark was measuring the harness at least as much as the
+models. FTS5's 24-*token* snippet window split `11.8%` into the tokens `11` and `8` and
 emitted `…increases effective injector size by 11 … `; three separate models were then scored
 `dangerous_miss`: the class that means "this model fabricates engine calibration values",
 for faithfully quoting the evidence we handed them.
@@ -416,11 +416,11 @@ a token or a number run, including runs broken across a space (`30 000`) or trai
 sign (`11.8 %`), and honours `snippet_max_chars` strictly. Two drafts were wrong and both were
 caught by running real probes rather than reading code: first-hit anchoring put probe
 e2-5723-1's window ~7,000 chars from its answer; left-anchoring missed e2-2207-0's by 43 chars.
-**Expected value present in the window of its own source doc: 29/69 → 59/69, zero regressions.**
+Expected value present in the window of its own source doc: 29/69 → 59/69, zero regressions.
 A multi-window variant scored higher still (63/69 at the same budget) and was **rejected**: it
 would have been chosen *because it scored better on the benchmark's own answers*.
 
-**Scorer v2 + guard v2.** New gate-neutral classes `unit_mismatch` (450 mV vs "0.45 V", λ vs
+Scorer v2 + guard v2. New gate-neutral classes `unit_mismatch` (450 mV vs "0.45 V", λ vs
 AFR, 19 probes were traps of this shape) and `range_mismatch` (containment, not first-number,
 decides a stated range). `[REF n]` citation ids no longer parse as the stated value, gpt-oss
 was convicted on "1968" parsed out of `[REF 1968]` while its real claim sat inside the expected
@@ -429,12 +429,12 @@ EMPTY file used to return hard_gate "pass"; the gate was passable by producing n
 The guard now abstains when retrieval returns nothing (it was convicting models for the
 *retriever's* miss) and no longer heals `10-15 psi` into a fabricated `1015`.
 
-**A defect neither audit found, surfaced by writing a regression test:** an infix minus was read
+A defect neither audit found, surfaced by writing a regression test: an infix minus was read
 as a sign in both guard and scorer, so `10-15 psi` yielded `[10, -15]` and `(x-32768)` yielded
 `[-32768]`. A model correctly quoting 15 or 32768 was **blocked** because the source "never
 stated" it. Second instance of the harness convicting models for its own parsing.
 
-**Probe file v2, and three audit claims refuted.** Every disposition was decided against the
+Probe file v2, and three audit claims refuted. Every disposition was decided against the
 source text in `ref_fts`, not the audit's summary. The audit proposed excluding 8–9 probes from
 the fabrication hard gate as "derived"; checked against source, **0 of 69** probes have an
 expected value absent from their source document, so excluding them would have softened a
@@ -446,12 +446,12 @@ every probe answered with its own expected value must score `exact`, and a wildl
 must still trip the gate on every probe.
 
 **E4 built**: the composed loop (LLM diagnoses → deterministic layer acts → MVEM re-simulates),
-scoring the half of the job E1 and E2 cannot see: **did the right knob move, or did the trim
-converge by masking?** The model emits one enum token per iteration and never a number; there
+scoring the half of the job E1 and E2 cannot see: did the right knob move, or did the trim
+converge by masking? The model emits one enum token per iteration and never a number; there
 is no path from model output to a table value. Fake-LLM dry run green 7/7, including the
 load-bearing check that `masking` can be made to *fire*, a masking score of 0 is meaningless
 if a deliberately wrong model can't trip it. Labelled `sim-calibrated-pending`: MVEM is not yet
-validated against the real engine. **Pre-registered bars await Syed's signature.**
+validated against the real engine. Pre-registered bars await Syed's signature.
 
 Re-scoring all 28 historical E2 files, published both ways per the anti-benchmark-maxxing
 contract: exact 558 → 577, dangerous 265 → 201, and **stricter in 2 rows**. Test suite 54 → 121.
@@ -465,13 +465,13 @@ retrieval upgraded to v2 (BGE-M3 dense + BM25, RRF fusion, cite-or-decline rider
 nine cells measured across E1v1/E1v2/E2; every primary cell run twice, byte-identical
 (temp-0 determinism now 8/8 batteries).
 
-**Headline: `base + hybrid retrieval, top_k 3` scored 93.9% top-1 on E1v2 (138/147) with
+Headline: `base + hybrid retrieval, top_k 3` scored 93.9% top-1 on E1v2 (138/147) with
 zero dangerous misses, the FIRST configuration ever to pass the ratified bar (90% + zero
-veto).** Same cell cut base-model E2 fabrications 11 → 2 via the cite-or-decline rider.
-**The pilot fine-tune (arm C) failed informatively**: E1v2 83.7% = no gain over base, the
+veto). Same cell cut base-model E2 fabrications 11 → 2 via the cite-or-decline rider.
+The pilot fine-tune (arm C) failed informatively: E1v2 83.7% = no gain over base, the
 project's first two dangerous cross-family flips, and an E2 fabrication explosion (honest
 declines 8/69, confident-wrong 45/69 = 65%), 280 pairs taught the *register* of expertise,
-not the values. **Arm D (fine-tune + retrieval) showed the components are complementary**:
+not the values. Arm D (fine-tune + retrieval) showed the components are complementary:
 best-ever E2 exact (42.0%) with fabrications disciplined back to 15, but still behind
 B-v2 on integrity and behind everything on diagnosis (78.2%). **E2 hard gate: still
 unpassed by every arm** (best: B-v2's 2 confident-wrongs), the cite-or-decline doctrine
@@ -489,9 +489,9 @@ current-goal fit): 841 synthetic drafts classified by the judge model (relevance
 269 convicted shallow, 37%, far beyond keyword heuristics, and 101 legacy-tech), grounding
 flags applied, near-duplicates deduplicated keeping the deepest exemplar, topic-steered batch
 3 (116 pairs aimed at the MAF/idle/VE/injector deficit, steering verified: idle 40, VE 36,
-injectors 32, MAF 25). **Final mix: 400 = 82 organic + 318 synthetic, deficit topics
+injectors 32, MAF 25). Final mix: 400 = 82 organic + 318 synthetic, deficit topics
 recovered (ve_load 64, injectors 46, idle 25, maf 18). Honest shortfall, flagged not hidden:
-Subaru share 21% vs the 70% doctrine target**, the quality filter gutted shallow ROM-def
+Subaru share 21% vs the 70% doctrine target, the quality filter gutted shallow ROM-def
 Subaru clones, and quality won per Syed's directive. Cure path: Stage-C real-car arcs
 (wideband install imminent) + a community-thread synthesis batch. Awaiting Syed's final
 20-pair C3 sign-off (docs/pilot-mix-SAMPLE.md) → arms C/D become buildable (QLoRA session,
@@ -505,8 +505,8 @@ scores 14% on injector-latency faults, calling them all leaks. **Arm B (+RAG): 8
 on the same faults, because the corpus contains the dead-time-vs-voltage physics and retrieval
 supplies the fact that unlocks the third probe point. v1+v2 together explain retrieval's value:
 self-contained reasoning → RAG is distraction (−10 pts, v1); knowledge-gated reasoning → RAG is
-the key (+6.1 pts, v2). **Verdict vs the pre-registered bar (90% top-1): arm B FAILS by one
-case (132/147; needed 133).** No rounding, no post-hoc adjustment; the bar has teeth, and
+the key (+6.1 pts, v2). Verdict vs the pre-registered bar (90% top-1): arm B FAILS by one
+case (132/147; needed 133). No rounding, no post-hoc adjustment; the bar has teeth, and
 arms C/D inherit a precise target. Both runs 147/147 deterministic. (Bar wording wrinkle for
 Syed: the registered "100% acceptable" component used v1 semantics; on v2 acceptable≡exact,
 re-ratification of the v2 bar wording queued.) Also: 79 nightly-scraped docs judged (3 keeps);
@@ -514,9 +514,9 @@ review rule hardened (structural quality × current-goal fit after the 725-pair 
 
 ## 2026-07-10 - E2 FIRST READOUT: RAG doubles exact-value recall, and neither arm passes the hard gate
 
-Overnight autonomous run (69 Syed-spot-checked probes, ±1% tolerance, temp 0). **Arm A (base):
+Overnight autonomous run (69 Syed-spot-checked probes, ±1% tolerance, temp 0). Arm A (base):
 14.5% match / 14.5% dangerous-fabrication / 71% honest decline. Arm B (+BM25 RAG): 34.8% match
-(2.4×) / 15.9% dangerous / 49% decline. BOTH FAIL the pre-committed hard gate** (any confident
+(2.4×) / 15.9% dangerous / 49% decline. BOTH FAIL the pre-committed hard gate (any confident
 wrong calibration value = fail). Combined with E1 (2026-07-09) the doctrine now has its full
 empirical shape: retrieval costs 10 points on closed reasoning and buys 20 on exact values,
 but naive RAG does NOT cure fabrication. Sharpest finding: **5 retrieval-induced fabrications**
@@ -533,8 +533,8 @@ promoted after Claude editorial pass (new local-LLM-review rule).
 
 ## 2026-07-09 - FIRST EVAL READOUT: base model nearly matches the rules engine; RAG *hurts* closed reasoning
 
-The gate produced its first data. **Arm A (base Qwen3.6-27B, no retrieval): 84.3% top-1 /
-98.6% acceptable**, one real miss from rules parity (85.7/100), same latency-lean degeneracy
+The gate produced its first data. Arm A (base Qwen3.6-27B, no retrieval): 84.3% top-1 /
+98.6% acceptable, one real miss from rules parity (85.7/100), same latency-lean degeneracy
 profile as the rules engine, 70/70 deterministic across duplicate temp-0 runs. **Arm B
 (base + BM25 RAG): 74.3% / 88.6%**, retrieval made diagnostic reasoning *10 points worse*,
 damage concentrated in vacuum_leak (100%→50%): E1 cases are self-contained, so generic book
@@ -560,16 +560,16 @@ harvest: **82 pairs** (61 subaru_ej / 8 subaru / 13 general) from 23 docs; the c
 **RAG-rich, pair-poor**: retrieval substrate is strong today; arms C/D of the eval gate need the
 Phase-D pair-synthesis bridge before a pilot fine-tune is meaningful.
 
-**The convicted 3090's story escalated.** Crashes #10/#11 (SEL: Slot 7 Bus Fatal, the usual) both
+The convicted 3090's story escalated. Crashes #10/#11 (SEL: Slot 7 Bus Fatal, the usual) both
 hit during *ordinary decode* at the locked 1005 MHz / ~230 W / <65 °C / zero AER, the 2026-07-06
 derate stopped suppressing the fault after ~2 days. Forensics ruled out config drift (powerlimit +
 judge units verified byte-identical across boots) and workload shape (second crash was 32 s into a
 108-token doc). Response, Syed's call, accept crash risk, keep speed, harvest diagnostic data:
-DB snapshot (`.backup` API), then **`--tensor-split 3.5,1` + 3090 core 1000→800 MHz**: the Ti
+DB snapshot (`.backup` API), then `--tensor-split 3.5,1` + 3090 core 1000→800 MHz: the Ti
 carries ~49 layers (21.9 GiB), the sick card ~15 (7.5 GiB) at **~152 W decode**: and the batch ran
 **~95 min / 56 docs / 0 crashes at ~54 t/s** (layer-split is sequential; the faster Ti absorbs the
-skew for free). Net: the failure threshold is now **bracketed between ~152 W and ~230 W steady
-decode**, a power-delivery signature that points the teardown at the backside cap groups first.
+skew for free). Net: the failure threshold is now bracketed between ~152 W and ~230 W steady
+decode, a power-delivery signature that points the teardown at the backside cap groups first.
 Also: watch-judge cockpit fixed (hardcoded log → newest-log glob, verified live); NASIOC canary
 caught the expired cf_clearance loudly, as designed.
 
@@ -598,8 +598,8 @@ numbers existed (keep/drop >=90%, within-±1 >=90%, zero dangerous cells; failur
 rubric revision, never bar-lowering). Keep metric ruled blind by Syed: any-chunk >=4 (matches
 per-chunk pair harvesting; noise chunks of kept docs never enter training by construction).
 
-**Result: PASS on all three bars, keep/drop 93.1% (81/87), within-±1 97.7% (85/87),
-dangerous cells 0.** Judge's errors are the safe kind: 2 missed keeps (one a human judgment-call
+Result: PASS on all three bars, keep/drop 93.1% (81/87), within-±1 97.7% (85/87),
+dangerous cells 0. Judge's errors are the safe kind: 2 missed keeps (one a human judgment-call
 promotion, one a methodology-genre undervaluation -> r3 note), 4 over-keeps all at adjudicated-3
 (never noise), all still subject to chunk-level harvest filters. The dense 27B judge is now the
 gate of record for the community tier. Judged the full tier (116 docs, 152+ chunks) overnight on
@@ -620,10 +620,10 @@ kernel silent (Dell firmware-first AER); only the iDRAC SEL recorded each `Bus F
 load sharing, ASPM off, physical reseat, and cross-socket P2P all ruled out (crash #5 was solo
 on the 3090). A purpose-built **1 Hz fsync'd PCIe flight recorder** (survives hard hangs; now in
 `infrastructure/monitoring/`) proved the link pristine to the final second every time, which
-pointed away from signal integrity and at **power transients: boost/limiter oscillation
+pointed away from signal integrity and at power transients: boost/limiter oscillation
 (recorded 1065↔1500 MHz at 299 W/300 W cap) sagging slot 3's 12 V → instant poisoned
-transaction**. Discriminating experiment: core clock pinned at 1395 MHz, same everything else →
-**15/15 requests, ~13 min sustained, zero events** (unlocked died ≤7 min, 4/4). Fix made
+transaction. Discriminating experiment: core clock pinned at 1395 MHz, same everything else →
+15/15 requests, ~13 min sustained, zero events (unlocked died ≤7 min, 4/4). Fix made
 permanent in `gpu-powerlimit.service` (boot-time `-lgc` both cards). Cost ≈ nil, inference is
 memory-bound (mem clock untouched). Bonus: 15 bit-identical verdicts at temp 0, judge
 determinism demonstrated on real hardware.
@@ -640,7 +640,7 @@ seed thread ingested and 5 tuning subforums (Engine Mgmt & Tuning, Open Source R
 manifest), headlined by **the 2005 FXT 4EAT stock ROM, CID 3B12504206**: the exact calibration
 family of the test car's ECU.
 
-**car/ecutune, ROM-value reader (`romread/`, READ-ONLY by construction):** parses ECUFlash defs
+car/ecutune, ROM-value reader (`romread/`, READ-ONLY by construction): parses ECUFlash defs
 (include-chain merge: base metadata + revision addresses) and decodes tables from the raw image
 (big-endian uint8/16/float, toexpr scaling). The harvested image's internal ID is **A2WC411D, a
 revision no community def covers**, so the reader reads through BOTH sibling defs (A2WC410D/412D)
@@ -657,8 +657,8 @@ covered the EcuFlash `.srf` container (INFO/DRMI/MEML/MEMD; MEMD = the 1MB image
 
 **Sim grounded in the real ROM** (`rom_seed.py`, `--run-convergence --rom`): believed state = the
 ROM's actual values; truth keeps the neutral swap-uncertainty ratios (MAF ~7% low, flow ~2% high,
-latency ~4% low; no pre-decided culprit). **ROM-seeded convergence PASS: +12.68% → +4.46% in 4
-iterations, 0 clamp violations** (synthetic control unchanged: +14.18% → +4.56%). The lower start
+latency ~4% low; no pre-decided culprit). ROM-seeded convergence PASS: +12.68% → +4.46% in 4
+iterations, 0 clamp violations (synthetic control unchanged: +14.18% → +4.56%). The lower start
 trim is physical, a 4% latency error on the real 0.66 ms dead time is a smaller absolute fuel
 error than on the assumed 1.0 ms. **44 tests green** (4 new: def merge/decode, reconciliation,
 plausibility bounds, real-ROM integration that skips on fresh clones).
@@ -677,9 +677,9 @@ now parses **per-GPU** gputemps JSON (per-card core/junction/VRAM columns + a co
 console view) and its thermal auto-abort watches the **hottest** card. Deploy gotcha caught: the
 service runs `/usr/local/sbin/gpu-fan-control.sh`, not the repo copy, fixes must be `cp`'d there.
 
-**Validation, 30-min memtest_vulkan soak on the 3090 Ti** (full 446W, SM+mem 100%, cover on, fans
-auto-ramping ~4300 RPM): steady state **VRAM 92–94 °C, junction 88–89 °C, core 76–77 °C, no
-throttle** (held ~1950 MHz full boost, power-limited, not thermal). vs the OEM 3090's 100 °C VRAM
+Validation, 30-min memtest_vulkan soak on the 3090 Ti (full 446W, SM+mem 100%, cover on, fans
+auto-ramping ~4300 RPM): steady state VRAM 92–94 °C, junction 88–89 °C, core 76–77 °C, no
+throttle (held ~1950 MHz full boost, power-limited, not thermal). vs the OEM 3090's 100 °C VRAM
 at 335 W → the Ti's aftermarket cooler is far superior; **no repad needed for the Ti.** The 3090 sat
 idle/cold throughout; inlet barely moved (20 → 21 °C).
 
@@ -695,7 +695,7 @@ curve with this data; stand up the 48 GB judge (Qwen3.6-35B-A3B).
 platform-neutral semantic IDs (`fuel.injector_flow`, `sensor.maf_transfer`, ...); platform names
 live in `ecutune/platforms/` adapters, `subaru_ecuflash` (verified 2005 FXT A2WC400x names +
 VARIANTS absorbing per-def spelling drift) and `tunerstudio` (Speeduino: injOpen/reqFuel/advTable1Tbl;
-speed-density gaps are honest absences). **Subaru is now adapter #1 on a universal foundation**,
+speed-density gaps are honest absences). Subaru is now adapter #1 on a universal foundation,
 the structural encoding of the universal-first directive. Convergence PASS unchanged.
 
 **Sim-generated diagnostic eval** (`ecutune/evals/` + `ml/eval/data/sim_cases_v1.jsonl`): known
@@ -729,10 +729,10 @@ sim-generated eval marked as follow-ups); "add every source not yet ingested" ex
 - **NASIOC**: built + tested, **gated**: hard Cloudflare doesn't clear headless (challenge-retry
   loop added to BrowserFetcher anyway; benefits legacygt). Revisit: non-headless cookie seed.
 
-**Corpus: 1,026 docs (976 reference / 50 community), 22 tests green.** Daily timer now accumulates
+Corpus: 1,026 docs (976 reference / 50 community), 22 tests green. Daily timer now accumulates
 from three new boards passively.
 
-**Follow-on same day. XenForo boards + NASIOC gating:**
+Follow-on same day. XenForo boards + NASIOC gating:
 - **`forum_xenforo`** engine → **subaruforester.org** (Syed's chassis: engine-tuning-datalogging +
   EJ25-turbo-2004-2013 + EJ20-turbo nodes) and **iwsti.com** (STI tuning). VerticalScope 202 stub →
   BrowserFetcher; verified end-to-end (20-post thread parsed). Slow (~25 s/page) so caps kept tight;
@@ -752,12 +752,12 @@ offload on the single 3090 + 32 GB RAM; **Q6 min / Q8 preferred** inference floo
 ## 2026-06-27 - car/ecutune: deterministic algorithm + safety layer (offline, built)
 
 **Built**: `car/ecutune/`, a new self-contained package (own `.venv`; numpy + hypothesis; mirrors `corpus_pipeline` conventions, copied not coupled). The car domain's first real code:
-- **`safety/`: the write-path guard (the project's HARD safety constraint, now testable code, not prose).** Seven ordered clamps as pure functions, knock auto-abort, fuel-before-timing, steady-before-transient, boost gate, timing-row ceiling, **±3% VE rate-limit**, **AFR floor**. `apply_proposal()` is the *only* function that writes a Table, enforced by a source-scan meta-test. "The LLM never writes ECU values" is now true **by construction**: every proposer (the algorithm today, the LLM tomorrow) goes through the same clamped door.
+- `safety/`: the write-path guard (the project's HARD safety constraint, now testable code, not prose). Seven ordered clamps as pure functions, knock auto-abort, fuel-before-timing, steady-before-transient, boost gate, timing-row ceiling, **±3% VE rate-limit**, **AFR floor**. `apply_proposal()` is the *only* function that writes a Table, enforced by a source-scan meta-test. "The LLM never writes ECU values" is now true **by construction**: every proposer (the algorithm today, the LLM tomorrow) goes through the same clamped door.
 - **`logparse/`**: tolerant RomRaider/SSM2 CSV parser (header→canonical-role using the 219 ingested SSM2 params) + (airflow×rpm) binning with a steady-state gate and the trim-error signal (`af_correction + af_learning`).
 - **`algorithms/`**: bounded-integral / damped-PI controller (the ±3% clamp *is* the anti-windup) + the idle global-scalar corrector (injector latency→flow-scaling→low-MAF, emits one Proposal, never self-applies).
 - **`simulation/`**: a mean-value engine model (MVEM) seeded with the known EJ20X-vs-EJ255 mismatch + the convergence harness running the full loop offline.
 
-**Result, the offline proof (no car, no GPU):** from a seeded **+14.8% lean idle trim**, the loop converges to **<5% in 4 iterations with ZERO clamp violations**, deterministically (same seed → identical tables), across all tested seeds. **31 tests green** (unit + hypothesis property tests over the safety bounds + the keystone convergence test). One command: `cd car && PYTHONPATH=. .venv/bin/python -m ecutune.cli --run-convergence`.
+**Result, the offline proof (no car, no GPU):** from a seeded **+14.8% lean idle trim**, the loop converges to <5% in 4 iterations with ZERO clamp violations, deterministically (same seed → identical tables), across all tested seeds. **31 tests green** (unit + hypothesis property tests over the safety bounds + the keystone convergence test). One command: `cd car && PYTHONPATH=. .venv/bin/python -m ecutune.cli --run-convergence`.
 
 **Why it matters:** the safety-critical core is validated end-to-end before any hardware exists. Real RomRaider logs drop into the same `bin→propose→clamp` path when the wideband arrives (`synth_log` already emits the real `LogTable` shape).
 
@@ -787,7 +787,7 @@ offload on the single 3090 + 32 GB RAM; **Q6 min / Q8 preferred** inference floo
 - First ingester `romraider_defs`: clones RomRaider SubaruDefs (GPL-2.0), parses ECUFlash per-ROM
   XML → structured `Document`s (ROM identity + tunable-table list + provenance).
 
-**Result, 890 documents in `corpus.sqlite`, all gated `kept`, pending judge:**
+Result, 890 documents in `corpus.sqlite`, all gated `kept`, pending judge:
 - `romraider_defs` (333 ECU defs) · `romraider_logger` (219 SSM2 telemetry params) · `rusefi_docs` (327 theory).
 - `forum_legacygt`: **11 EJ20X/tuning threads** via a **patchright headless-browser** fallback (legacygt's WAF
   202-challenges plain HTTP). Now with **bounded discovery**: crawls the Tuning subforum, keyword-filters titles,
@@ -811,7 +811,7 @@ offload on the single 3090 + 32 GB RAM; **Q6 min / Q8 preferred** inference floo
   thermal **auto-abort** (vram/junction ≥108 °C or core ≥90 °C → fans 100% + kill load + exit).
 - Tooling: built `gputemps` (staged `nvml.h` to skip the CUDA toolkit), installed `memtest_vulkan`.
 
-**Measured, 5-min memtest_vulkan soak, in-chassis (T630, 2 shroud fans, 22 °C inlet, ~335 W / 99% util)**
+Measured, 5-min memtest_vulkan soak, in-chassis (T630, 2 shroud fans, 22 °C inlet, ~335 W / 99% util)
 - Plateaued after ~2.5 min. **VRAM (GDDR6X) peaked 100 °C**: vs **106 °C** in the Omen, so in-chassis
   airflow is ~6 °C better. Under the 110 °C ceiling; no thermal throttle (clock sag was power-limit), no errors.
 - GPU hotspot 94 °C, core (edge) 79 °C.
@@ -957,7 +957,7 @@ throughput/latency, fine-tune eval scores, corpus size/quality, tuning-loop conv
 | 2026-08-12 | First real log: parser on live-car export | **13/13 canonical roles mapped** | real RomRaider v370 headers, unmodified parser; first non-synthetic data in the project |
 | 2026-08-12 | SSM2 sample rate, 21 params (measured) | **14.49 Hz** (model predicted 4.7) | continuous-read mode; model was 3x pessimistic, replaced by measurement |
 | 2026-08-12 | Steady-state quality vs GridSpec | **0.00% of samples transient** | \|d rpm\| mean 8.7/max 79 vs tol 100; \|d tps\| max 0.39 vs tol 2.0 |
-| 2026-08-12 | `wideband_afr` in first log | **DEAD, 1 distinct value (0.00) across 1878 rows** | factory A/F sensor 12.40-15.16 mean 14.53, so engine fine; AEM plugin at fault. BLOCKS capture |
+| 2026-08-12 | `wideband_afr` in first log | DEAD, 1 distinct value (0.00) across 1878 rows | factory A/F sensor 12.40-15.16 mean 14.53, so engine fine; AEM plugin at fault. BLOCKS capture |
 | 2026-08-12 | Idle fuel trim (corr+learn), closed loop | **+0.31% mean** | idle fuelling essentially correct; provisional until wideband validates the factory sensor |
 | 2026-08-12 | Idle speed stability | 640-770 rpm, std 17.6 | the presenting complaint, quantified for the first time |
 | 2026-08-13 | Wideband live in-file (AEM plugin fixed) | **real data, 14.40-14.90 AFR** | was a column of zeros on 2026-08-12; capture protocol's ground-truth instrument now works |

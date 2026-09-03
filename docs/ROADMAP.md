@@ -64,7 +64,7 @@ Per the staged doctrine (Stage 0 mechanical truth → Stage 1 instrument+baselin
 5. Stage-2 exit gate: trims ±5%, wideband tracking target, stable warm+cold idle.
 
 ## PHASE D: The tuning LLM v1 *(parallel with C; learning-priority, Syed drives decisions)*
-**RAG vs fine-tune, the standing answer (FAQ #2, doctrine-fixed):** it is not either/or.
+RAG vs fine-tune, the standing answer (FAQ #2, doctrine-fixed): it is not either/or.
 - **RAG serves exact values** (table addresses, spec numbers, scalars), weights-recall of
   precise numbers is unreliable and a confident near-miss is engine-grenading. The retrieval
   store = kept reference chunks (FTS5 now, embeddings when dedupe lands).
@@ -88,10 +88,10 @@ model: the 10k–50k target stands, fed by the same pipeline over months.
 family, grammar-constrained JSON, 2 runs each to confirm determinism):
 - **A. Base model alone**: the floor/control.
 - **B. Base + RAG**: retrieval over judge-kept corpus chunks (FTS5/BM25 now, embeddings later).
-- **C. Fine-tuned (QLoRA on curated pairs), no retrieval.**
+- C. Fine-tuned (QLoRA on curated pairs), no retrieval.
 - **D. Fine-tuned + RAG**: the hypothesized winner.
 
-**Three eval sets, each testing a different failure mode:**
+Three eval sets, each testing a different failure mode:
 - **E1. Diagnostic reasoning** (extends the existing `sim_cases_v1.jsonl`: 70 → ~150 cases,
   richer multi-point logs): symptoms→cause selection with acceptable-sets. *Mechanical scoring*
   (no judge needed): top-1 % and acceptable-set %, against the standing rules baseline
@@ -117,7 +117,7 @@ outcomes, small-N honesty enforced; no winner declared inside the noise). Also r
 arm: latency/doc and VRAM footprint (a 2-point win that doesn't fit in 24GB is not a win yet,
 it's the EPYC clause's evidence).
 
-**Decision rule (what "better" means, pre-committed):**
+Decision rule (what "better" means, pre-committed):
 - **C or D beats B** on E1+E3 by margin, with **zero E2 hard-gate violations** → fine-tuning
   proved its value; hybrid D becomes the brain; EPYC clause satisfiable if ambitions also
   exceed 24GB.
@@ -187,7 +187,7 @@ Syed approves at any browser.
 **"v2.0; the thesis is proven":** a NEW log from the car, fed to the pipeline cold, produces a
 diagnosis matching Syed's own read + a proposal he'd have made, the fine-tune-vs-RAG eval run
 on real-car cases, passed. That's the portfolio claim: an AI system that tuned a real car
-safely. **The EPYC/scale-up question is answered by this gate, not before it.**
+safely. The EPYC/scale-up question is answered by this gate, not before it.
 
 ## Hardware side-quests (interleaved, non-blocking)
 3090 repad/teardown forensics (tamper evidence documented; 1-minute provoked retest exists) →
