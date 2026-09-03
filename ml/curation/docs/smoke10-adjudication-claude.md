@@ -64,7 +64,7 @@ The gold doc: a years-long disciplined MPG-tuning log with named tables (WGDC, A
 AF3 limits, O2 scaling), quantified before/after outcomes (29.91, 30.30, 27.68→29.57, 28.72,
 31.33...), controlled variables (tire pressure, temps, routes), honest failed experiments.
 Sampled chunks are textbook 4s and 5s; doc-level min = 4 for both models. *Dense's 4 carries an
-asterisk: it only completed 5 of 16 chunks before its old 4096-token budget truncated chunk 5 -
+asterisk: it only completed 5 of 16 chunks before its old 4096-token budget truncated chunk 5,
 re-run at 6144 pending; not held against the model.*
 **Pair fidelity (the decisive evidence):**
 - Dense 11 pairs: all sampled anchors verified; the 14.3-AFR experiment is framed correctly

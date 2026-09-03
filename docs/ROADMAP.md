@@ -69,7 +69,7 @@ Per the staged doctrine (Stage 0 mechanical truth → Stage 1 instrument+baselin
   precise numbers is unreliable and a confident near-miss is engine-grenading. The retrieval
   store = kept reference chunks (FTS5 now, embeddings when dedupe lands).
 - **Fine-tune serves reasoning** (the diagnostic arc discipline), pilot QLoRA on a base model
-  re-verified at execution time (July pick: Qwen3.6-27B), trained ON the judge-curated corpus -
+  re-verified at execution time (July pick: Qwen3.6-27B), trained ON the judge-curated corpus,
   that is the pipeline's whole point. Non-circularity constrains the JUDGE, not the tuning
   model: the judge stays a general model never fine-tuned on the corpus it filters.
 - **The empirical gate decides the balance:** pilot fine-tune vs RAG-only baseline vs
@@ -114,7 +114,7 @@ family, grammar-constrained JSON, 2 runs each to confirm determinism):
 (house rule, third application). Paired comparison on identical items; a winner must clear the
 loser by a pre-registered margin (≥5 points on the primary metric or p<0.05 McNemar on paired
 outcomes, small-N honesty enforced; no winner declared inside the noise). Also recorded per
-arm: latency/doc and VRAM footprint (a 2-point win that doesn't fit in 24GB is not a win yet -
+arm: latency/doc and VRAM footprint (a 2-point win that doesn't fit in 24GB is not a win yet,
 it's the EPYC clause's evidence).
 
 **Decision rule (what "better" means, pre-committed):**
@@ -126,7 +126,7 @@ it's the EPYC clause's evidence).
 - **Hypothesis on record** (to be validated, not assumed): D wins E3 (reasoning discipline from
   fine-tuning), B and D tie on E2 (retrieval supplies numbers), C alone fails E2, yielding the
   final architecture: *fine-tuned reasoner + mandatory retrieval for exact values + a system
-  rule that calibration numbers are never stated from weights, always cited from retrieval* -
+  rule that calibration numbers are never stated from weights, always cited from retrieval*,
   the data-layer mirror of "the LLM never writes the ECU."
 
 **Harness home:** `ml/eval/`: E1 generator extension, E2 probe generator (reads reference
@@ -147,7 +147,7 @@ skeleton in `car/ecutune`:
    cell edits to a COPY of the current ROM via the same defs/reconciliation as romread;
    **verification stack:** (a) byte-diff whitelist, only cells belonging to whitelisted
    semantic tables may differ, ANY other byte difference aborts; (b) read-back, romread the
-   output file, confirm intended values landed and nothing else moved; (c) checksum handling -
+   output file, confirm intended values landed and nothing else moved; (c) checksum handling,
    verify at build time whether ECUFlash auto-fixes Subaru checksums at flash (believed yes) or
    we implement checksum correction ourselves; (d) bounds; every written value re-checked
    against def min/max. Module emits a human-readable CHANGE REPORT (table, cell, old→new,
@@ -173,7 +173,7 @@ flow: laptop logs at the car → drops CSV on the share (or dashboard upload) �
 Syed approves at any browser.
 
 ## PHASE G: Definition of DONE *(FAQ #3, pre-registered now, like everything else)*
-**"v1.0; the car is tuned":** all of -
+**"v1.0; the car is tuned":** all of,
 - Idle: trims within ±5%, RPM stable ±50 at target (700/hot per the real ROM), warm AND cold,
   no lean excursions, no hunting. (Stage 2 exit.)
 - Cruise/part-throttle: closed-loop trims ±5% across visited load sites; A/F learning stable
@@ -203,7 +203,7 @@ weekly NASIOC cookie ritual · DB snapshot habit before risky ops.
    for the first real ECU read.
 4. **Eval harness head-start (buildable NOW):** E2 probe generator over the ~2,000 existing
    reference keeps (judge-assisted generation, Syed spot-check) + arm runners/scorers + arms
-   A (base) and B (RAG over ref_fts). First base-vs-RAG readout on E1v1+E2 within days -
+   A (base) and B (RAG over ref_fts). First base-vs-RAG readout on E1v1+E2 within days,
    locks the baseline side of the gate and produces the weights-recall-danger number that
    underwrites the RAG-for-exact-values doctrine. Arms C/D and E3 remain gated (pairs / car).
 5. Keep the tier grinding; full re-harvest when it completes; corpus stats report.

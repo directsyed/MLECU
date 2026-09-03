@@ -115,7 +115,7 @@ stock ROM via `ctx.baseline_tables`, mirroring `sensor_envelope`. Retard-only: r
 ### 3: The stage (`algorithms/timing_retard.py`)
 Pure proposer, same contract as `maf_transfer.py`. Bins the log against the timing map's **own**
 breakpoints, `GridSpec(x_role="load", x_breaks=<map load axis>, y_role="rpm", y_breaks=<map rpm
-axis>)`, which lines up 1:1 with `CellEdit(row=rpm, col=load)`. **`require_closed_loop=False`** -
+axis>)`, which lines up 1:1 with `CellEdit(row=rpm, col=load)`. **`require_closed_loop=False`**,
 the MAF stage sets it True, which is right for fuel trims but would discard exactly the open-loop
 boost samples where timing matters.
 

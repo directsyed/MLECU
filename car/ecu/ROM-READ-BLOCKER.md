@@ -8,7 +8,7 @@
 > never locked. Full story + validation: **`car/ecu/rom read/PROVENANCE.md`** (commit `f27aad8`).
 >
 > **What actually fixed it:** joining the Subaru **green test-mode connectors** (two single-pin
-> greens under the driver column) enabled read/write mode. This document's line 63 -
+> greens under the driver column) enabled read/write mode. This document's line 63,
 > *"Green test-mode connectors | Not applicable to a 2005 DBW car"*, **was the exact error.** That
 > elimination was reasoning, never a test; the real fix came from corpus doc 5793 (an 05 Forester
 > that read only with the test connector), surfaced by the 2026-08-16 community-doc review.
@@ -84,7 +84,7 @@ after the request. **The ECU therefore answered a reflash-mode security-access r
 K-line.** That is not SSM2 logging traffic; it is the security handshake itself.
 
 **This substantially weakens the clone-cable hypothesis.** If the Washinglee's partial K-line
-implementation could not enter reflash mode, the failure would land at or before the seed request -
+implementation could not enter reflash mode, the failure would land at or before the seed request,
 not after a clean seed exchange. Whatever is failing happens at *key validation*, one step deeper
 than the cable's alleged limitation.
 
@@ -114,7 +114,7 @@ never answered" are not yet distinguished.
 
 **H1 (leading), the ECU's security has been altered.** A COBB AccessPort "marriage" or an EcuTek
 flash changes the seed/key relationship so third-party tools cannot unlock. Produces exactly this
-signature: identify fine, seed fine, key refused. **A stock-looking ECU ID does not refute this** -
+signature: identify fine, seed fine, key refused. **A stock-looking ECU ID does not refute this**,
 tuning suites commonly preserve the factory calibration ID. Car was bought used; history unknown.
 
 **H2 (weakened), the clone's K-line implementation fails at key validation specifically.** Still
@@ -191,7 +191,7 @@ SCI; it addresses the chip's own bootloader and therefore **does not use the ECU
 seed/key at all.** This is the community's recovery path for bricked and locked Subaru ECUs.
 
 Requires removing and opening the ECU and wiring to specific pins; more involved than any OBD-port
-method and unforgiving of mistakes. Research the exact SH7058 procedure properly before attempting -
+method and unforgiving of mistakes. Research the exact SH7058 procedure properly before attempting,
 it is listed here as a genuine option, not a recipe.
 
 ### 4. Standalone ECU (rusEFI): forces an already-open decision
@@ -300,7 +300,7 @@ retry differently" card. Two clean attempts already delivered the verdict.
 ### F1c-REASSESSED (2026-08-13): the seed/key helper is LOW value; do not build it
 
 Earlier this file promoted an active seed/key helper as "the leading software action." **Downgraded
-after reconsideration:** the sti05 seed/key is tied to the **flash method**, not the calibration -
+after reconsideration:** the sti05 seed/key is tied to the **flash method**, not the calibration,
 it is the **same key for every sti05 Subaru**. EcuFlash therefore already sends the correct standard
 key, and this ECU rejects it. A helper computing and sending that same standard key would reproduce
 the rejection EcuFlash already gets. Its only residual value is distinguishing NAK from timeout,

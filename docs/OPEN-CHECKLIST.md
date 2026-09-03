@@ -1,6 +1,6 @@
 # MLECU: open checklist
 
-> **2026-08-27, STATE CHANGE.** Root cause found (**MAF transfer curve**, not the fuel maps -
+> **2026-08-27, STATE CHANGE.** Root cause found (**MAF transfer curve**, not the fuel maps,
 > Subaru's 32-bit ECU has no VE table), the deterministic stage + a new sensor-calibration clamp
 > category are built and property-tested, and **`romwrite` exists**: including the SH7058
 > checksum, which was previously an open ROADMAP question. `ecutune --tune-maf` now produces a
@@ -93,7 +93,7 @@ Remaining: off-machine ROM copy (3rd location); optional 2nd confirming read for
 - [x] **MAF baseline MEASURED 2026-08-16**: `MEASURED_MAF_BASELINE_20260816` (708.65 rpm → 3.08 g/s,
       1637.14 → 6.55; ~12 % cross-session variance in provenance). D20 refusal flips to *use* for
       real captures; the sim seed stays `validated=False`.
-- [x] **Extended-param logger def built, validated, and INSTALLED in RomRaider (2026-08-17)** -
+- [x] **Extended-param logger def built, validated, and INSTALLED in RomRaider (2026-08-17)**,
       57 params for `3B12504206` by sibling reconciliation, cross-corroborated byte-identical
       across two def versions (2009 + v370/2021). `car/ecu/defs/romraider defs/
       logger_STD_EN_v370_3B12504206.xml`. **Channels UNVALIDATED until the live log** (see ⏭).
@@ -118,7 +118,7 @@ capture measured the real baseline (A2 above) and the idle operating point was r
 (target 700 rpm, measured airflow). The layer now diagnoses the real holds honestly.
 
 **Residual limits (open, honest):**
-- [ ] MVEM *fault dynamics* (leak/latency response curves) are still model-bound, not measured -
+- [ ] MVEM *fault dynamics* (leak/latency response curves) are still model-bound, not measured,
       `e4.py`'s status string says exactly this. Only the healthy idle point is real-grounded.
 - [ ] ~12 % cross-session MAF variance between the 08-13 log and the 08-16 holds, inside noise for
       idle-fuel work, but it is why `--diagnose` refuses to call maf_high vs injector_flow apart
@@ -210,7 +210,7 @@ one of them is not a model error at all.
 
 **Leak 1, `e2-2097-0`: the true D16 blind spot.** Source doc 2097 *was* retrieved and contains the
 truth (`SOi at 20° crank-angle BTC`). But an adjacent chunk of the **same Heywood book** (doc 2096)
-was also retrieved and contains `HCCI, θinj = 64° BTC`. Model answered 64°. Guard said `cited` -
+was also retrieved and contains `HCCI, θinj = 64° BTC`. Model answered 64°. Guard said `cited`,
 **correctly**, since 64 genuinely appears in evidence. Right topic, right book, adjacent page,
 wrong quantity.
 
@@ -239,7 +239,7 @@ the model did nothing wrong.
 
 ### B6. Honest limit on "judging for retrieval value"
 **A text judge cannot know whether a fix actually worked.** A confidently wrong forum post is
-indistinguishable from a correct one. A judge can only assess *markers of verifiability* -
+indistinguishable from a correct one. A judge can only assess *markers of verifiability*,
 outcome reported, causal chain present, numbers with units and conditions, thread resolved,
 corroboration. Correctness would require cross-checking claims against MVEM / the deterministic
 layer (narrow and expensive), which is the only path that does not reduce to one model grading
@@ -271,7 +271,7 @@ another's confidence.
       `STAGE_REGISTRY` behind the existing clamps (`ve_rate_limit ±3 %`, `knock_auto_abort`,
       `timing_row_ceiling`).
 - [ ] **`romwrite`** (ROADMAP Phase E; nothing exists): inverse encoder, byte patcher on a copy,
-      SH7058 checksum recompute, byte-diff whitelist · read-back · bounds · human CHANGE REPORT -
+      SH7058 checksum recompute, byte-diff whitelist · read-back · bounds · human CHANGE REPORT,
       all behind `safety/` so the `test_write_path.py` source-scan invariant holds.
 - [ ] Then the **first FastECU write** (a milestone of its own; write path UNPROVEN, only read is)
       → re-log → post-flash verify → the first closed iteration → **E3 becomes runnable** (bars

@@ -52,7 +52,7 @@ def build(cfg: RetrievalCfg | None = None, log=print, device: str = "cpu",
 
     2026-08-16: `table`/`out` let the same builder produce a SEPARATE community index
     (e.g. table="community_fts", out=EVAL_DIR/"data/community_dense_v2.npz") carrying the same
-    n_rows freshness stamp. Defaults are unchanged. NOT invoked on the real corpus tonight -
+    n_rows freshness stamp. Defaults are unchanged. NOT invoked on the real corpus tonight,
     nothing enters a retrieval index without Syed's sign-off.
     """
     cfg = cfg or RetrievalCfg()

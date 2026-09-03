@@ -28,7 +28,7 @@ all now pinned by tests that were *verified to fail when the original bug is rei
    docstring calls *"the single most important clamp"* inert, and made `clamp_fuel_before_timing`
    defer **every** timing proposal outright. A gate that always fires and a gate that never fires
    are the same bug. Now computed from the log by a new `logparse/signals.py`.
-3. **A map-2D index bug** in the change report (`row * a.shape[0]` on an already-raveled array -
+3. **A map-2D index bug** in the change report (`row * a.shape[0]` on an already-raveled array,
    270 instead of 15). Never hit, because every table written so far was a 1-D curve.
 4. **Timing was bounded by exactly one clamp.** Every other bound gates on `targets_kind` being
    `"fuel"` or `"sensor"`, so timing had no rate limit, no cumulative bound and no floor, in the
@@ -52,7 +52,7 @@ baseline nothing bounded retard at all, and iterating the clamp walked a cell to
 past TDC. Fixed with an absolute `min_timing_advance` backstop *and* by making `--baseline-rom`
 mandatory for the timing path. **A rate limit that bounds a single step does not bound a sequence.**
 
-**Two gates needed a narrow exemption, and it is verified rather than declared.** This car knocks -
+**Two gates needed a narrow exemption, and it is verified rather than declared.** This car knocks,
 that is why the stage exists, so every log that justifies a retard also trips the knock abort.
 And one airflow band (59.31 g/s, 29 samples) still reads +7.44%, so the fuel-before-timing gate
 stays shut; closing it needs high-airflow data, which needs boost, which is what the timing work
@@ -217,7 +217,7 @@ under one rubric for retrieval usefulness: **28 keep / 67 drop**, no doc supplie
 baseline; awaiting Syed's sign-off, nothing indexed. C2 judge run over the 314 pending community docs
 ran 13:20–19:40 UTC on 3.6: **314 judged, 0 failed → 2 × 206 / 3 × 93 / 4 × 15 (4.8 % ≥ 4)**; the community
 tier is now fully judged (641 docs, 34 ≥ 4). A second review pass over the 93 new 3s and all 34 fours
-(same rubric, Fable-5 reviewers) brought the sign-off list to **222 docs / 74 keeps / 18 high-value** -
+(same rubric, Fable-5 reviewers) brought the sign-off list to **222 docs / 74 keeps / 18 high-value**,
 including two EJ20X-into-EJ255-ECU swap threads, a 2005 Forester ROM-read recipe, and the corpus's first
 EJ255 healthy-idle MAF datum (4 g/s @ 850 rpm). Nothing indexed pending Syed's sign-off.
 
@@ -241,7 +241,7 @@ never wiped; it was never accumulated). It is closed loop (correction actively m
 but it is **NOT a capture-protocol warm-idle hold** and must not be fed to the estimator as one.
 Coincidentally it approximates the protocol's *fast idle* condition (~2x airflow), just cold.
 
-**Its real value: a clean PRE-reset baseline.** First start in 2 days, learning genuinely empty -
+**Its real value: a clean PRE-reset baseline.** First start in 2 days, learning genuinely empty,
 a reference point if idle behaviour or trims shift after the reset.
 
 **One reading worth carrying forward, held loosely:** at this cold high-idle point the ECU needs
@@ -310,7 +310,7 @@ still true.
 **Fault 2, ECU logging then died, and the signature was actively misleading.** RomRaider hung
 forever at `sending ecu init` with **no exception**, in software logs, immediately after a software
 change. Six hypotheses were spent PC-side, driver-signature bypass, the AEM plugin, a hung JVM
-holding the J2534 device, battery sag, a wedged USB driver stack, a silently swapped J2534 DLL -
+holding the J2534 device, battery sag, a wedged USB driver stack, a silently swapped J2534 DLL,
 before reframing around *what physically changed between working and not*. The answer was a
 **ground loop**: the Openport references chassis via OBD pins 4/5, the AEM black at the gauge's own
 ground point, and plugging both into one laptop bridges those chassis points through the USB
@@ -397,7 +397,7 @@ mechanism alone sufficed for gpt-oss, and this is invisible in the headline scor
 
 **One planned item was rejected by its own acceptance test.** The citation-guard context check
 scored **0/21 fabrications caught, 6/410 false blocks** and was reverted rather than tuned against
-its test set. The blind spot turns out to be a consequence of the guard's evidence-only contract -
+its test set. The blind spot turns out to be a consequence of the guard's evidence-only contract,
 "right document, wrong quantity" needs to know *which* quantity was asked for, and the guard is
 deliberately blind to the probe. `guard_retrotest.py` is kept as the bar for any future attempt.
 
@@ -407,7 +407,7 @@ Executed Phases 1, 2 and 5 of the held bench-integrity plan. The premise, proven
 before anything was changed: **the benchmark was measuring the harness at least as much as the
 models.** FTS5's 24-*token* snippet window split `11.8%` into the tokens `11` and `8` and
 emitted `…increases effective injector size by 11 … `; three separate models were then scored
-`dangerous_miss`: the class that means "this model fabricates engine calibration values" -
+`dangerous_miss`: the class that means "this model fabricates engine calibration values",
 for faithfully quoting the evidence we handed them.
 
 **Snippet extraction rebuilt.** One character-window extractor for every hybrid hit: anchors on
@@ -508,7 +508,7 @@ self-contained reasoning → RAG is distraction (−10 pts, v1); knowledge-gated
 the key (+6.1 pts, v2). **Verdict vs the pre-registered bar (90% top-1): arm B FAILS by one
 case (132/147; needed 133).** No rounding, no post-hoc adjustment; the bar has teeth, and
 arms C/D inherit a precise target. Both runs 147/147 deterministic. (Bar wording wrinkle for
-Syed: the registered "100% acceptable" component used v1 semantics; on v2 acceptable≡exact -
+Syed: the registered "100% acceptable" component used v1 semantics; on v2 acceptable≡exact,
 re-ratification of the v2 bar wording queued.) Also: 79 nightly-scraped docs judged (3 keeps);
 review rule hardened (structural quality × current-goal fit after the 725-pair census miss).
 
@@ -518,7 +518,7 @@ Overnight autonomous run (69 Syed-spot-checked probes, ±1% tolerance, temp 0). 
 14.5% match / 14.5% dangerous-fabrication / 71% honest decline. Arm B (+BM25 RAG): 34.8% match
 (2.4×) / 15.9% dangerous / 49% decline. BOTH FAIL the pre-committed hard gate** (any confident
 wrong calibration value = fail). Combined with E1 (2026-07-09) the doctrine now has its full
-empirical shape: retrieval costs 10 points on closed reasoning and buys 20 on exact values -
+empirical shape: retrieval costs 10 points on closed reasoning and buys 20 on exact values,
 but naive RAG does NOT cure fabrication. Sharpest finding: **5 retrieval-induced fabrications**
 - probes where the base model honestly declined but arm B, holding the RIGHT document, stated a
 nearby wrong number (e.g. 300°C where the passage says 250°C). Partial context breeds false
@@ -547,7 +547,7 @@ crashed the first attempt at case 43, budget now 8192, and empty completions sco
 misses instead of killing the harness. **Pair synthesis unblocked by a 5-doc probe:** wiki-def
 pages yield 0 pairs (the "never invent" prompt correctly refuses); book/manual text yields
 1.8/doc → 2,536 candidate docs ≈ 4,500-pair supply ceiling. The pair problem is now
-quality-filtering, not supply. Syed also began hand-building the eval RAG (query_terms -
+quality-filtering, not supply. Syed also began hand-building the eval RAG (query_terms,
 his first working Python, acceptance-test green).
 
 ---
@@ -695,7 +695,7 @@ curve with this data; stand up the 48 GB judge (Qwen3.6-35B-A3B).
 platform-neutral semantic IDs (`fuel.injector_flow`, `sensor.maf_transfer`, ...); platform names
 live in `ecutune/platforms/` adapters, `subaru_ecuflash` (verified 2005 FXT A2WC400x names +
 VARIANTS absorbing per-def spelling drift) and `tunerstudio` (Speeduino: injOpen/reqFuel/advTable1Tbl;
-speed-density gaps are honest absences). **Subaru is now adapter #1 on a universal foundation** -
+speed-density gaps are honest absences). **Subaru is now adapter #1 on a universal foundation**,
 the structural encoding of the universal-first directive. Convergence PASS unchanged.
 
 **Sim-generated diagnostic eval** (`ecutune/evals/` + `ml/eval/data/sim_cases_v1.jsonl`): known

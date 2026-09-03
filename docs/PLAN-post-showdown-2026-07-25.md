@@ -58,7 +58,7 @@ only cure the fine-tune data supports. E3 eval becomes buildable.
 
 ### 3. Fine-tune v2: gated on gold pairs, with doctrine-in-weights fixes
 NOT more epochs, NOT a bigger base. When Stage-C pairs exist (~50-100 real arcs):
-- Mix in DECLINE-TEACHING pairs (queries whose correct answer is "not in references -
+- Mix in DECLINE-TEACHING pairs (queries whose correct answer is "not in references,
   measure it"): teach cite-or-decline into the weights, targeting the exact 13-fabrication
   disobedience mode found today. Cheap to synthesize from corpus with the existing pairgen.
 - Keep: holdout early-stopping (it worked), r=16 pilot scale, same pre-registered bars.

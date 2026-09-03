@@ -12,7 +12,7 @@ shipped with.** Everything superseded moves to `superseded/`.
 for reproducing an old result; never used as a base for new work.
 
 **Replace `POSTFLASH3` in this folder only after a NEW read off the car has been verified.** Move
-the old one to `superseded/` at the same time, and regenerate `SHA256SUMS.txt` in both folders -
+the old one to `superseded/` at the same time, and regenerate `SHA256SUMS.txt` in both folders,
 `--verify-flash` checks the base image against it, and a stale list turns into a NO-GO.
 
 Two things depend on this layout, so check them if you reorganise further:

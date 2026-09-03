@@ -118,7 +118,7 @@ vehicle-powered, the original reading was right, and the withdrawal was wrong. N
 
 **HARDWARE DETAIL THAT MATTERS: the device side is USB MINI-B, not Type-A.** The cable is
 DETACHABLE, not captive. Two consequences: a suspect cable can be eliminated by substitution in
-thirty seconds, and the Mini-B *socket* on the board becomes a candidate in its own right -
+thirty seconds, and the Mini-B *socket* on the board becomes a candidate in its own right,
 those are small surface-mount parts whose pads crack from repeated plugging.
 
 ## What the combination actually implies

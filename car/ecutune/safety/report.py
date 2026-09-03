@@ -84,7 +84,7 @@ def disagreement_report(prop: Proposal, ctx: ClampContext, result: ClampResult,
 
 
 def to_markdown(rep: dict) -> str:
-    """Human-facing rendering. Deliberately puts BOTH conclusions adjacent and near the top -
+    """Human-facing rendering. Deliberately puts BOTH conclusions adjacent and near the top,
     the whole purpose is that the reader compares them rather than reads a verdict."""
     d, p = rep["deterministic_side"], rep["proposal"]
     llm = rep["llm_side"]

@@ -18,7 +18,7 @@ This closes the marathon session of 2026-07-08 → 07-16 (context limit reached)
 - **P1a, QLoRA pilot (arm C). LEARNING-PRIORITY: Syed drives, Claude teaches.** Prep first
   (agent does alone): format v3 → instruction dataset; re-verify base-model choice AT
   EXECUTION TIME (standing policy, never from memory; July pick was Qwen3.6-27B, RAM may
-  have changed); training-config skeleton; train on the **Ti only** (3090 is convicted -
+  have changed); training-config skeleton; train on the **Ti only** (3090 is convicted,
   see GPU section). Then the evening session: LoRA/quant/hyperparams taught, run launched.
 - **P1b, wideband install (Syed, garage; 2 wires from live as of ~07-15).** Day-1 ritual
   staged: double ROM read → archive ×3 (ROM is sacred) → `ecutune.cli --rom-diff` vs stock

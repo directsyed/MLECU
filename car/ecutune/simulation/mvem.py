@@ -114,7 +114,7 @@ class MafBaseline:
 
 
 # The SIMULATION's healthy baseline. Consistent with the sim world (synth_log builds maf_gs from
-# it, `harness.collect_observations` compares against it), so inside the sim it IS the truth -
+# it, `harness.collect_observations` compares against it), so inside the sim it IS the truth,
 # but it has never been measured on this engine, hence `validated=False`.
 SIM_MAF_BASELINE = MafBaseline(
     points=((IDLE_RPM, 2.50), (FAST_IDLE_RPM, 2.50 * FAST_AIR_SCALE)),

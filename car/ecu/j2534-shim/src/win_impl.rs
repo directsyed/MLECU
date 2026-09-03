@@ -1,7 +1,7 @@
 //! Transparent J2534 pass-through logging shim for the Tactrix Openport 2.0 (`op20pt32.dll`).
 //!
 //! Purpose: capture the EXACT bytes exchanged between EcuFlash and the ECU during a read
-//! attempt, specifically the reflash-mode security handshake (Requesting Seed / Sending Key) -
+//! attempt, specifically the reflash-mode security handshake (Requesting Seed / Sending Key),
 //! to decide whether the clone cable is delivering a valid seed (=> ECU-side fault) or garbage
 //! (=> cable-side fault). See car/ecu/ROM-READ-BLOCKER.md.
 //!

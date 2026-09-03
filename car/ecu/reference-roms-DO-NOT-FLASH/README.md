@@ -53,5 +53,5 @@ problem, already solved by a human tuner.
 tuner changed. Everything read from this file is an ABSOLUTE map value, not a delta, and the
 08 WRX base calibration is not our base calibration. Treat magnitudes as indicative, not exact.
 
-Unknowns that no .bin can answer: the fuel he ran, his boost target, and, the important one -
+Unknowns that no .bin can answer: the fuel he ran, his boost target, and, the important one,
 **whether that tune was actually any good, or whether the engine survived it.**

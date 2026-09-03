@@ -105,7 +105,7 @@ def _sum_region(data: bytes | bytearray, start: int, end_inclusive: int) -> int:
 def read_records(data: bytes | bytearray) -> list[ChecksumRecord]:
     """Every ACTIVE record in the block. Empty slots and the 0xFFFFFFFF filler are skipped.
 
-    Raises UnknownChecksumLayout if the first active record does not describe a sane region -
+    Raises UnknownChecksumLayout if the first active record does not describe a sane region,
     that means the bytes here are not our checksum array at all.
     """
     base = block_offset(data)

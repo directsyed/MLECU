@@ -68,7 +68,7 @@ def to_example(pair: dict) -> dict | None:
             {"role": "user",      "content": <stripped symptoms>},
             {"role": "assistant", "content": format_assistant(pair)},
         ]}
-    Java translation: returning None here is returning null after a guard clause -
+    Java translation: returning None here is returning null after a guard clause,
     `if (blank) return null;`: the caller filters the nulls.
 
     GATE EXTENSION (Claude, flagged for Syed's morning review): the gate covers ALL FOUR

@@ -38,7 +38,7 @@ and C2 ran on 3.6.
   it now runs on, and is 3 pp below its July 93.1 (n=87 → n=100, and the 4 reference docs are fully
   judged in this harness rather than auto-passed, same treatment for both models, but different from
   July). Not a failure, but not the comfortable margin the July number implied.
-- **Both judges recall only 4 of the 9 adjudicated 4s**: the same four (1085, 1099, 1114, 2285) -
+- **Both judges recall only 4 of the 9 adjudicated 4s**: the same four (1085, 1099, 1114, 2285),
   and both push 960 / 1031 / 1088 / 5773 down to 3 (or 2) and 1127 to 2. Keep/drop looks fine
   because 54 of 100 truth labels are 2s and both judges are good at *dropping*; on *keeping* they
   agree with the humans 44 % of the time. That is the premise of the whole community-corpus effort

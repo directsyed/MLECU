@@ -139,7 +139,7 @@ and a wildly wrong answer must still trip the gate on every probe.
 unit differences rather than converting them, so a genuinely wrong answer in another unit
 (`30-40 psi` against `300 to 400 kPa`) lands there. Also `e2-5579-0` (expected `11.1:1` AFR,
 model answered "equivalence ratio of 1.2") scored `dangerous_miss` only because "equivalence
-ratio" is not in the units table. **I deliberately did NOT add it after seeing that row** -
+ratio" is not in the units table. **I deliberately did NOT add it after seeing that row**,
 changing the scorer in response to a specific failing case is the benchmark-maxxing pattern.
 Syed's call.
 

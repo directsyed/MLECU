@@ -246,7 +246,7 @@ Rules:
 # PART 2: the 93 NEW score-3 docs from the 2026-08-16 C2 judge run + ALL 34 score-4 community docs (2026-08-16)
 
 **Why this part exists.** The overnight C2 run judged the 314 previously-pending community docs
-(0 failed) and produced 93 new 3s and 15 new 4s. Syed's rule: *nothing enters the corpus unreviewed* -
+(0 failed) and produced 93 new 3s and 15 new 4s. Syed's rule: *nothing enters the corpus unreviewed*,
 that covers the 4s too (19 old + 15 new = 34), which are what the community index would take first.
 Same rubric, same reviewer setup (Fable-5 subagents, verified from transcripts), same JSONL. For a
 score-4 doc, **drop = do not index it for MLECU**: usually a NEED-FIT call (off-platform / not transferable),

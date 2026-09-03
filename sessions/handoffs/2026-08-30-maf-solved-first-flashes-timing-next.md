@@ -137,7 +137,7 @@ improvement and IAM has since gone to zero. **Do not treat D30's mechanism as es
 - `clamps._sign()` computed `(x>0)-(x<0)`, which raises `TypeError` on a numpy scalar. Any
   array-derived proposal would have crashed `clamp_ve_rate_limit`. Never hit because only the sim
   had produced proposals.
-- **Four silent schema collisions.** RomRaider's column order is *not stable between sessions* -
+- **Four silent schema collisions.** RomRaider's column order is *not stable between sessions*,
   the AEM wideband was column 10 in one log and column 25 in the next, and the parser resolved
   duplicate role claims by first-column-wins. `Final Fueling Base (lambda)` and `Closed Loop
   Fueling Target (lambda)` both hijacked `wideband_afr`; `A/F Learning Airflow Range` (an *index*)
@@ -159,7 +159,7 @@ the MAF curve. The three failures chose `injector_flow_lean`, which the data ref
 error cannot produce +0.6% at low flow and +30% at high). One losing arm *saw* the idle
 contradiction and rationalised it away, then dismissed MAF on a generic prior, at 85–90% confidence.
 
-**Headline: input format flipped the diagnosis.** Same model, same temperature, same data -
+**Headline: input format flipped the diagnosis.** Same model, same temperature, same data,
 pre-digested summary tables wrong, raw rows right. n=1 per cell, so suggestive not established.
 Full review: `ml/eval/results/RUNDOWN-2026-08-27-e5-real-logs.md`.
 

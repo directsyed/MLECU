@@ -41,7 +41,7 @@ params: `P200 Engine Load (g/rev)` → `load` (the map's x-axis), `P25 Manifold 
 `P7 MAP`, `P48 Intake VVT Advance`, `P201 Injector Duty`, `P10 Ignition Total Timing`,
 `P58 A/F Sensor #1` (factory wideband, second opinion) + the AEM.
 
-**Add the recovered extended params once validated** (`car/ecu/defs/EXTENDED-PARAMS-RECOVERY.md` -
+**Add the recovered extended params once validated** (`car/ecu/defs/EXTENDED-PARAMS-RECOVERY.md`,
 splice the fragment, then Syed's validation log). The ones that matter for this build:
 `Closed Loop Fueling Target` (the VE denominator, logged directly), `Feedback Knock Correction`
 (the timing-retreat trigger), `Fine Learning Knock Correction`, `IAM` (knock-learning health, below

@@ -49,5 +49,5 @@ read, an independent *source* agreeing is stronger than a repeat of our own read
 insurance if desired. Original note:
 
 The connector works now, so re-read once more and `diff`/`sha256sum` against this file. Two
-independent reads matching byte-for-byte is the gold standard for a sacred dump. Not blocking -
+independent reads matching byte-for-byte is the gold standard for a sacred dump. Not blocking,
 this dump is already validated internally, but cheap insurance.

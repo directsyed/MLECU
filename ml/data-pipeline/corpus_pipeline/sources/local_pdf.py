@@ -20,7 +20,7 @@ from typing import Iterator
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 from pypdf import PdfReader
 
-# EPUB content docs are XHTML; parsing them with the lxml HTML parser works fine and is standard -
+# EPUB content docs are XHTML; parsing them with the lxml HTML parser works fine and is standard,
 # silence bs4's "you used an HTML parser on XML" notice so it doesn't spam the ingest log per chapter.
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 

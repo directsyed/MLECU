@@ -63,7 +63,7 @@ def test_correction_is_direct_and_proportional_to_trim():
 def test_never_extrapolates_past_the_measured_span():
     """Breakpoints outside the measured airflow range keep their stock value, untouched.
 
-    This is the rule that keeps a vacuum-only dataset from inventing a boost-region correction -
+    This is the rule that keeps a vacuum-only dataset from inventing a boost-region correction,
     the measured curve is non-monotonic at the top, so extrapolating would be actively wrong.
     """
     tables = _tables()
@@ -176,7 +176,7 @@ def test_clamp_enforces_monotonicity_against_an_untouched_neighbour():
 def test_monotonicity_holds_a_cell_boxed_in_by_an_already_broken_curve():
     """If the STOCK curve is already non-monotonic, the boxed-in cell does not move at all.
 
-    We refuse to quietly repair a pre-existing defect in cells we were not asked to touch -
+    We refuse to quietly repair a pre-existing defect in cells we were not asked to touch,
     that would hide a bad ROM read or a bad definition behind our own edit.
     """
     broken = np.array([10.0, 12.0, 11.0, 11.5])      # col 1 already exceeds col 3

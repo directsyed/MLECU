@@ -14,7 +14,7 @@ What it does, mechanically:
 
 What it deliberately does NOT do (anti-benchmark-maxxing contract):
   - It never sees probes, expected values, or the scorer, only (answer, evidence).
-  - It cannot catch a present-but-wrong-selection number (right doc, wrong quantity) -
+  - It cannot catch a present-but-wrong-selection number (right doc, wrong quantity),
     named blind spot, measured by the retro-test, reported as leaked if it keeps the gate red.
   - Pre-guard behavior is always recorded alongside (attempted/blocked/leaked reporting):
     the clamp carries a gauge; model quality stays visible.

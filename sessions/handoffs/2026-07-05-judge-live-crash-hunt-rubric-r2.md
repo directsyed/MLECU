@@ -3,7 +3,7 @@
 Marathon session (cookie paste → 4 AM). Read 2026-07-04 handoff for prior state.
 
 ## Delta: what changed
-- **Corpus gates opened:** NASIOC live (cf_clearance + pinned home-browser UA in config -
+- **Corpus gates opened:** NASIOC live (cf_clearance + pinned home-browser UA in config,
   keep them paired), 5 tuning subforums on nightly discovery. RomRaider ROM harvest 10/10
   incl. **2005 FXT 4EAT stock ROM 3B12504206 / internal id A2WC411D**.
 - **car/ecutune/romread/**: READ-ONLY ROM-value reader (ECUFlash def parser + cross-def
@@ -41,7 +41,7 @@ Marathon session (cookie paste → 4 AM). Read 2026-07-04 handoff for prior stat
 
 ## NEXT (in order)
 1. **Calibration-100 under r2**: freeze sample (`--sample`; ~96 community + ref anchors);
-   **Syed blind-rates ~20 FIRST** (give him a full-text reader, NOT a 6k-truncated dump -
+   **Syed blind-rates ~20 FIRST** (give him a full-text reader, NOT a 6k-truncated dump,
    that bug bit once); Claude rates all; divergence check; guard review; adjudicate.
 2. **Dense judge runs the calibration set** (server launch command in chat history; locked
    clocks are automatic now). Agreement report vs Syed's PRE-REGISTERED bars (he sets them

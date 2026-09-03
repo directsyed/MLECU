@@ -130,7 +130,7 @@ Syed provided the real build (recorded in `car/build-sheet.md` + `car/CLAUDE.md`
 
 ### 2026-06-28 (revised same day, with Syed): keep ALL fuel levers live; the data sets priorities
 
-Correction to the note above. Syed's directive: do NOT exclude fueling or pre-prioritize any lever -
+Correction to the note above. Syed's directive: do NOT exclude fueling or pre-prioritize any lever,
 "everything most likely needs modifying, and reading the car is how we see what to prioritize." He is
 right, and it's reinforced by the degeneracy I'd just identified: at one idle point a MAF error and an
 injector error are indistinguishable in the trim, so locking the injectors (`BUILD_SPLIT = 0/0/1`) was
@@ -138,7 +138,7 @@ asserting a conclusion the data hasn't earned. **Reverted:** `ScalarSplit` defau
 (0.34/0.33/0.33; no prioritization, still configurable once logs inform it); `mismatch.py` seeds error
 across ALL fuel levers (latency 0.96, flow 510, MAF 0.93 vs truth 1.0 / 500 / 1.0); the harness uses the
 neutral split. All three scalars now move; converges +14.2% → 4.6% in 4 iters, 0 violations, 31 tests
-green. Real per-lever attribution, and the cross-axis priorities (fuel vs timing vs AVCS vs idle-air) -
+green. Real per-lever attribution, and the cross-axis priorities (fuel vs timing vs AVCS vs idle-air),
 come from logs across operating conditions, which is the whole point of reading the car. Transmission
 confirmed **4EAT** (fixes the ROM variant).
 
@@ -157,7 +157,7 @@ sim-generated eval, logged as follow-ups).
   `forum_romraider` (Subaru tuning/logging/defs + stock-ROM threads; seeded with the 2005 FXT 4EAT
   stock-ROM thread). *Divergence from plan:* speeduino.com turned out to be phpBB, not Discourse
   (probed before building), which collapsed two planned engines into one.
-- **`tunerstudio_ini`**: speeduino.ini → 55 cross-platform table/curve definitions (reference tier) -
+- **`tunerstudio_ini`**: speeduino.ini → 55 cross-platform table/curve definitions (reference tier),
   the universal table vocabulary that will anchor the future semantic table layer.
 - **`ecu_docs` + obd_pids**: Wikipedia OBD-II PIDs page (SAE J1979), the universal channel anchor.
 - **Wideband manuals**: AEM 30-0300 (+30-0310 inline, +FAE variant) PDFs → `local_pdf` (36 pages).
@@ -222,7 +222,7 @@ Qwen2.5-32B judge being two generations stale. Qwen3.6 released 2026-04, after t
   top1 / 100% acceptable; random 18.6% / 25.7%**, the eval discriminates, and the future LLM
   evaluee must at least match rules. Eval DESIGN decisions (thresholds, taxonomy growth,
   RAG-vs-fine-tune protocol) stay Syed's learning thread.
-- **Autopilot stop point:** queue complete up to the judge design session (learning-priority -
+- **Autopilot stop point:** queue complete up to the judge design session (learning-priority,
   not auto-built, per the root CLAUDE.md split).
 
 ### 2026-07-03 (cont.) - ROM-binary harvesting: attachments are gated, cookie is the key
@@ -230,7 +230,7 @@ Qwen2.5-32B judge being two generations stale. Qwen3.6 released 2026-04, after t
 Investigated login-free ROM sources per Syed ("shouldn't be trapped behind a login"). Findings:
 archive.org has no Subaru ROM collection; GitHub has tuning *tools* but no ROM-binary repos;
 SubaruDefs is defs-only. **RomRaider thread text is public but the attachment download 403s for
-guests** (verified). So bulk ROMs realistically live as forum attachments behind a one-time login -
+guests** (verified). So bulk ROMs realistically live as forum attachments behind a one-time login,
 not an unbreakable wall, a cookie. Built **`rom_harvest.py`**: crawls the same phpBB threads we
 already scrape, extracts `download/file.php?id=N` ROM attachments (strong exts always; archives only
 if the filename hints a ROM), and downloads them **authenticated by a session cookie the user exports
@@ -376,7 +376,7 @@ C4 circularity at full strength, ~54GB BF16 download (weights needed for trainin
 Training single-card on the Ti ONLY (3090 convicted; training load sits above its 152-230W
 failure bracket; lockstep would throttle to 810MHz anyway).
 
-Addendum (same evening, Syed's version-identity challenge): checkpoint provenance VERIFIED -
+Addendum (same evening, Syed's version-identity challenge): checkpoint provenance VERIFIED,
 judge GGUF metadata says base=Qwen/Qwen3.6-27B (quantized_by=Unsloth, pulled Jul 4); official
 HF repo frozen since Apr 24 (README-only last commit; weights untouched since Apr 21-22
 release). BF16 download == judge's source checkpoint == arms A/B model. MTP: speculative
@@ -451,7 +451,7 @@ any cell (30/69). The 3 leaks are EXACTLY the blind spot named in advance (plan 
    scorer, guard verdict no_numbers; arguably a SCORER artifact, not a fabrication.
 Verdict per the anti-benchmark-maxxing contract: the residue stands as documented open
 problem (needs snippet-level attribution, not another patch). Also: e2-3838-0 suggests
-scorer v1.2 should classify no-number prose as unparseable/decline rather than dangerous -
+scorer v1.2 should classify no-number prose as unparseable/decline rather than dangerous,
 flagged for Syed, NOT changed unilaterally since it would alter a gate verdict.
 
 MTP finding (same phase): back-to-back identical runs ARE 147/147 deterministic; MTP on-vs-off
@@ -500,7 +500,7 @@ of the matrix; result recorded separately.
 
 **Equivalence result (2026-07-30):** conservative-v1 vs optimized-ot18 on 12 identical E1v2
 cases: **answers 12/12 identical**, completion_tokens 0/12 identical. Tensor placement changes
-the reasoning PATH (float reduction order differs by device) but not the conclusions -
+the reasoning PATH (float reduction order differs by device) but not the conclusions,
 unlike MTP, which shifted ~9% of answers and would likely have shown a disagreement in a
 12-case sample. The 35B's two conservative-config E1v2 cells therefore stand as comparable
 to the optimized matrix. Caveat recorded: 12 cases is not proof of 147.
@@ -581,7 +581,7 @@ the risk then and it appears to have materialised. Cannot separate 4-bit damage 
 unsuitability with this data: recorded as INCONCLUSIVE, not as a loss.
 
 **Also standing:** quant level is a confound across the ladder (Qwen models 6-8 bit, the two
-100B-class models 4-bit). The core hypothesis pair, 35B (Q8) vs 80B (Q6), matched 3B active -
+100B-class models 4-bit). The core hypothesis pair, 35B (Q8) vs 80B (Q6), matched 3B active,
 is unaffected, both above the 4-bit line. Infra: 3090 never exceeded ~120 W across 4 days and
 5 models; zero box deaths, zero ECC errors, zero SEL events.
 
@@ -606,7 +606,7 @@ snippet rewrite, a sweep showed 2 disjoint density windows at the SAME char budg
 expected value in 63/69 probes vs 59/69 for a single window (and 68/69 at 2400 chars). It was
 rejected: I would have been choosing it *because it scored better on the benchmark's own
 answers*, which is precisely the trap the anti-benchmark-maxxing contract exists to prevent.
-The changes that WERE adopted (density anchor, span centring) are justified independently -
+The changes that WERE adopted (density anchor, span centring) are justified independently,
 they fix "the window lands on the wrong passage", visible without knowing any answer. If Syed
 wants the recall improvement, it should be adopted as a deliberate retrieval change with its
 own before/after, not smuggled in under a bug fix. Sweep preserved in the session scratchpad.
@@ -630,7 +630,7 @@ matches). Lesson recorded: the audit agents were right about the CLASS of defect
 about specific instances; every disposition was re-derived from source rather than applied.
 
 **D4; one genuine probe defect, and not the one the audit named.** `e2-3927-1`: Bosch source
-gives pilot NOP ~180 bar and main NOP "at approximately 300 bar higher than pilot injection" -
+gives pilot NOP ~180 bar and main NOP "at approximately 300 bar higher than pilot injection",
 an awkward translation reading two ways. The unit-pump design settles it (pilot 180, main 300
 absolute), so v1's question ("by how many bar higher") has answer 120 while the probe expects
 300: a model reading the source correctly and subtracting was scored dangerous_miss for being
@@ -704,7 +704,7 @@ over-claim correctly became range_mismatch instead of exact). Net on completed c
 
 **D12, NO RE-RUN NEEDED, and the reason is a design property worth keeping.** The citation
 guard is POST-HOC: it inspects an already-generated answer and never touches the prompt,
-retrieval, or generation. Combined with (1) `original_value` preserved in every guard record -
+retrieval, or generation. Combined with (1) `original_value` preserved in every guard record,
 the A8 fix earning its keep, and (2) deterministic retrieval, verified by asserting the
 re-retrieved doc ids match the ids the row recorded, a guard fix is **fully retroactive and
 exact**, not an approximation. `rundown.reguarded()` re-derives it offline and refuses to guess
@@ -792,7 +792,7 @@ satisfied by nearly every number in the pool. Unit agreement fails because the l
 generally carry a unit that matches; their error is the QUANTITY, not the unit.
 
 The underlying reason is structural: "right document, wrong quantity" requires knowing WHICH
-quantity was asked for, and the guard is deliberately blind to the probe and the expected value -
+quantity was asked for, and the guard is deliberately blind to the probe and the expected value,
 that blindness is what makes it an honest clamp rather than an answer key. The blind spot is a
 consequence of the contract, not an oversight in the implementation.
 
@@ -1096,7 +1096,7 @@ tuning waits for the smoke test. No exceptions."*, checklist A2) is **physically
 written**: the smoke test happens at Syed's shop, reaching the shop requires highway driving, and
 highway driving is boost driving. The rule required boost to be tuned before it could be tuned.
 
-**Ratified ordering:** a **general base tune first, enough to drive safely, including boost** -
+**Ratified ordering:** a **general base tune first, enough to drive safely, including boost**,
 then the smoke test. This was Syed's intent on 2026-08-16 (`DRIVING-CAPTURE-PROTOCOL.md` line 24
 already recorded *"tune enough to drive well, defer the smoke test"*); the absolute no-boost line
 elsewhere in the same document contradicted it and is now withdrawn. Do not re-litigate.
@@ -1218,14 +1218,14 @@ answer.
   have had flat spots. Caught by the write path's own read-back. Separation is now relative, and
   `patch()` independently re-checks ordering *after* encoding. **An in-memory guarantee that does
   not survive encoding is not a guarantee.**
-- The first generated CHANGE REPORT showed the stage proposing −1% to −3% across the idle band -
+- The first generated CHANGE REPORT showed the stage proposing −1% to −3% across the idle band,
   chasing bin noise in the one region independently validated as healthy (three-hold capture,
   −0.86%). Added `AlgoCfg.sensor_deadband` (0.02), applied before interpolation so a sub-noise
   anchor cannot drag its neighbours. 20 cells → 14.
 
 ### D26: `boost_load_threshold` 1.5 -> 0.60 g/rev (Syed ratified, 2026-08-27)
 
-The number is a CLASSIFIER, not a limit: `clamps.py:160` uses it for exactly one decision -
+The number is a CLASSIFIER, not a limit: `clamps.py:160` uses it for exactly one decision,
 which fuel-target cells `clamp_afr_floor` bothers to check. It does not restrict boost, does not
 cap it, and never touches the wastegate.
 
@@ -1401,7 +1401,7 @@ measured from an assumed healthy IAM of 1.0. Both halves were wrong, and the ROM
 **1. `Advance Multiplier (Initial)` = 0.5, not 1.0.** An observed IAM of 0.500 is this
 calibration's **factory value**, not a halved one; the step is 0.25. The 2026-08-26 analysis
 read "an engine whose `IAM` already sits at 0.500" as evidence of prior damage; on this ROM it
-is simply the starting value. **The collapse to 0.000 on 2026-08-30 is still entirely real** -
+is simply the starting value. **The collapse to 0.000 on 2026-08-30 is still entirely real**,
 that is a full deficit, not a half one, but the baseline it is measured from was wrong, and
 measuring from 1.0 would invent a permanent 50% deficit on a healthy engine.
 

@@ -515,7 +515,7 @@ def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
     """MODIFIER, bound a SENSOR recalibration by evidence and displacement, not by velocity.
 
     Why this clamp exists (2026-08-27). `clamp_ve_rate_limit` bounds a fuel edit to 3% per
-    iteration because idle convergence chases a target that moves as the loop corrects it -
+    iteration because idle convergence chases a target that moves as the loop corrects it,
     creeping is the whole point. A MAF transfer curve is a different kind of object: it is a
     MEASUREMENT that is wrong by a fixed amount, established over ~20k steady samples. Bounding
     its speed would mean eleven flash cycles to reach a correction the data already supports,

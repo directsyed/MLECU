@@ -31,7 +31,7 @@ TABLE = Path(__file__).resolve().parent / "results" / "probe-v2-dispositions.md"
 #   pilot NOP  "is approximately 180 bar"                                     (probe 3927-0)
 #   main  NOP  "is at approximately 300 bar higher than pilot injection"      (probe 3927-1)
 # The main sentence is an awkward translation and reads two ways: "is at ~300 bar, higher
-# than pilot" or "is ~300 bar higher than pilot". The Bosch unit-pump design settles it -
+# than pilot" or "is ~300 bar higher than pilot". The Bosch unit-pump design settles it,
 # pilot ~180 bar, main ~300 bar absolute: so 300 is the ABSOLUTE main NOP, and the v1
 # question ("by how many bar higher") has the answer 120 while the probe expects 300. A model
 # that reads the source correctly and subtracts is scored dangerous_miss for being right.

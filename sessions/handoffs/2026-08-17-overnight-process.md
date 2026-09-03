@@ -9,7 +9,7 @@ Plan followed: `~/.claude/plans/read-the-newest-checklist-bright-sunbeam.md` (ap
 - `curl -sf http://127.0.0.1:8080/v1/models` → serving `unsloth/Qwen3.8-27B-Q8_0.gguf` (PID 1446703, up since Aug 14).
 - `git status` clean, HEAD `5543b71` (the runbook commit). Nothing from the runbook had been executed.
 - Read-only sqlite (`?mode=ro` URI): `ref_fts` = 5638 rows, `meta.ref_fts_doc_count` = 5638,
-  reference-kept-not-gone = **5649** (so the next unguarded `judge.cli --run` would rebuild `ref_fts` +11 -
+  reference-kept-not-gone = **5649** (so the next unguarded `judge.cli --run` would rebuild `ref_fts` +11,
   see C2-fix `--no-reindex`). `meta['calibration-100:pass_bars']` = **90/90/0** (the real pre-registration).
 - Backups (before any DB write, WAL-safe, `.backup` copies a consistent snapshot even with an open WAL,
   unlike `cp` of the main file):
@@ -42,7 +42,7 @@ Verification: `ml/curation` suite 26 → **33 green**. Live smoke `--limit 3` (d
 Launched (06:37): `nohup .venv/bin/python -m judge.recalibrate --model-tag qwen3.8-27b-q8_0
 --resume --out ../eval/results/recal-qwen3.8-20260816.json` → PID **1579556**, log in the session
 scratchpad `recal38.log`; a persistent Monitor watches for `FAILED|Traceback|LlmError|context`
-and every 10th doc, and reports process exit. Doc 960 (330 kB, ~14 chunks) is 6th in order -
+and every 10th doc, and reports process exit. Doc 960 (330 kB, ~14 chunks) is 6th in order,
 that is the ctx-32768 vs 24576-token budget risk; if it errors it stays retryable via `--resume`.
 
 ## Track A: MVEM baseline provenance + refusal guard (06:38–06:43 UTC, CPU, commit `58c8ec2`)
@@ -87,7 +87,7 @@ Run from `car/.venv` (the eval venv lacks numpy; this module is stdlib-only but 
 Result: the ratified 3.6 headline retrieved **exactly 3 documents on 100% of 147 queries**: the
 same three 3.8 got. Arm A vs arm B for 3.6: 83.7 → 93.9 from a *constant* three-page preamble;
 k=6 → 83.7; 3.8 moved 0.0. E2 does not collapse (325 distinct docs). Written up in
-`ml/eval/results/DOC-COLLAPSE-2026-08-16.md`, a `decisions.md` FINDING entry (not a decision -
+`ml/eval/results/DOC-COLLAPSE-2026-08-16.md`, a `decisions.md` FINDING entry (not a decision,
 the query-representation / community-index design is Syed's), checklist B2 ticked.
 
 ## C2-fix: judge runner hardening (06:46–06:48 UTC, CPU, commit `7e0c5d5`)
@@ -130,7 +130,7 @@ How it wires in (so it can be switched on deliberately later):
 - **Per-parent cap (checklist B7 idea):** `max_per_parent=N` runs after fusion, before the slice;
   skipped rowids land in `meta.capped_out`. Both E2 leaks were 4–6 adjacent pages of one book.
 - **Builders, never run tonight:** `judge/retrieval.ensure_community_index(state, min_score)`
-  (mirror of `ensure_index`, own `(count, min_score)` meta stamp, gone docs INCLUDED per NARROW -
+  (mirror of `ensure_index`, own `(count, min_score)` meta stamp, gone docs INCLUDED per NARROW,
   copying the reference predicate would have indexed 17 of 641) and
   `harness/embed_index.build(table=, out=)` / `--table community_fts --out …` (out required for a
   non-reference table so the reference npz can never be overwritten). Estimated CPU cost for 641
@@ -156,7 +156,7 @@ DB and on the real DB (bm25 mode, real E1v2 prompts); `ml/curation` 37 → **38*
   script; I spot-checked 15 verdicts (16 %) against the source text; all held.
 - Result: **28 keep / 67 drop**. Value for current gaps: 2 high, 25 medium (all keeps), 68 low.
   Needs-alignment census: `megasquirt_speeduino` 33 and `generic_other` 30 dominate; the gap topics
-  are a minority (`vacuum_leak` 12, `injector_latency` 9, `smoke_test` few); **`maf_baseline` = 0** -
+  are a minority (`vacuum_leak` 12, `injector_latency` 9, `smoke_test` few); **`maf_baseline` = 0**,
   no forum thread at score 3 supplies the healthy-idle MAF number the layer most needs.
 - Wrote `ml/curation/docs/community-3s-review-2026-08-16.md` (+ raw JSONL). **STOPPED.** Nothing
   indexed. The C2 run's *new* 3s need the same pass later.
@@ -174,12 +174,12 @@ bar and it is Syed's to rule on (§7). Also: one `finish_reason=length` row per 
 - **3.8 recal finished 10:39:31** (started 06:37 → 4.0 h of GPU, 0 errors, n=100, checkpointed
   throughout): exact 69.0 · within±1 **98.0** · Spearman 0.564 · keep/drop **91.0** · **dangerous 1**
   (doc 1081 "Dyno sheets", subaruforester, truth 2 → judged 4). Against the pre-registered 90/90/0:
-  PASS/PASS/**FAIL** → **FAIL**. Against 3.6's July numbers: 91.0 < 93.1 as well. Judge stays 3.6 -
+  PASS/PASS/**FAIL** → **FAIL**. Against 3.6's July numbers: 91.0 < 93.1 as well. Judge stays 3.6,
   decided without needing the like-for-like. Aside: 3.8 under-scores adjudicated 4s (960/1031/1088/
   5773 → 3, 1127 → 2), and so does 3.6, identically (see T3 close-out); three of those are C4 keeps.
 - Killed the 3.8 server by PID (1446703); VRAM 0/0. Started `/tmp/start_q36_newbuild.sh` (same
   flags as the 3.8 script, GGUF swapped; llama.cpp Aug-14 build; ctx 32768; split 3.5,1; draft-mtp).
-  Note: my error-grep tripped on the benign `W common_fit_params: … n_gpu_layers already set` line -
+  Note: my error-grep tripped on the benign `W common_fit_params: … n_gpu_layers already set` line,
   it is a warning, not a failure. Loaded in ~1 min, 22.8 GB + 7.9 GB, same as 3.8.
 - Smoke `--limit 3` on 3.6: 43/44/41 s per doc, scores 3/2/2 (3.8 gave 3/2/2 for the same three).
 - Launched full 3.6 recal (PID in scratchpad `recal36.pid`, log `recal36.log`, out

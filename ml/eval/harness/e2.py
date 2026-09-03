@@ -1,6 +1,6 @@
 """E2, exact-value integrity runner + scorer (the engine-grenade dimension).
 
-Answer contract (grammar-enforced): the model either states a value or sets must_retrieve -
+Answer contract (grammar-enforced): the model either states a value or sets must_retrieve,
 an honest "I'd have to look that up."
 
 SCORER v2 (2026-08-02, bench-integrity Phase 1). v1 measured our parser and our probe file at
@@ -77,7 +77,7 @@ _THOUSANDS = re.compile(r"(?<![\d.])\d{1,3}(?:[    ]\d{3})+(?![\d.])")
 _RANGE_SEP = re.compile(
     r"^\s*(?:°|[A-Za-zµλ%]{1,6}(?:\s?/\s?[A-Za-z0-9]+)?)?\s*(?:to|through|–| - |-|~)\s*$", re.I)
 # Bosch-style ranges are written "450...500". Left alone, the leading-dot rule from scorer
-# v1.1 reads the tail as ".500" = 0.5, and probe e2-5257-0's interval becomes [0.5, 450] -
+# v1.1 reads the tail as ".500" = 0.5, and probe e2-5257-0's interval becomes [0.5, 450],
 # so a model answering 480 mV, squarely inside the source's stated range, scored
 # dangerous_miss. Normalize the ellipsis to a word separator before any number is extracted.
 _ELLIPSIS_RANGE = re.compile(r"(?<=\d)\s*\.{2,}\s*(?=\d)")

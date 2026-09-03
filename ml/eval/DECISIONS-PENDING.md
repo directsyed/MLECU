@@ -8,7 +8,7 @@ line). Design authority: ROADMAP Phase D; these are the deliberately-Syed-owned 
 **A1, the E1 bar.** RECOMMEND: an LLM arm must score ≥85.7% top-1 AND 100% acceptable
 (match-or-beat the rules engine on both) to be considered at all; arm B beats arm A only if
 +≥5 points top-1 on paired cases (the ROADMAP margin). Goes into DB meta verbatim before the
-run. RATIFIED v1 as registered (Syed, 2026-07-09). AMENDMENT ON RECORD: E1v2 -
+run. RATIFIED v1 as registered (Syed, 2026-07-09). AMENDMENT ON RECORD: E1v2,
 extend the sim generator with voltage-sweep operating points that break the leak/dead-time
 degeneracy, then raise the bar (harder exam, Syed directive). Design session queued.
 

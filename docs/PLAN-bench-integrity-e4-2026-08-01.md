@@ -72,7 +72,7 @@ byte-frozen for audit. Regression test: evidence containing "11.8%" can never em
   bar/kPa/psi, cc/min vs lb/hr, %/fraction, λ/AFR) → new class `unit_mismatch` (neither
   exact nor dangerous; reported separately, adjudicable). NO conversion math in v2, flag,
   don't guess.
-- Empty completion + finish_reason="length" → new class `truncated` (not honest_decline) -
+- Empty completion + finish_reason="length" → new class `truncated` (not honest_decline),
   A2; llm.py records finish_reason into usage.
 - Coerce non-string value via str(), A15. Fix _SPACED_THOUSANDS (require full
   `\d{1,3}( \d{3})+` shape), A9.

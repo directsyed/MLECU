@@ -9,7 +9,7 @@ Read FIRST on session start. Supersedes 2026-07-08 handoff. Forward plan: docs/R
   **Subaru 21% vs 70% doctrine target, flagged honestly** (quality filter gutted shallow
   ROM-def Subaru clones; cure = Stage-C real arcs + community-thread synthesis batch).
   Syed's sample: `ml/curation/docs/pilot-mix-SAMPLE.md`; report: `pilot-mix-v1-report.md`.
-- **Eval state:** E1v1 (A 84.3/B 74.3, RAG hurts closed reasoning), E2 (A 14.5/B 34.8 -
+- **Eval state:** E1v1 (A 84.3/B 74.3, RAG hurts closed reasoning), E2 (A 14.5/B 34.8,
   RAG 2.4× recall, both fail hard gate, retrieval-induced fabrication found), E1v2 (A 83.7/
   B 89.8, RAG +6.1 on knowledge-gated reasoning, B fails Syed's 90% bar BY ONE CASE).
   Retrieval doctrine fully characterized. **Pending Syed: v2 bar wording re-ratification**

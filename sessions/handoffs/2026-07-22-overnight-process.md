@@ -24,7 +24,7 @@ RIGHT doc was found but the wrong number lifted). An embedding model maps whole 
 similarity = normalized dot product), immune to vocabulary mismatch.
 
 **Model choice** (re-verified live, not from memory): **BAAI/bge-m3**: MIT license, 568M
-params, the 2026 production default per current practitioner guides. Runs on **CPU** -
+params, the 2026 production default per current practitioner guides. Runs on **CPU**,
 zero VRAM taken from anything, ~2.3GB one-time download (no sudo: plain user-level HF pull,
 same mechanics as your 52GB one).
 
@@ -101,7 +101,7 @@ llama-server -m Qwen3.6-27B-Q8_0.gguf --lora adapter.gguf \
 ```
 Same binary, same certified flags as the judge service (3.5:1 split keeps the 3090 in its
 8-day-proven inference envelope), with two deltas, both logged: `--lora` applies the
-adapter as separate matmuls over the Q8 base (measurement-grade; the production path -
+adapter as separate matmuls over the Q8 base (measurement-grade; the production path,
 merge into BF16, requant fresh Q8, wants the 224GB RAM kit and is queued); and **no
 `--spec-type draft-mtp`** for the adapter server ONLY (untested lora+MTP interaction;
 MTP is speed-only and output-invariant, so dropping it cannot move a score). The base
@@ -190,7 +190,7 @@ failures: ONE memory budget, three different spenders (loss upcast, eval batchin
 allocator fragmentation); each hides until the previous one is fixed. Also: the self-match
 kill bug bit a THIRD time (a pkill sharing a command line with the relaunch that names the
 same script); rule hardened, kills get their own command, always. Embedder confirmed
-healthy mid-crunch (2238% CPU, silent only because I disabled its progress bar -
+healthy mid-crunch (2238% CPU, silent only because I disabled its progress bar,
 observability mistake, noted). Attempt 4 launched 04:53.
 
 ## 11. TRAINING COMPLETE (06:32) - the holdout did its job
@@ -274,7 +274,7 @@ statement, consistent with the mix's known 27% Subaru share and synthetic domina
 
 **Loose ends for daytime:** (1) judge batch died instantly at 00:14 (exit non-zero in
 seconds; not diagnosed overnight, do NOT blind-retry; 394 docs now pending incl. 5781);
-(2) top_k interaction: E1 distraction is dose-dependent (hybrid@6 83.7 vs @3 93.9) -
+(2) top_k interaction: E1 distraction is dose-dependent (hybrid@6 83.7 vs @3 93.9),
 worth a line in decisions.md when ratifying the serving default; (3) the lora-on-Q8
 serving approximation stands until the RAM kit enables true merge+requant; (4) E1v1
 regression on every retrieval/ft cell vs base (84.3), v1's self-contained-distraction

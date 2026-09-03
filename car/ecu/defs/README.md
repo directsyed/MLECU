@@ -39,7 +39,7 @@ Two independent regularities pin it down:
    encoding transmission (`D` = AT, `I` = MT):
    `40 → A2WC400`, `41 → A2WC410`, `42 → A2WC411`, `43 → A2WC412`.
 
-The MT column is complete (40/41/42/43). The AT column has 40/41/43 and is **missing exactly 42** -
+The MT column is complete (40/41/42/43). The AT column has 40/41/43 and is **missing exactly 42**,
 which is the car's ID. Its manual-transmission twin, `3B12584206` → `A2WC411I`, **is present**. So
 `3B12504206` is `A2WC411D`, the automatic build of a calibration this file already documents.
 

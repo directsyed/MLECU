@@ -9,7 +9,7 @@ The trained model's first real assignment is a 2005 Subaru Forester XT (USDM, 4E
 wire, 32-bit ECU) carrying a JDM EJ20X swap: 2.0L, ~9.5:1 CR (ROM calibrated for the 2.5L
 EJ255 at ~8.4:1), OEM FXT intake manifold + ~500cc side-feed injectors, TGVs deleted, VF48
 turbo, catless exhaust, intake AVCS live, exhaust AVCS mechanically deleted. Subaru open-source
-tuning (RomRaider/ECUFlash) is the home platform. Use this to UNDERSTAND what you read -
+tuning (RomRaider/ECUFlash) is the home platform. Use this to UNDERSTAND what you read,
 platform-specific content is not scored higher for being Subaru; relevance is captured
 separately in the `relevance` field.
 

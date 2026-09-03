@@ -12,7 +12,7 @@
 #   the fans low.
 #
 # FAIL-SAFE PHILOSOPHY: every failure path ramps fans UP, never down. If we can't
-#   read the GPU we assume it's hot. On exit we hand control back to iDRAC auto -
+#   read the GPU we assume it's hot. On exit we hand control back to iDRAC auto,
 #   which (because of the GPU) means MAX fans: loud, but guaranteed cooling. That
 #   is the correct dead-man's switch.
 #

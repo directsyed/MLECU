@@ -50,3 +50,4 @@ ml/finetuning/models/
 # Candidate flash images are build artifacts, reproducible from the stock ROM + committed logs.
 # A flashable .bin in version control invites someone flashing an unreviewed one.
 car/ecu/rom write/*.bin
+nohup.out

@@ -25,7 +25,7 @@ conditions:
 | **vacuum leak** | **halves** | flat |
 | **MAF transfer** belief wrong | flat, *and the logged MAF itself is off vs nominal* |
 
-Latency and leak both shrink with airflow. **Voltage is the only thing that separates them** -
+Latency and leak both shrink with airflow. **Voltage is the only thing that separates them**,
 dead time is voltage-dependent, unmetered air is not. Drop the low-voltage hold and those two
 collapse into each other; there is a test asserting exactly that
 (`car/tests/test_identify.py::test_leak_and_latency_are_degenerate_WITHOUT_the_voltage_probe`).
@@ -48,7 +48,7 @@ adapter and ECU logging works perfectly.
 
 **Mechanism.** The Openport references chassis through OBD pins 4/5; the AEM black wire references
 chassis at the gauge's own ground point. Plugging both into the laptop bridges those two chassis
-points through the USB grounds, and any potential between them circulates current around the loop -
+points through the USB grounds, and any potential between them circulates current around the loop,
 with the wideband heater's 1–2 A contributing to the offset. The resulting drop across the
 Openport's ground shifts the reference its K-line transceiver compares against. **K-line is a
 single-wire bus that discriminates high/low against ground, so a shifted reference fails init while

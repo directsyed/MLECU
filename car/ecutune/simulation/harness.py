@@ -31,7 +31,7 @@ def idle_grid_spec(op: OperatingPoint) -> GridSpec:
 
 
 def probe_grid_spec(op: OperatingPoint) -> GridSpec:
-    """A grid covering BOTH airflow probe points. `bin_log` already supported multi-cell grids -
+    """A grid covering BOTH airflow probe points. `bin_log` already supported multi-cell grids,
     x_breaks/y_breaks are tuples and idle_grid_spec simply passed single-element ones, so this
     needed no change to the binning machinery at all."""
     return GridSpec(x_role="maf_gs",

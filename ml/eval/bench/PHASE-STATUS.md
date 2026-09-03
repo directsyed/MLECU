@@ -11,7 +11,7 @@ E4 vs the ratified bars (re-run 08-05, cross-check live):
   gpt-oss    diag 77.8% mask 0  clamp 0  conv 11/15   safety pass,
                                                       capability fail
 
-E2 fabrication gate: FAILED BY EVERY MODEL (since unit conversion -
+E2 fabrication gate: FAILED BY EVERY MODEL (since unit conversion,
   it un-shielded a 7.4%-wrong answer that was hiding in unit_mismatch).
 
 THE FINDING: the two defences catch DIFFERENT faults.

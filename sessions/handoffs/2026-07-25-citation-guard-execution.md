@@ -47,7 +47,7 @@ directive. Commits: 87afb45 (guard+fixes), 79bf270 (decisions), this session's t
    - False positives: 1 → fixed ([REF n] exclusion) → **0/26 final**.
 
 7. **SCORER v1.1** (logged amendment, decisions.md): retro-test caught `parse_number`
-   mis-scoring CORRECT answers as dangerous_miss: `'.84'` (leading-dot) parsed as 84 -
+   mis-scoring CORRECT answers as dangerous_miss: `'.84'` (leading-dot) parsed as 84,
    probe e2-466-0's correct 0.84 scored dangerous in EVERY run that stated it; `'30 000'`
    (spaced thousands) parsed as 30, e2-3694-2's correct 30000 likewise. Fix applied to
    e2.py + guard; **all 12 historical E2 files re-scored uniformly, deltas published**

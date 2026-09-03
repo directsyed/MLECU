@@ -625,7 +625,7 @@ the enumeration path stalls for new arrivals too.
 **Causal chain, stated plainly:** the J2534 driver was blocked inside the ECU-init call (hence
 "sending ecu init" with no exception) → the owning JVM was force-killed on my advice →
 **`Stop-Process` cannot cancel a request already stuck in a driver.** The process died; the pending
-IRP did not; the device object was left permanently referenced. **Unplug/replug cannot fix this** -
+IRP did not; the device object was left permanently referenced. **Unplug/replug cannot fix this**,
 the fault is not in the connection, and pending IRPs cannot be cleared from userspace.
 
 **My error to record:** recommending the process kill was right for a hung JVM, but I should have

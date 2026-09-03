@@ -5,7 +5,7 @@ The garage laptop's job: **log** the car (SSM2 over K-line) and **read/flash** t
 2005 Forester XT ECU, internal id family **A2WC411D** (between the community-defined A2WC410D
 and A2WC412D), 4EAT. Do every step in order; the "validate before trust" steps are not optional.
 
-> **Standing safety doctrine (car/CLAUDE.md, principles.md §8):** the stock ROM is SACRED -
+> **Standing safety doctrine (car/CLAUDE.md, principles.md §8):** the stock ROM is SACRED,
 > read + archive in ≥3 places before ANY write. Battery charger on the car, laptop on AC,
 > hours of stable logging before the first flash. 32-bit Subaru ECUs flash reliably and have
 > recovery paths; discipline makes brick risk negligible.
@@ -116,7 +116,7 @@ toolchain (sim, scorer, corpus all speak AFR).
 ### 6.2 Prove the serial link BEFORE involving RomRaider
 Terminal program (PuTTY / Tera Term), the adapter's COM port, **9600 8N1**. Engine off, key on.
 You should see a number streaming per line. If you see nothing, or mojibake, the problem is the
-data path (wrong COM port, wrong baud, or an RS-232-vs-TTL level mismatch on the blue wire) -
+data path (wrong COM port, wrong baud, or an RS-232-vs-TTL level mismatch on the blue wire),
 diagnose it HERE, where there is exactly one variable, not inside the logger.
 
 ### 6.3 Wire it into RomRaider Logger

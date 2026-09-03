@@ -309,7 +309,7 @@ def identify(believed: TableSet, obs: list[Observation],
         fits[fault_id] = best_param
 
     # MAF hypotheses: the reported airflow gives the ratio directly, so we fit nothing and just
-    # score the implied world. Falls back to the generic search when no baseline is logged -
+    # score the implied world. Falls back to the generic search when no baseline is logged,
     # or when the baseline is unvalidated (then the ratio is NOT evidence).
     ratio_in_band = None                   # which MAF band the (untrusted) ratio would have hit
     for fault_id in ("maf_low", "maf_high"):

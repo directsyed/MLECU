@@ -64,7 +64,7 @@ def candidate_docs(cfg: Config, limit: int, topic_like: list[str] | None = None,
     conn = sqlite3.connect(f"file:{cfg.retrieval.db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     if community:
-        # community keep-threads: real tuning conversations. Gone-marked docs INCLUDED -
+        # community keep-threads: real tuning conversations. Gone-marked docs INCLUDED,
         # the thread died on the live site; its judged text is still ours. Any keep chunk
         # qualifies the doc (monster threads are multi-chunk; text is capped at generation).
         return conn.execute(

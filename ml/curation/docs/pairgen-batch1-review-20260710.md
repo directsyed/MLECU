@@ -43,7 +43,7 @@ run batch 2 with the hash-ordering fix over the unsampled doc range.
 - **New systematic finding: academic drift.** Heywood/Pulkrabek pairs often dress textbook
   derivations as tuning scenarios ("update the fuel representation $C_nH_mO_r$…"), a
   researcher's arc, not a tuner's. Not fabricated, just off-register. Recommendation for
-  assembly (matches the standing 70/30 composition doctrine): **stratify by source** -
+  assembly (matches the standing 70/30 composition doctrine): **stratify by source**,
   Hartman (engine-management tuning, likely the best set) and practical Bosch content
   weighted up; pure-theory derivations capped, not banned.
 - **Combined supply: 725 synthetic drafts + 82 organic.** After C3 curation this clears the
