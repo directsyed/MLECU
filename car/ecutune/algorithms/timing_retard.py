@@ -1,9 +1,9 @@
-"""Ignition-timing retard — the first stage that tunes a 2-D MAP, and the first that never
+"""Ignition-timing retard, the first stage that tunes a 2-D MAP, and the first that never
 uses a fuel trim.
 
 WHY THIS EXISTS (2026-08-30). On the post-flash-3 drive the car's `IAM` collapsed from 0.500 to
 0.000 and stayed there for 52 seconds while running, recovering only to 0.125. IAM 0 means the
-ECU has withdrawn *all* dynamic ignition advance — the strongest protective response it has, and
+ECU has withdrawn *all* dynamic ignition advance, the strongest protective response it has, and
 it is out of authority. `Base Timing` commands 38-42 deg BTDC at 0.7-1.0 g/rev, where this car
 makes boost. That map was calibrated for an 8.4:1 EJ255, where 0.85 g/rev is ~59% of NA maximum;
 on the 9.5:1 EJ20X the same cell is ~73% of NA max. Two factors compounding, both in the same
@@ -11,7 +11,7 @@ direction.
 
 Fuel is no longer a confound: three MAF iterations took the cruise region from ~+30% trim to
 under 3%, so the LOAD axis this map is indexed on is finally trustworthy. That ordering is not
-incidental — it is `clamp_fuel_before_timing`, and it is why this stage could not have been
+incidental; it is `clamp_fuel_before_timing`, and it is why this stage could not have been
 written first.
 
 HOW IT DIFFERS FROM `maf_transfer`
@@ -36,7 +36,7 @@ on this log, i.e. the ECU had learned it could add a little advance somewhere, a
 advance is not evidence for retarding.
 
 THE IAM TERM IS GLOBAL, DELIBERATELY. IAM is one multiplier for the whole engine, so a per-cell
-mean would encode WHEN IN THE DRIVE each cell was visited, not how dangerous it is — cells
+mean would encode WHEN IN THE DRIVE each cell was visited, not how dangerous it is, cells
 driven after the collapse would be punished for the clock. One number derived from the drive's
 worst IAM is applied to every evidence-driven cell instead. The reason it is counted at all: a
 cell that logged no knock while IAM sat at 0 is not proven safe, because it was running with the
@@ -44,7 +44,7 @@ ECU's dynamic advance already withdrawn and will get that advance back when IAM 
 
 WHAT THIS STAGE DOES NOT DO
   * It never ADVANCES a cell. Every path is a `min` against the current value.
-  * It never invents evidence for a cell it has no samples for — those get the ceiling, which is
+  * It never invents evidence for a cell it has no samples for; those get the ceiling, which is
     an octane/compression limit rather than a measurement (Syed approved applying it to undriven
     cells because the drive to the shop is a highway).
   * It does not bound itself. `clamp_timing_row_ceiling` re-asserts the ceiling and
@@ -68,7 +68,7 @@ from ..logparse.binning import BinnedGrid, GridSpec
 
 # Mean measured retard below this is indistinguishable from log noise and the single-sample
 # jitter of a 0.3516 deg/step storage grid, so it contributes nothing. The ceiling still
-# applies to these cells — this deadband suppresses evidence, never protection.
+# applies to these cells: this deadband suppresses evidence, never protection.
 EVIDENCE_DEADBAND_DEG = 0.25
 
 
@@ -87,7 +87,7 @@ def grid_spec_for_timing(table: Table, min_samples: int = 20) -> GridSpec:
 
     `require_closed_loop=False`, unlike the MAF stage. That flag exists because an open-loop
     sample carries a FROZEN A/F correction and would drag a binned fuel trim toward zero. Knock
-    is measured in open loop exactly as it is in closed loop — and open loop is precisely where
+    is measured in open loop exactly as it is in closed loop, and open loop is precisely where
     this car makes boost, so filtering it would discard the only samples that matter.
     """
     if table.x_axis is None or table.y_axis is None:
@@ -190,7 +190,7 @@ def ceiling_grid(table: Table, safety: SafetyCfg) -> np.ndarray:
     """The per-cell advance ceiling, evaluated at the map's own axis values.
 
     Evaluated against the breakpoints as the ROM stores them (float32), not against the decimal
-    literals in config.yaml — `SafetyCfg.timing_ceiling_for` is epsilon-tolerant for exactly
+    literals in config.yaml, `SafetyCfg.timing_ceiling_for` is epsilon-tolerant for exactly
     this reason. Before that fix both ratified load bands started one column late.
     """
     rpms = table.y_axis.breakpoints if table.y_axis else (0.0,)
@@ -208,7 +208,7 @@ def propose_timing_retard(grid: BinnedGrid, tables: TableSet, state: TimingState
 
     Note there is no `damping` here, unlike the MAF stage. Damping exists to under-shoot a
     target you are converging on from measurements that will move as you correct. A ceiling is
-    not a target being chased — it is a limit, and deliberately arriving at 70% of a safety
+    not a target being chased; it is a limit, and deliberately arriving at 70% of a safety
     limit is not caution. Approach speed is Syed's 6 deg/iteration rate cap, applied by
     `clamp_timing_rate_limit`, not a gain in the proposer.
     """
@@ -219,7 +219,7 @@ def propose_timing_retard(grid: BinnedGrid, tables: TableSet, state: TimingState
     if current.ndim != 2:
         raise ValueError(f"{IGNITION_BASE_TIMING} is {current.ndim}-D; the timing stage needs a map")
     if grid.count.shape != current.shape:
-        raise ValueError(f"grid is {grid.count.shape}, map is {current.shape} — the GridSpec was "
+        raise ValueError(f"grid is {grid.count.shape}, map is {current.shape}, the GridSpec was "
                          "not built from this table (use grid_spec_for_timing)")
 
     ceiling = ceiling_grid(table, safety)

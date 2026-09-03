@@ -1,4 +1,4 @@
-# MLECU curation — LLM-judge harness config. Every design decision Syed owns lands HERE or in
+# MLECU curation: LLM-judge harness config. Every design decision Syed owns lands HERE or in
 # prompts/ (the code never hardcodes rubric/grounding/threshold choices).
 
 llm:
@@ -8,7 +8,7 @@ llm:
                                          # the CALIBRATED judge (2026-07-05: keep/drop 93.1%,
                                          # ±1 97.7%, dangerous 0). Do not swap until 3.8 is
                                          # measured against the same adjudicated set and beats it.
-                                         # (flip when swapping GGUFs — the audit trail keys on this)
+                                         # (flip when swapping GGUFs, the audit trail keys on this)
                                          # dense 27B = community-tier judge of record (smoke-10 verdict)
   temperature: 0.0                       # judging is deterministic scoring, not sampling
   max_completion_tokens: 24576  # thinking model: reasoning + JSON share budget; 1500 starved short

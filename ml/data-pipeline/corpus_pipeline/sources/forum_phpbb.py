@@ -1,13 +1,13 @@
-"""Generic phpBB forum ingester — ONE engine, multiple config-bound instances.
+"""Generic phpBB forum ingester, ONE engine, multiple config-bound instances.
 
 phpBB markup is stable across boards (viewforum.php?f=N listings, viewtopic.php?t=N threads,
 start=K pagination), so one parser serves every phpBB site in the whitelist. Concrete sources
 are bound in the registry via `fetch_for(<source_name>)`:
 
-  * forum_speeduino  — speeduino.com/forum      (universal EFI reasoning; domain=general)
-  * forum_msextra    — msextra.com/forums       (MegaSquirt theory goldmine; domain=general)
-  * forum_romraider  — romraider.com/forum      (Subaru tuning/logging/defs + the stock-ROM
-                       archive threads — text/metadata; ROM *attachments* need a logged-in
+  * forum_speeduino, speeduino.com/forum      (universal EFI reasoning; domain=general)
+  * forum_msextra, msextra.com/forums       (MegaSquirt theory goldmine; domain=general)
+  * forum_romraider, romraider.com/forum      (Subaru tuning/logging/defs + the stock-ROM
+                       archive threads, text/metadata; ROM *attachments* need a logged-in
                        account, so binaries are Syed-manual into data/raw/roms/)
 
 Plain HttpClient (both probed boards serve 200 to a browser UA); selectors cover prosilver and
@@ -195,7 +195,7 @@ def _fetch(source_name: str, cfg: Config, source_cfg: SourceCfg,
     seeds: list[str] = extra.get("seed_threads", [])
     skip = _known_ids(cfg, source_name)
 
-    # 1) curated seeds — always re-fetched (catches new posts on watched threads)
+    # 1) curated seeds, always re-fetched (catches new posts on watched threads)
     for seed in seeds:
         m = _T_ID.search(seed)
         tid = m.group(1) if m else str(seed)

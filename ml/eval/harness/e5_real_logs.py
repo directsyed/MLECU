@@ -1,4 +1,4 @@
-"""E5 — blind diagnosis from REAL car logs. The first time this project shows the model
+"""E5, blind diagnosis from REAL car logs. The first time this project shows the model
 data that came off the actual engine.
 
 WHY IT EXISTS. Every LLM call in this repo up to now has been synthetic: E1/E2/E4 build their

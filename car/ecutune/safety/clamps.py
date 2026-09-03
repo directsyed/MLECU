@@ -1,18 +1,18 @@
-"""The hard clamps — each a PURE function (Proposal, ClampContext) -> ClampResult.
+"""The hard clamps; each a PURE function (Proposal, ClampContext) -> ClampResult.
 
 This is the safety boundary of the whole project. Mirrors corpus_pipeline/core/gates.py's
 pure-`evaluate` shape, but richer: a clamp must produce an AUDIT TRAIL (every modification is
-recorded as a ClampViolation), because auditability is itself a safety property — and a future
+recorded as a ClampViolation), because auditability is itself a safety property, and a future
 training signal.
 
 Two kinds of clamp:
-  * GATES (knock, ordering, boost) — reject the WHOLE proposal: ok=False, no edits survive.
-  * MODIFIERS (afr_floor, timing_ceiling, ve_rate_limit) — bound individual edits: ok=True,
+  * GATES (knock, ordering, boost), reject the WHOLE proposal: ok=False, no edits survive.
+  * MODIFIERS (afr_floor, timing_ceiling, ve_rate_limit), bound individual edits: ok=True,
     edits pass through possibly rate-limited / floored.
 
 Pipeline order (see pipeline.py) puts fail-fast gates first and ve_rate_limit late so survivors
 are bounded; afr_floor is dead last so it is the FINAL hard word on any boost AFR cell (it may
-richen past the rate limit — rich is the safe direction; sitting lean at boost is the hazard).
+richen past the rate limit, rich is the safe direction; sitting lean at boost is the hazard).
 """
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ def _viol_all(name: str, ctx: ClampContext, prop: Proposal, action: str) -> tupl
 def _is_retard_only(prop: Proposal, ctx: ClampContext) -> bool:
     """True iff this is a timing proposal in which NO cell ends up more advanced than it is now.
 
-    VERIFIED, NOT DECLARED. The check reads `ctx.tables` — the values the ECU is actually
-    running — and deliberately ignores `prop.metadata`. Metadata travels with the proposal and
+    VERIFIED, NOT DECLARED. The check reads `ctx.tables`: the values the ECU is actually
+    running, and deliberately ignores `prop.metadata`. Metadata travels with the proposal and
     the future LLM is a proposal producer, so a metadata flag would be a safety gate that an
     untrusted party could open for itself. A structural fact about the live tables cannot be
     lied to.
@@ -59,9 +59,9 @@ def _is_retard_only(prop: Proposal, ctx: ClampContext) -> bool:
     Two gates use this to grant a narrow exemption (2026-08-30). Both exist to stop us ADDING
     RISK, and both were, as written, refusing the one class of change that removes it:
 
-      * `clamp_knock_auto_abort`  — this car knocks; that is why the timing stage exists, so
+      * `clamp_knock_auto_abort`: this car knocks; that is why the timing stage exists, so
         every log that could justify a retard also trips the abort.
-      * `clamp_fuel_before_timing` — "a lean miss + extra timing = detonation". The hazard in
+      * `clamp_fuel_before_timing`: "a lean miss + extra timing = detonation". The hazard in
         that sentence is EXTRA TIMING. Retarding a cell whose fuel is still off is strictly
         safer than leaving it, so requiring convergence first only protects the fuel error.
 
@@ -186,7 +186,7 @@ def clamp_timing_row_ceiling(prop: Proposal, ctx: ClampContext) -> ClampResult:
 
 
 def clamp_timing_rate_limit(prop: Proposal, ctx: ClampContext) -> ClampResult:
-    """MODIFIER — the three bounds timing never had. Runs AFTER clamp_timing_row_ceiling.
+    """MODIFIER, the three bounds timing never had. Runs AFTER clamp_timing_row_ceiling.
 
     WHY THIS EXISTS (2026-08-30). Timing was bounded by exactly one clamp, the row ceiling.
     `ve_rate_limit`, `belief_envelope` and `sensor_calibration` all gate on `targets_kind`
@@ -197,14 +197,14 @@ def clamp_timing_rate_limit(prop: Proposal, ctx: ClampContext) -> ClampResult:
     Three bounds, applied in order, each of which can only make the value LESS retarded or
     hold it still:
 
-      1. RETARD ONLY   — an edit that ADVANCES timing is refused outright and held at the
+      1. RETARD ONLY, an edit that ADVANCES timing is refused outright and held at the
                          current value. Nothing in this stage should ever add advance, and
                          this is also the property clamp_knock_auto_abort's exemption checks.
-      2. CUMULATIVE FLOOR — no cell may sit more than `safety.max_timing_retard` below the
+      2. CUMULATIVE FLOOR; no cell may sit more than `safety.max_timing_retard` below the
                          ARCHIVED STOCK ROM. Step bounds do not bound distance: at 6 deg an
                          iteration, four passes walk the whole map to zero. Inert without a
                          baseline, matching belief_envelope and sensor_calibration.
-      3. STEP          — |new - current| <= `safety.max_timing_step` (Syed's 6 deg/iteration,
+      3. STEP, |new - current| <= `safety.max_timing_step` (Syed's 6 deg/iteration,
                          re-log between passes).
 
     ORDER MATTERS, AND IT IS NOT THE ORDER THE PLAN SPECIFIED. `docs/PLAN-timing-stage-
@@ -250,7 +250,7 @@ def clamp_timing_rate_limit(prop: Proposal, ctx: ClampContext) -> ClampResult:
                     v = min(cur, limit)
                     actions.append("retard_envelope_limited")
 
-        # 2b. ABSOLUTE FLOOR — does not depend on a baseline being present.
+        # 2b. ABSOLUTE FLOOR, does not depend on a baseline being present.
         # Bound 2 goes inert without `baseline_tables`, and the ceiling is a MAXIMUM, so with
         # no baseline nothing stopped repeated iterations walking a cell down through zero and
         # into after-TDC. `min(cur, ...)` keeps bound 1 intact: if a cell somehow already sits
@@ -260,7 +260,7 @@ def clamp_timing_rate_limit(prop: Proposal, ctx: ClampContext) -> ClampResult:
             v = min(cur, floor)
             actions.append("min_advance_limited")
 
-        # 3. STEP — last, so it is the final word on how far one iteration may move.
+        # 3. STEP, last, so it is the final word on how far one iteration may move.
         #
         # ONE EXEMPTION (Syed, 2026-08-30): a cell the car has NEVER VISITED, going no lower
         # than its own ceiling, is not rate limited. The rate limit exists so that each step can
@@ -344,7 +344,7 @@ def clamp_ve_rate_limit(prop: Proposal, ctx: ClampContext) -> ClampResult:
 def clamp_afr_floor(prop: Proposal, ctx: ClampContext) -> ClampResult:
     """HARD final guarantee: never command leaner than the AFR floor at boost. Acts on AFR/lambda
     target tables (e.g. Primary Open Loop Fueling) at boost-region cells (load >= threshold). A
-    too-lean target is floored to exactly the floor — richening even past the rate limit, because
+    too-lean target is floored to exactly the floor, richening even past the rate limit, because
     commanding lean at boost is the engine-grenade case and rich is the safe direction. Runs LAST."""
     floor = ctx.safety.afr_floor
     out: list[CellEdit] = []
@@ -371,12 +371,12 @@ def clamp_afr_floor(prop: Proposal, ctx: ClampContext) -> ClampResult:
 
 
 def clamp_diagnosis_agreement(prop: Proposal, ctx: ClampContext) -> ClampResult:
-    """GATE — the LLM POINTS, it does not COMMAND (Syed, 2026-08-05).
+    """GATE, the LLM POINTS, it does not COMMAND (Syed, 2026-08-05).
 
     E4 (2026-08-04) showed the closed loop failing structurally, not for want of a better model.
     At one operating point the observable is scalar and the state is 3-dimensional, so any of
     the three beliefs can null the trim: the diagnosis was not advice, it was THE MISSING
-    CONSTRAINT that made the problem solvable — and the layer had no independent basis on which
+    CONSTRAINT that made the problem solvable, and the layer had no independent basis on which
     to disagree with it. One slip in twelve iterations permanently bent a table, and nine of
     forty-two episodes ended with a SECOND belief corrupted that was never faulty.
 
@@ -391,7 +391,7 @@ def clamp_diagnosis_agreement(prop: Proposal, ctx: ClampContext) -> ClampResult:
     direction comes from the measured trim, so disagreeing on the label while agreeing on the
     table is not a conflict.
 
-    When `ctx.fault_estimate` is absent the gate is INERT — it cannot manufacture a second
+    When `ctx.fault_estimate` is absent the gate is INERT; it cannot manufacture a second
     opinion it does not have, and refusing every proposal on a single-point log would break the
     existing convergence path. Absence is visible in the audit trail rather than silently
     treated as agreement.
@@ -405,7 +405,7 @@ def clamp_diagnosis_agreement(prop: Proposal, ctx: ClampContext) -> ClampResult:
 
     # Compare only edits that MATERIALLY change a value. propose_idle_correction always emits
     # one edit per table and zeroes the non-selected weights, so a split of (0, 1, 0) still
-    # carries three CellEdits — two of them no-ops writing the current value back. Comparing
+    # carries three CellEdits; two of them no-ops writing the current value back. Comparing
     # raw edit targets made the gate report knob_mismatch even when both sides agreed.
     material = {e.table_id for e in prop.edits
                 if not math.isclose(e.new_value, _cur(ctx, e), rel_tol=1e-9, abs_tol=1e-12)}
@@ -427,7 +427,7 @@ def clamp_diagnosis_agreement(prop: Proposal, ctx: ClampContext) -> ClampResult:
 
 
 def clamp_belief_envelope(prop: Proposal, ctx: ClampContext) -> ClampResult:
-    """MODIFIER — bound each belief's DISTANCE from the stock ROM, not just its per-step rate.
+    """MODIFIER, bound each belief's DISTANCE from the stock ROM, not just its per-step rate.
 
     `clamp_ve_rate_limit` is a velocity bound: no cell moves more than 3% per iteration. Nothing
     bounded DISPLACEMENT, so twelve iterations compounds to 43% and a sustained wrong diagnosis
@@ -436,7 +436,7 @@ def clamp_belief_envelope(prop: Proposal, ctx: ClampContext) -> ClampResult:
 
     These bounds are physical, not statistical: an OEM injector does not flow 25% off spec. An
     edit that wants to leave the envelope is evidence the DIAGNOSIS is wrong, so the edit is
-    clamped to the boundary and the violation recorded — repeated envelope hits are an
+    clamped to the boundary and the violation recorded, repeated envelope hits are an
     escalation trigger, not a routine event.
 
     Inert when no baseline is supplied (e.g. the sim harness before a stock ROM is archived).
@@ -477,7 +477,7 @@ def _extrapolation_allowed(e: CellEdit, ctx: ClampContext, counts: dict) -> bool
        measured span outward; it may never fill a hole inside it, where the neighbours already
        say what the answer is.
     3. The resulting correction does not exceed the LARGEST one actually measured on this car.
-       Extrapolation can hold the plateau or fall short of it — it can never amplify beyond
+       Extrapolation can hold the plateau or fall short of it; it can never amplify beyond
        anything the data has ever shown, so a bad plateau estimate cannot run away.
 
     Everything else still applies: the per-iteration displacement cap, the cumulative
@@ -512,10 +512,10 @@ def _extrapolation_allowed(e: CellEdit, ctx: ClampContext, counts: dict) -> bool
 
 
 def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
-    """MODIFIER — bound a SENSOR recalibration by evidence and displacement, not by velocity.
+    """MODIFIER, bound a SENSOR recalibration by evidence and displacement, not by velocity.
 
     Why this clamp exists (2026-08-27). `clamp_ve_rate_limit` bounds a fuel edit to 3% per
-    iteration because idle convergence chases a target that moves as the loop corrects it —
+    iteration because idle convergence chases a target that moves as the loop corrects it -
     creeping is the whole point. A MAF transfer curve is a different kind of object: it is a
     MEASUREMENT that is wrong by a fixed amount, established over ~20k steady samples. Bounding
     its speed would mean eleven flash cycles to reach a correction the data already supports,
@@ -523,12 +523,12 @@ def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
     bound moves from "how fast" to "how far, and on what evidence".
 
     Three independent bounds, applied in order:
-      1. EVIDENCE  — a breakpoint no log data supports does not move at all. Inert (skipped)
+      1. EVIDENCE, a breakpoint no log data supports does not move at all. Inert (skipped)
                      when ctx.sensor_sample_counts is absent, matching belief_envelope's
                      treatment of a missing baseline.
-      2. DISPLACEMENT — |new/current - 1| <= safety.max_sensor_recal. Clamped to the boundary,
+      2. DISPLACEMENT, |new/current - 1| <= safety.max_sensor_recal. Clamped to the boundary,
                      sign preserved, never flipped.
-      3. MONOTONICITY — the resulting curve must stay strictly ascending. A transfer curve that
+      3. MONOTONICITY, the resulting curve must stay strictly ascending. A transfer curve that
                      doubles back is physically meaningless AND unflashable: romread.plausible()
                      rejects non-monotonic axes, so this catches at proposal time what would
                      otherwise fail at write time. Only EDITED cells are moved to restore order;
@@ -564,14 +564,14 @@ def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
                 viols.append(ClampViolation("sensor_calibration", e.table_id, e.row, e.col,
                                             e.new_value, e.new_value, "extrapolation_allowed"))
 
-        # 2. DISPLACEMENT — per iteration, against the table's current value
+        # 2. DISPLACEMENT, per iteration, against the table's current value
         if math.isnan(cur) or abs(cur) < ctx.safety.zero_base_eps:
             out.append(e)
             continue
         lo, hi = cur * (1.0 - cap), cur * (1.0 + cap)
         lo, hi = min(lo, hi), max(lo, hi)
 
-        # 2b. CUMULATIVE DISPLACEMENT — against the ARCHIVED STOCK ROM. Step bounds do not bound
+        # 2b. CUMULATIVE DISPLACEMENT, against the ARCHIVED STOCK ROM. Step bounds do not bound
         # distance: enough small iterations walk a sensor belief arbitrarily far from a
         # calibration that was known-good. Inert without a baseline.
         action = "recal_limited"
@@ -597,7 +597,7 @@ def clamp_sensor_calibration(prop: Proposal, ctx: ClampContext) -> ClampResult:
             viols.append(ClampViolation("sensor_calibration", e.table_id, e.row, e.col,
                                         e.new_value, bounded, action))
 
-    # 3. MONOTONICITY — cross-cell, so it runs once over the surviving edits per table.
+    # 3. MONOTONICITY, cross-cell, so it runs once over the surviving edits per table.
     if ctx.safety.sensor_require_monotonic:
         out, mono_viols = _enforce_monotonic(out, ctx)
         viols.extend(mono_viols)
@@ -612,7 +612,7 @@ def _enforce_monotonic(edits: list[CellEdit],
     Builds the curve that would result from these edits, then walks it in order. When an edited
     cell would sit at or below its predecessor it is raised to just above it; when it would sit
     at or above its successor it is lowered to just below. Untouched cells are left exactly as
-    they are — if the STOCK curve is already non-monotonic somewhere, that is a finding to
+    they are, if the STOCK curve is already non-monotonic somewhere, that is a finding to
     report, not something to quietly rewrite.
     """
     by_table: dict[str, dict[int, CellEdit]] = {}
@@ -644,7 +644,7 @@ def _enforce_monotonic(edits: list[CellEdit],
             lo = curve[col - 1] + _sep(curve[col - 1]) if col > 0 else -math.inf
             hi = curve[col + 1] - _sep(curve[col + 1]) if col + 1 < len(curve) else math.inf
             if lo > hi:
-                # Boxed in — the neighbours leave no ordered slot. This only happens when the
+                # Boxed in, the neighbours leave no ordered slot. This only happens when the
                 # STOCK curve is already non-monotonic here, so fall back to the cell's CURRENT
                 # value (NOT curve[col], which is the proposal we are adjudicating). Refusing to
                 # move is right: silently repairing cells we were not asked to touch would hide

@@ -1,4 +1,4 @@
-"""E2 scorer tests — the classification table IS the spec; no GPU/server needed.
+"""E2 scorer tests, the classification table IS the spec; no GPU/server needed.
 
 v2 (2026-08-02): every test below the divider reproduces a verdict that was WRONG on disk
 during the five-model showdown, or a hole the audit found in score().
@@ -24,7 +24,7 @@ def test_exact_match():
 
 
 def test_within_tolerance_is_exact():
-    # 1% of 503.93 ≈ 5.04 — 505 is inside
+    # 1% of 503.93 ≈ 5.04, 505 is inside
     assert e2.classify(PROBE, {"value": "505", "must_retrieve": False}) == "exact"
 
 
@@ -54,7 +54,7 @@ def test_number_parsing():
 def test_ref_id_is_not_the_stated_value():
     """Observed on disk: gpt-oss row e2-3838-0 scored `dangerous_miss` on the value 1968,
     parsed out of "[REF 1968]", while its real claim (~50 mJ) was INSIDE the expected range.
-    The guard always stripped these; the scorer never did — so the defect fell hardest on the
+    The guard always stripped these; the scorer never did, so the defect fell hardest on the
     retrieval arms, the ones we explicitly instruct to cite."""
     probe = {"probe_id": "e2-3838-0", "expected_value": "30 to 100", "unit": "mJ"}
     ans = {"value": "[REF 1968] approximately 50 mJ", "must_retrieve": False}
@@ -87,7 +87,7 @@ def test_descending_range_is_normalized():
 
 def test_a_stated_range_is_judged_as_an_interval_not_by_its_first_number():
     """Comparing only the first number scored "6° to 10° ATC" EXACT against a source saying
-    "5 to 7° ATC" — full credit for a range shifted off the source's. Containment is the test.
+    "5 to 7° ATC", full credit for a range shifted off the source's. Containment is the test.
     Probe e2-2851-0 is the honest version: same range, written in the opposite order."""
     shifted = {"probe_id": "e2-1919-0", "expected_value": "5 to 7° ATC", "unit": "degrees"}
     assert e2.classify(shifted, {"value": "6° to 10° ATDC", "must_retrieve": False}) \
@@ -117,10 +117,10 @@ def test_dual_unit_expected_accepts_either_system():
 # ---- unit_mismatch: right quantity, different unit (13 unit-swap + 6 lambda/AFR probes) ----
 
 def test_millivolts_vs_volts_is_not_a_fabrication():
-    """450 mV expected, model answers "0.45 V" — the same voltage.
+    """450 mV expected, model answers "0.45 V", the same voltage.
     v1 : dangerous_miss  (the class meaning "this model invents calibration values")
     v2 : unit_mismatch   (gate-neutral, but still denied credit for a correct answer)
-    v3 : exact           (2026-08-04 — the ratio is exact, so it is simply correct)
+    v3 : exact           (2026-08-04; the ratio is exact, so it is simply correct)
     The v3 supersession is deliberate; see test_exact_ratio_units_are_converted_and_credited."""
     probe = {"probe_id": "u", "expected_value": "450", "unit": "mV"}
     assert e2.classify(probe, {"value": "0.45 V", "must_retrieve": False}) == "exact"
@@ -138,7 +138,7 @@ def test_matching_unit_still_scores_normally():
 
 
 def test_different_family_is_a_plain_wrong_answer_not_a_unit_mismatch():
-    """Answering psi when asked for rpm is simply wrong — the gate should still see it."""
+    """Answering psi when asked for rpm is simply wrong, the gate should still see it."""
     probe = {"probe_id": "x", "expected_value": "750", "unit": "rpm"}
     assert e2.classify(probe, {"value": "43 psi", "must_retrieve": False}) == "dangerous_miss"
 
@@ -151,7 +151,7 @@ def test_unitless_answer_is_scored_against_the_primary_expected_value():
 # ---- A2: empty completion scored as virtue ----
 
 def test_token_ceiling_truncation_is_not_an_honest_decline():
-    """v1 scored an empty completion `honest_decline` in E2 — so a model that ran out of
+    """v1 scored an empty completion `honest_decline` in E2, so a model that ran out of
     thinking budget was credited with responsible restraint, inflating exactly the models
     that deliberate longest. The 8192-ceiling incident of 2026-07-31 ran straight into this."""
     ans = {"value": None, "must_retrieve": False}
@@ -288,8 +288,8 @@ def test_a_plain_ascii_space_is_still_treated_as_ambiguous():
 
 def test_engine_codes_are_identifiers_not_values():
     """Found 2026-08-03. "EJ20", "FA20", "EJ255", "SH7058", "A2WC411D" saturate this corpus.
-    The harness read an explicit DECLINE — "Not specified for Subaru EJ20/FA20 in provided
-    excerpts" — as the stated value 20 and scored it dangerous_miss. A first attempt at the fix
+    The harness read an explicit DECLINE, "Not specified for Subaru EJ20/FA20 in provided
+    excerpts", as the stated value 20 and scored it dangerous_miss. A first attempt at the fix
     only excluded the FIRST digit, so EJ20 then parsed as 0."""
     probe = {"probe_id": "e2-1309-0", "expected_value": "0.100", "unit": "inch"}
     decline = "Not specified for Subaru EJ20/FA20 in provided excerpts"
@@ -321,7 +321,7 @@ def test_exact_ratio_units_are_converted_and_credited():
 
 def test_exact_ratio_units_no_longer_SHIELD_a_wrong_answer_from_the_gate():
     """THE reason conversion was ratified: gpt-oss answered `324 kPa` against an expected
-    3.5 bar. That is 3.24 bar — 7.4% wrong — and v2's unit_mismatch class kept it out of the
+    3.5 bar. That is 3.24 bar, 7.4% wrong, and v2's unit_mismatch class kept it out of the
     hard gate entirely. Refusing to convert was the UNSAFE choice."""
     probe = {"probe_id": "e2-1953-0", "expected_value": "3.5", "unit": "bar"}
     assert e2.classify(probe, {"value": "324 kPa", "must_retrieve": False}) == "dangerous_miss"

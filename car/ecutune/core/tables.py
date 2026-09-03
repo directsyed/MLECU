@@ -1,7 +1,7 @@
-"""SEMANTIC table IDs — the universal vocabulary the whole deterministic layer speaks.
+"""SEMANTIC table IDs, the universal vocabulary the whole deterministic layer speaks.
 
 Every ECU exposes the same tuning surface (fuel scaling, injector dead time, airflow transfer,
-AFR targets, timing, idle targets — the concepts behind the SAE J1979 channel vocabulary), so the
+AFR targets, timing, idle targets, the concepts behind the SAE J1979 channel vocabulary), so the
 algorithms and safety clamps operate ONLY on these platform-neutral semantic IDs. What a given
 platform *calls* each table lives in ecutune/platforms/ adapters:
 
@@ -9,13 +9,13 @@ platform *calls* each table lives in ecutune/platforms/ adapters:
     fuel.injector_flow    -> "Injector Flow Scaling"           (reqFuel scalar analog)
     sensor.maf_transfer   -> "MAF Sensor Scaling"              (speed-density: absent)
 
-This keeps Subaru as adapter #1 rather than the foundation — the universal-first constraint
+This keeps Subaru as adapter #1 rather than the foundation, the universal-first constraint
 (decisions.md 2026-07-03). Adapters also absorb per-ROM-def name drift (the 2005 FXT def says
-"Injector Latency"; the Forester 2.5 def says "Injector Latency_" — same table, same semantic ID).
+"Injector Latency"; the Forester 2.5 def says "Injector Latency_", same table, same semantic ID).
 """
 from __future__ import annotations
 
-# --- fuel path (global scalars / curves — the idle Stage-2 levers) --------------------
+# --- fuel path (global scalars / curves: the idle Stage-2 levers) --------------------
 FUEL_INJECTOR_FLOW = "fuel.injector_flow"        # injector flow the ECU believes (cc/min); INVERSE lever
 FUEL_INJECTOR_LATENCY = "fuel.injector_latency"  # injector dead time vs battery voltage (ms); DIRECT
 SENSOR_MAF_TRANSFER = "sensor.maf_transfer"      # MAF sensor transfer/scaling (airflow estimate); DIRECT

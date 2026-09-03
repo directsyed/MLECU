@@ -1,11 +1,11 @@
-"""Retro-test for the citation guard's context check — the 2026-07-25 protocol, reapplied.
+"""Retro-test for the citation guard's context check, the 2026-07-25 protocol, reapplied.
 
 The original guard was validated by exactly this shape: replay it over known fabrications
 (how many does it block?) AND over known-correct cited answers (how many does it break?), and
 publish both numbers. A blocker with no false-block measurement is not a validated blocker.
 
 What is being tested now (2026-08-05): every fabrication that survived the guard in the E2 rerun
-carried verdict `cited` — the number IS in the retrieved evidence but answers a DIFFERENT
+carried verdict `cited`: the number IS in the retrieved evidence but answers a DIFFERENT
 question. The context check adds unit agreement + question anchoring. This measures whether it
 closes that hole without breaking answers that were legitimately grounded.
 
@@ -28,7 +28,7 @@ PROBES = {json.loads(l)["probe_id"]: json.loads(l)
 
 
 def corpus() -> tuple[list, list]:
-    """(leaks, corrects) — rows the guard passed as `cited`, split by whether they were right."""
+    """(leaks, corrects), rows the guard passed as `cited`, split by whether they were right."""
     conn = sqlite3.connect("file:bench/bench.sqlite?mode=ro", uri=True)
     leaks, corrects = [], []
     q = ("SELECT model_tag, out_path FROM unit WHERE phase='e2v2' AND state='done' "

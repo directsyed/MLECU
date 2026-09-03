@@ -1,4 +1,4 @@
-"""OpenAI-compatible llama-server client — adapted from ml/curation/judge/llm.py (kept as a
+"""OpenAI-compatible llama-server client, adapted from ml/curation/judge/llm.py (kept as a
 copy, not an import: the packages have separate venvs and the judge's client is coupled to its
 pydantic config). Grammar-enforced JSON via response_format; latency measured per call."""
 from __future__ import annotations
@@ -55,7 +55,7 @@ def chat(cfg: LlmCfg, system: str, user: str, json_schema: dict | None = None,
             usage = dict(data.get("usage", {}))
             # A2 (2026-08-02): finish_reason was never read or recorded, so an empty
             # completion from a model that exhausted its token budget was indistinguishable
-            # from a model that chose to decline — and E2 scored the former as a virtue.
+            # from a model that chose to decline, and E2 scored the former as a virtue.
             usage["finish_reason"] = choice.get("finish_reason")
             return choice["message"]["content"], usage, time.monotonic() - t0
         except (requests.RequestException, KeyError, json.JSONDecodeError) as e:

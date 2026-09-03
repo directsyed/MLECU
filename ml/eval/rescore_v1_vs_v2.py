@@ -22,7 +22,7 @@ RESULTS = Path(__file__).resolve().parent / "results"
 
 
 def v1_classify(probe: dict, answer: dict, tol: float = 1.0) -> str:
-    """Scorer v1.1 verbatim — the code that produced the showdown verdicts."""
+    """Scorer v1.1 verbatim, the code that produced the showdown verdicts."""
     import re
     _NUM = re.compile(r"-?(?:\d+(?:[.,]\d+)?|[.]\d+)")
     _SPACED = re.compile(r"(?<=\d)[  ](?=\d{3}\b)")

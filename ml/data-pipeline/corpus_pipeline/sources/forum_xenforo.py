@@ -1,12 +1,12 @@
-"""Generic XenForo forum ingester — ONE engine, multiple config-bound instances.
+"""Generic XenForo forum ingester, ONE engine, multiple config-bound instances.
 
 XenForo 2.x markup is stable across boards: /forums/<slug.NN>/ listings with div.structItem--thread,
 /threads/<slug.NNNN>/ threads with article.message--post (author in the data-author attr, body in
 .bbWrapper), page-N pagination. Concrete sources are bound in the registry via fetch_for():
 
-  * forum_subaruforester — subaruforester.org  (Syed's exact chassis; incl. the
+  * forum_subaruforester, subaruforester.org  (Syed's exact chassis; incl. the
                            'engine-management-tuning-and-datalogging' + EJ25-turbo-2004-2013 nodes)
-  * forum_iwsti          — iwsti.com           (STI tuning; 'ecu-tuning-performance-electronics')
+  * forum_iwsti, iwsti.com           (STI tuning; 'ecu-tuning-performance-electronics')
 
 Both are VerticalScope boards behind a 202 JS stub (like legacygt) -> BrowserFetcher (patchright).
 Whole thread -> one Document, mirroring the other forum sources.

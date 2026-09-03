@@ -1,7 +1,7 @@
 """The MAF baseline carries provenance, and the estimator refuses to lean on an unvalidated one.
 
 WHY (2026-08-16): the sim seed `NOMINAL_MAF_IDLE = 2.50 g/s @850` was compared against the first
-real warm-idle log — 3.493 g/s @709 rpm, +40% — and `maf_belief_ratio()` returned 1.397: a
+real warm-idle log, 3.493 g/s @709 rpm, +40%, and `maf_belief_ratio()` returned 1.397: a
 confident "MAF +39.7%" verdict on a car whose total fuel trim was +0.31%. That term is the ONLY
 thing separating a MAF fault from an injector-flow fault, so the layer was primed to invent a MAF
 fault on a healthy engine. These tests pin the fix: (a) real-log-shaped observations against the
@@ -62,7 +62,7 @@ def test_real_log_values_against_the_sim_baseline_are_REFUSED_not_a_maf_verdict(
 
 def test_the_same_values_against_a_VALIDATED_baseline_behave_as_before():
     """Validation is the switch. If the baseline had been measured and really were 2.50 g/s, a
-    3.49 g/s reading with flat trims IS anomalous — the estimator may say so. What matters
+    3.49 g/s reading with flat trims IS anomalous, the estimator may say so. What matters
     here is that the guard is not firing (reason does not mention the baseline)."""
     believed, _truth, _ = _healthy_world()
     est = identify(believed, _real_log_shaped(validated=True))
@@ -87,7 +87,7 @@ def test_unvalidated_baseline_with_ratio_near_one_still_diagnoses_from_trims():
 
 @pytest.mark.parametrize("fault", ["maf_low", "maf_high"])
 def test_seeded_maf_faults_are_REFUSED_under_an_unvalidated_baseline(fault):
-    """Capability is not lost — it is WITHHELD until the baseline is measured. With a validated
+    """Capability is not lost; it is WITHHELD until the baseline is measured. With a validated
     baseline the same world identifies (test_identify.py proves that across seeds)."""
     spec = next(s for s in FAULTS_V2 if s.fault_id == fault)
     believed, truth, _ = build_case_world(spec, np.random.default_rng(1))
@@ -147,6 +147,6 @@ def test_from_capture_is_the_only_validated_constructor_and_sorts_points():
 
 
 def test_engineparams_default_idle_air_is_independent_of_the_baseline():
-    """MVEM's forward model never reads the baseline — the guard changes what the ESTIMATOR
+    """MVEM's forward model never reads the baseline, the guard changes what the ESTIMATOR
     trusts, not what the sim simulates."""
     assert EngineParams().idle_air_g == 0.10

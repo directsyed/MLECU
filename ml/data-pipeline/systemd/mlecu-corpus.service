@@ -1,5 +1,5 @@
 [Unit]
-Description=MLECU corpus pipeline — one ingestion pass (all enabled sources)
+Description=MLECU corpus pipeline; one ingestion pass (all enabled sources)
 After=network-online.target
 Wants=network-online.target
 

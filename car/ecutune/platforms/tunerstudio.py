@@ -1,8 +1,8 @@
-"""TunerStudio (Speeduino) adapter — semantic IDs -> speeduino.ini names.
+"""TunerStudio (Speeduino) adapter, semantic IDs -> speeduino.ini names.
 
 Exists primarily to PROVE the universal seam with a second platform: the same semantic vocabulary
 maps onto an open ECU's tables (names from the ingested tunerstudio_ini corpus source). Coverage
-is honest — Speeduino is typically speed-density, so SENSOR_MAF_TRANSFER is simply absent, and
+is honest. Speeduino is typically speed-density, so SENSOR_MAF_TRANSFER is simply absent, and
 fuel scaling is the reqFuel constant rather than a table. Absence == lever not available.
 """
 from __future__ import annotations

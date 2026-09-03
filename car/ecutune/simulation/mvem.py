@@ -1,9 +1,9 @@
-"""Mean-Value Engine Model — a cycle-averaged (not crank-resolved) idle fuel model.
+"""Mean-Value Engine Model, a cycle-averaged (not crank-resolved) idle fuel model.
 
 The right fidelity for proving idle FUEL convergence: we model how much fuel the ECU actually
 delivers given its believed injector/airflow calibration vs the engine's true parameters, and the
 steady-state closed-loop trim that results. We do NOT model combustion, knock physics, or
-transients — knock in the harness is a scripted state for testing the abort clamp, not physics.
+transients, knock in the harness is a scripted state for testing the abort clamp, not physics.
 
 Fuel path (all masses per intake event; only ratios matter, so units are nominal):
   A_est   = A_true * (maf_believed / maf_true)         # ECU's airflow estimate
@@ -12,7 +12,7 @@ Fuel path (all masses per intake event; only ratios matter, so units are nominal
   m_deliv = (pw - latency_true) * flow_true * K          # fuel actually injected
   trim    = m_required / m_deliv - 1                     # closed loop makes up the difference
 where m_required = A_true / AFR_target and K converts cc/min*ms -> mass. At the TRUE calibration
-every believed==true and trim==0; any mismatch shows up as a non-zero steady-state trim — exactly
+every believed==true and trim==0; any mismatch shows up as a non-zero steady-state trim, exactly
 the bad-idle symptom.
 """
 from __future__ import annotations
@@ -27,19 +27,19 @@ from ..core.tables import FUEL_INJECTOR_FLOW, FUEL_INJECTOR_LATENCY, SENSOR_MAF_
 
 @dataclass
 class EngineParams:
-    """Ground truth — what the engine actually is. The ECU's tables start out NOT matching these."""
+    """Ground truth, what the engine actually is. The ECU's tables start out NOT matching these."""
     displacement_l: float = 2.0      # EJ20X
     afr_target: float = 14.7
     fuel_density: float = 0.74       # g/cc
     idle_air_g: float = 0.10         # true METERED air mass per event at idle (nominal)
-    flow_true: float = 500.0         # OEM 2005 FXT side-feed injectors (~500 cc/min) — matched to the ROM
+    flow_true: float = 500.0         # OEM 2005 FXT side-feed injectors (~500 cc/min), matched to the ROM
     latency_true: float = 1.0        # true injector dead time, ms
     maf_scaling_true: float = 1.0    # the MAF scaling that would make A_est == A_true
     leak_air_g: float = 0.0          # UNMETERED air per event (vacuum leak downstream of the MAF).
-                                     # Constant absolute — so its trim contribution SHRINKS as metered
+                                     # Constant absolute, so its trim contribution SHRINKS as metered
                                      # airflow rises, unlike a %-type MAF/flow error. That signature
                                      # difference is what multi-point logging exploits.
-    latency_slope: float = 0.12      # ms of EXTRA true dead time per volt below v_ref — injectors
+    latency_slope: float = 0.12      # ms of EXTRA true dead time per volt below v_ref, injectors
                                      # open slower at low voltage (why ROMs carry a latency-vs-voltage
                                      # table). A latency-belief error therefore CHANGES with battery
                                      # voltage while a leak's trim is voltage-invariant: the v2 eval's
@@ -65,18 +65,18 @@ FAST_IDLE_RPM = 1500.0
 LOW_VOLTAGE = 12.0           # electrical-load probe: separates LATENCY (trim grows) from
                              # LEAK (trim flat). The only thing that splits those two.
 
-# (air_scale, voltage_or_None) — voltage None means "at v_ref".
+# (air_scale, voltage_or_None): voltage None means "at v_ref".
 PROBE_POINTS = ((1.0, None), (FAST_AIR_SCALE, None), (1.0, LOW_VOLTAGE))
 
 
 @dataclass(frozen=True)
 class MafBaseline:
-    """Healthy-engine MAF reading (g/s) as a function of rpm — the reference the estimator's
+    """Healthy-engine MAF reading (g/s) as a function of rpm, the reference the estimator's
     MAF-vs-nominal term is judged against.
 
     WHY THIS IS A CLASS AND NOT A NUMBER (2026-08-16). The old scalar `NOMINAL_MAF_IDLE = 2.50`
     was a simulation seed that had never been measured on the car. The first real warm-idle log
-    read 3.49 g/s at 709 rpm (+40%, worse normalised for rpm — TGV + exhaust-AVCS deletes raise
+    read 3.49 g/s at 709 rpm (+40%, worse normalised for rpm, TGV + exhaust-AVCS deletes raise
     idle airflow), and `identify.maf_belief_ratio()` turned that into a confident "MAF +39.7%"
     verdict on an engine whose total fuel trim was +0.31%. The number was wrong AND nothing
     recorded that it was unverified.
@@ -84,12 +84,12 @@ class MafBaseline:
     So the baseline now carries its own PROVENANCE. `validated` is True ONLY when the points come
     from a real capture on a known-healthy engine (`from_capture`); the seeded sim baseline says
     False, and `identify()` refuses to issue a MAF verdict against an unvalidated baseline.
-    Do NOT paste a single measured value in here — one log, one operating point, an engine that
+    Do NOT paste a single measured value in here; one log, one operating point, an engine that
     idles poorly, and rpm mismatch against the constant's own assumption is not a baseline.
     Populate it from the three-hold capture (`car/logging/CAPTURE-PROTOCOL.md`).
     """
     points: tuple[tuple[float, float], ...]      # (rpm, g/s), ascending rpm, >= 1 point
-    validated: bool                              # provenance flag — see class docstring
+    validated: bool                              # provenance flag, see class docstring
     provenance: str
 
     def __post_init__(self) -> None:
@@ -101,25 +101,25 @@ class MafBaseline:
 
     def at(self, rpm: float) -> float:
         """Nominal g/s at `rpm`: linear interpolation, clamped to the end points (no
-        extrapolation — a baseline should never invent airflow it never saw)."""
+        extrapolation, a baseline should never invent airflow it never saw)."""
         rpms = [p[0] for p in self.points]
         gs = [p[1] for p in self.points]
         return float(np.interp(rpm, rpms, gs))
 
     @classmethod
     def from_capture(cls, points, provenance: str) -> "MafBaseline":
-        """A VALIDATED baseline — only ever built from real, healthy-engine measurements."""
+        """A VALIDATED baseline, only ever built from real, healthy-engine measurements."""
         return cls(points=tuple(sorted((float(r), float(g)) for r, g in points)),
                    validated=True, provenance=provenance)
 
 
 # The SIMULATION's healthy baseline. Consistent with the sim world (synth_log builds maf_gs from
-# it, `harness.collect_observations` compares against it), so inside the sim it IS the truth —
+# it, `harness.collect_observations` compares against it), so inside the sim it IS the truth -
 # but it has never been measured on this engine, hence `validated=False`.
 SIM_MAF_BASELINE = MafBaseline(
     points=((IDLE_RPM, 2.50), (FAST_IDLE_RPM, 2.50 * FAST_AIR_SCALE)),
     validated=False,
-    provenance="simulation seed (2026-08-05); never measured on the EJ20X — see MafBaseline")
+    provenance="simulation seed (2026-08-05); never measured on the EJ20X, see MafBaseline")
 
 # Scalar kept for the sim/eval consumers that import it (evals/cases.py, ml/eval/harness/e4.py,
 # tests). It is the sim baseline at warm idle; its provenance is SIM_MAF_BASELINE.provenance.
@@ -127,23 +127,23 @@ NOMINAL_MAF_IDLE = SIM_MAF_BASELINE.at(IDLE_RPM)      # == 2.50 g/s
 
 # --- MEASURED baseline from the real car (2026-08-16 three-hold capture) ---------------------
 # First real, validated MAF baseline for THIS engine. Two same-voltage steady holds where the
-# closed-loop fuel trim was ~0 and the wideband tracked the 14.7 target — i.e. the airflow the
+# closed-loop fuel trim was ~0 and the wideband tracked the 14.7 target: i.e. the airflow the
 # ECU reports when it is fuelling correctly. `validated=True`: measured, not seeded.
 #   warm idle  709 rpm -> 3.08 g/s (trim -0.86%, wb 14.74)   \  logs: car/logging/idle/idle-20260816-01-warm.csv
 #   fast idle 1637 rpm -> 6.55 g/s (trim -5.12%, wb 14.55)   /         car/logging/idle/idle-20260816-02-fast.csv
 # CAUTION carried in the provenance: the warm-idle point read 3.49 g/s on 2026-08-11 vs 3.08 here
-# — a ~12% cross-session swing (atmospheric/warm-up; the MAF's low-voltage end wanders day to day,
+#, a ~12% cross-session swing (atmospheric/warm-up; the MAF's low-voltage end wanders day to day,
 # cf. reviewed forum doc 6224). So this is a baseline with real variance, not an exact constant;
 # a MAF verdict inside ~+/-12% of nominal is inside the noise floor and must not be called a fault.
 # Consumed by the real-log->Observation bridge (`logparse/observe.py`, `cli.py --diagnose`), which
 # sets Observation.nominal_validated from this baseline's flag. NOTE it is self-referential for the
-# capture that DEFINED it — the bridge's `maf_term=False` mode drops the (tautological) MAF term
+# capture that DEFINED it: the bridge's `maf_term=False` mode drops the (tautological) MAF term
 # there; it becomes informative for a re-log compared against this stored baseline.
 # See car/logging/CAPTURE-PROTOCOL.md.
 MEASURED_MAF_BASELINE_20260816 = MafBaseline.from_capture(
     [(708.65, 3.08), (1637.14, 6.55)],
     provenance="three-hold capture 2026-08-16 (warm+fast idle, trim~0, wb on target); "
-               "~12% cross-session variance vs 2026-08-11 (3.49 g/s @709) — treat +/-12% as noise")
+               "~12% cross-session variance vs 2026-08-11 (3.49 g/s @709), treat +/-12% as noise")
 
 
 @dataclass(frozen=True)
@@ -165,7 +165,7 @@ def open_loop_fuel(tables: TableSet, params: EngineParams,
     burned charge is metered + leak, so `required` uses both while the ECU's open-loop target
     is computed from its (possibly mis-scaled) estimate of the metered flow alone.
 
-    `voltage` (default v_ref — exact v1 behavior): both the TRUE dead time and the ECU's
+    `voltage` (default v_ref, exact v1 behavior): both the TRUE dead time and the ECU's
     BELIEVED dead time grow as voltage drops. The believed curve scales with the believed
     scalar (wrong injector data is wrong across the whole voltage table), so a latency-belief
     error grows at low voltage; every other fault's voltage terms cancel exactly.

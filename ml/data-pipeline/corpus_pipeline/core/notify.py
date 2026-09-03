@@ -1,4 +1,4 @@
-"""Discord webhook notifier — a per-run corpus summary so runs are observable.
+"""Discord webhook notifier, a per-run corpus summary so runs are observable.
 
 No-ops silently if no webhook is configured. Posts a compact embed: per-source new/fetched
 counts, the titles just added, and any source errors. Never raises into the pipeline.
@@ -33,7 +33,7 @@ def post_summary(webhook_url: str | None, results: list[dict], total_docs: int,
         desc += f"\n\n**Errors:** {e[:400]}"
 
     embed = {
-        "title": f"MLECU corpus pass — +{total_new} new ({total_docs} docs total)",
+        "title": f"MLECU corpus pass, +{total_new} new ({total_docs} docs total)",
         "description": desc[:4000],
         "color": color,
     }

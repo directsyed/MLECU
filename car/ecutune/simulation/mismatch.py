@@ -1,17 +1,17 @@
-"""Seed the KNOWN mismatch the harness must recover — build-specific to THIS Forester (2005 FXT).
+"""Seed the KNOWN mismatch the harness must recover, build-specific to THIS Forester (2005 FXT).
 
 The swap keeps the OEM FXT intake manifold + injectors + harness on the FXT ECU, so the injectors
-(~500 cc/min side-feed) are NOMINALLY matched to the stock ROM — a useful prior, but NOT a licence to
+(~500 cc/min side-feed) are NOMINALLY matched to the stock ROM, a useful prior, but NOT a licence to
 exclude them. Real injectors vary unit-to-unit, latency shifts with battery voltage and fuel pressure,
 and the intake mods move the MAF calibration; on a fresh swap everything is a little off at once. So we
-seed error across ALL the fuel levers and let the loop correct all of them — we do not pre-decide which
+seed error across ALL the fuel levers and let the loop correct all of them; we do not pre-decide which
 is "the" problem. That is the whole point of reading the car: the data sets the priorities.
 
-Caveat kept honest: at a single idle operating point the levers are DEGENERATE — a MAF error and an
-injector error look identical in the trim — so the loop converges the *trim* to a valid combination,
+Caveat kept honest: at a single idle operating point the levers are DEGENERATE, a MAF error and an
+injector error look identical in the trim, so the loop converges the *trim* to a valid combination,
 not each scalar to its true value. Separating them (real prioritization) needs logs across operating
 conditions. Timing, AVCS and idle-airflow are separate axes (their own stages), likewise data-
-prioritized — see car/build-sheet.md.
+prioritized, see car/build-sheet.md.
 """
 from __future__ import annotations
 

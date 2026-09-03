@@ -1,11 +1,11 @@
 """Scoring + reference baselines for the sim-generated diagnostic eval.
 
 score() is evaluee-agnostic: it takes {case_id: answer} and reports
-  * top1        — answered exactly the seeded fault
-  * acceptable  — answer within the case's acceptable set (credits genuine degeneracies:
+  * top1, answered exactly the seeded fault
+  * acceptable, answer within the case's acceptable set (credits genuine degeneracies:
                   leak vs dead-time cannot be separated without a voltage sweep)
 Baselines bracket the eval: random ~= chance (floor); rules = the two-point signature logic a
-competent tuner applies (ceiling for non-LLM methods — the LLM must at least match it):
+competent tuner applies (ceiling for non-LLM methods, the LLM must at least match it):
   constant-fraction trim across airflow -> scaling fault (MAF reading tells MAF vs injector-flow);
   trim that SHRINKS with airflow -> constant-absolute fault (leak / dead time).
 """
@@ -76,7 +76,7 @@ def random_baseline(case: dict, rng: random.Random) -> str:
     return rng.choice(case["choices"])
 
 
-LOWV_TRIM_DELTA = 1.0      # % — trim rise at the low-voltage point that convicts dead time.
+LOWV_TRIM_DELTA = 1.0      # %, trim rise at the low-voltage point that convicts dead time.
                            # Latency faults shift +2.2..+5.4% (slope 0.12 ms/V * 2 V sag over
                            # ~1.1 ms fuel pulse); a leak shifts ~0 +/- 0.3% noise. 1.0 splits it.
 

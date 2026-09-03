@@ -1,14 +1,14 @@
 """Live signals for a ClampContext, computed from a real log instead of left at their defaults.
 
 WHY THIS EXISTS (2026-08-30). `ClampContext.knock_active`, `.fuel_trims_converged` and
-`.steady_state_ok` were never set anywhere in `ecutune/` — only in tests. That made three clamps
+`.steady_state_ok` were never set anywhere in `ecutune/`: only in tests. That made three clamps
 inert in production, including the one its own docstring calls *"the single most important
 clamp"*, and it made `SafetyCfg.fuel_trim_converged_tol` a number nothing read. It also meant
 `clamp_fuel_before_timing` deferred **every** timing proposal outright, since the flag it gates
 on defaulted to False. A gate that always fires and a gate that never fires are the same bug.
 
 Everything here is measured from the pooled log and the binned grid. Nothing is asserted by a
-caller, and nothing is read from proposal metadata — a clamp input that the proposer can set is
+caller, and nothing is read from proposal metadata, a clamp input that the proposer can set is
 not a safety input.
 """
 from __future__ import annotations
@@ -38,7 +38,7 @@ class LiveSignals:
     knock_onsets: int
     fuel_trims_converged: bool
     steady_state_ok: bool
-    max_trim_abs: float          # FRACTION, not percent — ClampContext's unit
+    max_trim_abs: float          # FRACTION, not percent. ClampContext's unit
     worst_knock_deg: float
 
     def as_context_kwargs(self) -> dict:
@@ -70,7 +70,7 @@ def live_signals(log: LogTable, grid: BinnedGrid, safety: SafetyCfg) -> LiveSign
     """Measure the four live clamp inputs from one pooled log and its binned grid.
 
     Trims are PERCENT in the grid (`af_correction + af_learning`) and FRACTIONS in
-    `SafetyCfg` / `ClampContext` — the conversion happens here, once, rather than at each
+    `SafetyCfg` / `ClampContext`: the conversion happens here, once, rather than at each
     comparison where it is easy to forget.
     """
     # Knock is measured over the samples the GRID ACTUALLY SELECTED, not the whole file.

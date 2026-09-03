@@ -6,7 +6,7 @@
 #   bash nasioc-cookie.sh '<cf_clearance value>' --pull # write it, then scrape now
 #
 # The cookie is bound to the browser User-Agent that solved the Cloudflare challenge, and it
-# lives only HOURS — so export it fresh (same Chrome profile) right before you intend to pull.
+# lives only HOURS: so export it fresh (same Chrome profile) right before you intend to pull.
 # UA is pinned in config.yaml (pipeline.user_agent_pool); do not change one without the other.
 set -euo pipefail
 

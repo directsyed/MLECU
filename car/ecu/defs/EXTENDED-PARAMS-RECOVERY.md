@@ -1,18 +1,18 @@
-# Extended-parameter recovery for `3B12504206` (A2WC411D) — and the live-validation gate
+# Extended-parameter recovery for `3B12504206` (A2WC411D): and the live-validation gate
 
 ## What this is
 
 Our ECU is absent from the RomRaider logger def (the one AT calibration revision, rev 42, was never
-contributed), so RomRaider offers it **zero extended parameters** — the RAM channels that VE/timing/
+contributed), so RomRaider offers it **zero extended parameters**: the RAM channels that VE/timing/
 knock tuning needs (`Feedback Knock`, `Target Boost`, `CL/OL Fueling Target`, `IAM`, injector PW/
 latency, `Engine Load`, Turbo Dynamics). Its siblings all have them.
 
 `extended_param_recovery.py` reconciles each param's RAM address **across the `3B125` family**, the
 same way `romread` reconciles table addresses across sibling defs: our ECU's address = the address
 the family agrees on. Result (`recovered-3B12504206.report.json`, `…logger-fragment.xml`): **all 57
-params reconcile at HIGH confidence** — ≥5 non-outlier siblings (revs 41/42-MT/43, both
+params reconcile at HIGH confidence**, ≥5 non-outlier siblings (revs 41/42-MT/43, both
 transmissions) agree on each, and our rev-42 sits inside that consensus. The only dissent is the
-**rev-40** members (`…04006`/`…84006`), whose RAM block is shifted a few bytes — the known outlier,
+**rev-40** members (`…04006`/`…84006`), whose RAM block is shifted a few bytes, the known outlier,
 excluded from the vote.
 
 ## Why this is now allowed (it wasn't in July)
@@ -22,7 +22,7 @@ not before the ROM read is solved."* Both blockers are gone (2026-08-16): the RO
 family demonstrably shares one RAM layout. Per Syed's standing directive, we optimize past that
 pre-data refusal.
 
-## The honest caveat — this is a strong prior, NOT proof
+## The honest caveat: this is a strong prior, NOT proof
 
 - The addresses are **SSM2 runtime RAM addresses**, not ROM offsets, so there is **no clean ROM
   cross-check** (the ROM holds the code that writes these RAM locations, but the SSM2↔SH7058-RAM
@@ -32,7 +32,7 @@ pre-data refusal.
 - **Therefore every recovered channel is UNVALIDATED until it reads sane on the live engine.** A
   plausible-but-wrong RAM read is the worst failure mode for a layer that consumes these numbers.
 
-## The live-validation gate (Syed — a short session; a channel is trusted only after it passes)
+## The live-validation gate (Syed, a short session; a channel is trusted only after it passes)
 
 Splice `recovered-3B12504206.logger-fragment.xml` into the logger def (each `<ecu id="3B12504206">`
 line into its matching `<ecuparam>`; conversions are shared), restart RomRaider, select the recovered
@@ -40,7 +40,7 @@ params, and log **idle + a light rev + a brief light-load pull**. Confirm, per c
 
 | channel | passes if | fails ⇒ |
 |---|---|---|
-| **IAM** | ≈ 1.00 on a healthy warm engine (0–1 range) | drop — wrong address reads garbage |
+| **IAM** | ≈ 1.00 on a healthy warm engine (0–1 range) | drop, wrong address reads garbage |
 | **CL/OL Fueling** | reads the OL value cold, flips to the CL value (8) once warm | drop |
 | **Fuel Injector #1 Pulse Width** | agrees with standard `P21` (log both; should track) | drop |
 | **Feedback Knock Correction** | ~0 with no audible knock; goes negative under real knock | drop |

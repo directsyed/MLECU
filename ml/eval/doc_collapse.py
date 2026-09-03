@@ -1,14 +1,14 @@
-"""Retrieved-document DIVERSITY over archived result files — the "doc-collapse" counter.
+"""Retrieved-document DIVERSITY over archived result files, the "doc-collapse" counter.
 
 WHY (2026-08-15/16). The Qwen3.8 E1 runs retrieved only 4 distinct documents across all 70 cases,
 two on 100% of queries. That number was computed ad hoc and never committed, so the obvious
-follow-up — "did 3.6's ratified base+RAG@3 headline collapse the same way?" — had nothing to
+follow-up, "did 3.6's ratified base+RAG@3 headline collapse the same way?", had nothing to
 reuse. This is that ~40 lines, committed. Retrieval is a pure function of (case prompt, index),
 so this is a property of the corpus/query pairing, not of the model that answered.
 
 Every E1/E2/E4 result row carries `retrieved_doc_ids` (list[int] == ref_fts rowid == document.id,
 written at harness/e1.py, e2.py, e4.py; `[]` for the no-retrieval arms). Files back to 2026-07-08
-have it. Later rows also carry `top_k`, `retrieval_mode`, `index_stale` — July rows do not, so k is
+have it. Later rows also carry `top_k`, `retrieval_mode`, `index_stale`: July rows do not, so k is
 inferred from len(retrieved_doc_ids).
 
 USAGE

@@ -1,4 +1,4 @@
-"""SH7058 ROM checksum — derive, verify, and repair the Subaru checksum block.
+"""SH7058 ROM checksum, derive, verify, and repair the Subaru checksum block.
 
 DERIVED 2026-08-27, not documented anywhere upstream. `docs/ROADMAP.md` Phase E.4(c) left this
 open ("verify at build time whether ECUFlash auto-fixes Subaru checksums at flash (believed
@@ -105,7 +105,7 @@ def _sum_region(data: bytes | bytearray, start: int, end_inclusive: int) -> int:
 def read_records(data: bytes | bytearray) -> list[ChecksumRecord]:
     """Every ACTIVE record in the block. Empty slots and the 0xFFFFFFFF filler are skipped.
 
-    Raises UnknownChecksumLayout if the first active record does not describe a sane region —
+    Raises UnknownChecksumLayout if the first active record does not describe a sane region -
     that means the bytes here are not our checksum array at all.
     """
     base = block_offset(data)
@@ -140,7 +140,7 @@ def repair(data: bytearray) -> list[ChecksumRecord]:
     for r in read_records(data):
         if r.start <= base <= r.end:
             raise ValueError(f"checksum record {r.index} covers the checksum block itself "
-                             f"(0x{r.start:X}..0x{r.end:X} contains 0x{base:X}) — a one-pass "
+                             f"(0x{r.start:X}..0x{r.end:X} contains 0x{base:X}), a one-pass "
                              "repair is not valid for this ROM layout")
         if not r.ok:
             struct.pack_into(">I", data, r.offset + 8, r.expected)

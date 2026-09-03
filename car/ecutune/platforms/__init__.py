@@ -3,7 +3,7 @@
 An adapter is data, not behavior: TO_PLATFORM maps semantic -> primary platform name (what the
 ROM-write bridge / def parser uses), VARIANTS lists known alternate spellings across that
 platform's definition files (per-ROM-def drift), and absence of a key means the platform simply
-doesn't have that table (e.g. speed-density ECUs have no MAF transfer) — callers treat that as
+doesn't have that table (e.g. speed-density ECUs have no MAF transfer), callers treat that as
 "lever not available", not an error.
 """
 from __future__ import annotations

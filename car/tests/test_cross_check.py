@@ -76,7 +76,7 @@ def test_unidentifiable_aborts():
 
 
 def test_gate_is_INERT_without_an_estimate():
-    """It must not manufacture a second opinion it does not have — otherwise every legacy
+    """It must not manufacture a second opinion it does not have, otherwise every legacy
     single-point path would abort. Absence is visible in the audit trail, not treated as
     agreement."""
     ts = _tables()

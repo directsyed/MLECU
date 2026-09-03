@@ -5,7 +5,7 @@ hands us ground truth, so we can ask the layer to recover a seeded fault from no
 observations it will have on a real car, and check it against the answer.
 
 If `identify()` cannot do this reliably here, the cross-check gate is worthless and we find out
-for free — before spending a GPU-hour, and before trusting it with a table write.
+for free, before spending a GPU-hour, and before trusting it with a table write.
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def observe(believed, truth: EngineParams) -> list[Observation]:
     """The three probe points the real capture protocol specifies, computed from the world.
 
     Deliberately built the same way `evals/cases._one_case_v2` builds the LLM's prompt, so the
-    estimator and the model are looking at the SAME engine — that is the whole basis on which
+    estimator and the model are looking at the SAME engine; that is the whole basis on which
     their verdicts can be meaningfully compared.
     """
     maf_ratio = float(np.asarray(believed.get("sensor.maf_transfer").values).reshape(-1)[0]) \
@@ -59,7 +59,7 @@ def test_recovers_every_seeded_fault_across_seeds(spec):
                                   if s.fault_id not in ("healthy", "vacuum_leak")],
                          ids=lambda s: s.fault_id)
 def test_fitted_magnitude_is_close_to_the_seeded_one(spec):
-    """Identifying the right knob is necessary but not sufficient — the layer also has to get
+    """Identifying the right knob is necessary but not sufficient, the layer also has to get
     the SIZE roughly right, or its correction will be wrong even when its diagnosis is right."""
     for seed in SEEDS:
         believed, truth, mag = build_case_world(spec, np.random.default_rng(seed))
@@ -93,7 +93,7 @@ def test_a_single_probe_point_is_NOT_identifiable():
 
 def test_leak_and_latency_are_degenerate_WITHOUT_the_voltage_probe():
     """Both shrink with airflow; only voltage separates them. Dropping the low-voltage point
-    must collapse the margin — this is the test that proves the third probe earns its place."""
+    must collapse the margin; this is the test that proves the third probe earns its place."""
     spec = next(s for s in FAULTS_V2 if s.fault_id == "vacuum_leak")
     believed, truth, _ = build_case_world(spec, np.random.default_rng(0))
     obs = observe(believed, truth)
@@ -164,7 +164,7 @@ def test_identify_never_mutates_the_believed_tables():
 # ---------------------------------------------------------------- through the REAL log path
 
 def _observe_via_logs(believed, truth, seed):
-    """Not the analytic shortcut — the actual LOG -> BIN -> OBSERVE path, with sensor noise,
+    """Not the analytic shortcut, the actual LOG -> BIN -> OBSERVE path, with sensor noise,
     exactly as the deterministic layer will receive it on the car."""
     from ecutune.simulation.harness import collect_observations
     from ecutune.simulation.mvem import OperatingPoint
@@ -173,7 +173,7 @@ def _observe_via_logs(believed, truth, seed):
 
 def test_recovers_faults_through_the_real_log_and_bin_path():
     """The analytic test proves the maths; this proves it survives synthetic logs, binning and
-    sensor noise — which is what actually reaches the layer."""
+    sensor noise, which is what actually reaches the layer."""
     misses = []
     for spec in FAULTS_V2:
         for seed in range(10):
@@ -202,7 +202,7 @@ def test_NEVER_confidently_wrong_across_many_worlds():
 
 
 def test_maf_and_flow_are_degenerate_in_trim_and_separated_by_the_maf_READING():
-    """A MAF-scaling error and an injector-flow error produce IDENTICAL pulse widths — scaling
+    """A MAF-scaling error and an injector-flow error produce IDENTICAL pulse widths, scaling
     maf_b by r and dividing flow_b by r cancel exactly. Only the reported airflow separates
     them, which is why _sse scores the MAF reading and not just trims. Dropping that term
     regressed recovery to 15/21, every miss a MAF fault scored as the matching flow fault."""
@@ -214,5 +214,5 @@ def test_maf_and_flow_are_degenerate_in_trim_and_separated_by_the_maf_READING():
     est_full = identify(believed, obs)
     assert est_full.identifiable and est_full.fault_id == "maf_low"
     assert est_blind.fault_id != "maf_low" or not est_blind.identifiable, (
-        "without the MAF reading this must NOT confidently land on maf_low — if it does, the "
+        "without the MAF reading this must NOT confidently land on maf_low, if it does, the "
         "degeneracy argument is wrong")

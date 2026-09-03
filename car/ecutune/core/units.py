@@ -1,6 +1,6 @@
 """Pure AFR / lambda / fueling math shared by the clamps and algorithms.
 
-No table mutation, no I/O — just conversions. Stoichiometric AFR for pump gasoline is
+No table mutation, no I/O, just conversions. Stoichiometric AFR for pump gasoline is
 14.7:1 (mass air:fuel). The EJ20X runs 93 oct always (car/CLAUDE.md); octane is the margin,
 it does not change stoich.
 """

@@ -1,4 +1,4 @@
-"""Subaru ECUFlash/RomRaider adapter — semantic IDs -> the 2005 FXT (A2WC400x) table names.
+"""Subaru ECUFlash/RomRaider adapter, semantic IDs -> the 2005 FXT (A2WC400x) table names.
 
 Primary names verified against the ingested SubaruDefs for the 2005 USDM Forester XT 4EAT
 (A2WC400D/H family); VARIANTS carry the spellings seen in sibling defs (e.g. the Forester 2.5
@@ -24,7 +24,7 @@ TO_PLATFORM: dict[str, str] = {
     T.IGNITION_KNOCK_ADVANCE_MAX: "Knock Correction Advance Max",
     T.IGNITION_ADVANCE_MULT_INITIAL: "Advance Multiplier (Initial)",
     T.IDLE_SPEED_TARGET_A: "Idle Speed Target A",
-    # no factory wastegate-duty table exposed at this level yet — boost stage is future work
+    # no factory wastegate-duty table exposed at this level yet, boost stage is future work
 }
 
 # Alternate spellings across sibling ECUFlash defs (same semantic table).

@@ -1,4 +1,4 @@
-"""Offload calibration — find each model's max-capability serving config (Syed, 2026-07-30).
+"""Offload calibration, find each model's max-capability serving config (Syed, 2026-07-30).
 
 WHY: `--tensor-split 3.5,1` allocates LAYERS, so the 3090's VRAM occupancy is tied to its
 compute duty. On the 35B that left 16.9 GiB of 3090 VRAM idle while 8.4 GiB of expert
@@ -11,7 +11,7 @@ so we can hand a chosen band of layers' experts to CUDA1 (the 3090) and push the
 to CPU, while attention/shared layers follow the normal split.
 
 THE SAFETY ARGUMENT, measured not assumed: the 3090 is clock-locked at 810 MHz, and that
-lock — not the split — is the real power ceiling (117 W at 22% duty; historical peak ~171 W
+lock, not the split, is the real power ceiling (117 W at 22% duty; historical peak ~171 W
 at higher duty; 230 W is what killed the box, and is unreachable at this clock). This script
 therefore SWEEPS candidate configs under real sustained load and picks the most aggressive
 one whose sustained 3090 draw stays inside the proven-safe band. A config is rejected the
@@ -98,7 +98,7 @@ def measure(profile: dict) -> dict | None:
         if w > 0:
             watts.append(w)
         if w > POWER_HARD:
-            log(f"  CALIB: {w:.0f}W exceeds hard limit {POWER_HARD} — aborting config")
+            log(f"  CALIB: {w:.0f}W exceeds hard limit {POWER_HARD}, aborting config")
             p.kill()
             server_stop()
             return {"rejected": True, "peak": w, "mean": statistics.mean(watts)}
@@ -137,7 +137,7 @@ def calibrate(model_key: str) -> dict | None:
     gguf = Path(base["gguf"])
     n_layers, gib = expert_layers(gguf)
     if not n_layers:
-        log(f"CALIB: {model_key} has no expert tensors (dense) — nothing to tune")
+        log(f"CALIB: {model_key} has no expert tensors (dense); nothing to tune")
         return None
     # how many layers' experts fit in the 3090's usable VRAM (leave 3 GiB for KV/buffers)
     budget = 21.0
@@ -149,10 +149,10 @@ def calibrate(model_key: str) -> dict | None:
     # it must. TWO REGIMES, because a single rule breaks on oversized models (found live:
     # the 80B is 61 GiB, so tensor_split="1,0" demanded 41 GiB from a 24.5 GiB Ti and every
     # candidate config failed to load):
-    #   FITS   (model + KV <= combined VRAM): MINIMISE the 3090 band — the Ti absorbs the
+    #   FITS   (model + KV <= combined VRAM): MINIMISE the 3090 band, the Ti absorbs the
     #           rest for free, so less on the convicted card costs nothing.
     #   OVERSIZED: the remainder must go to RAM regardless, so MAXIMISE the 3090 band within
-    #           the power budget — every GiB there is a GiB not streaming at 8x lower
+    #           the power budget; every GiB there is a GiB not streaming at 8x lower
     #           bandwidth. Ti still fills first; RAM takes only the genuine overflow.
     # Sharded GGUFs: size is the sum of all shards, not just shard 1.
     model_gib = model_size_gib(gguf)
@@ -165,13 +165,13 @@ def calibrate(model_key: str) -> dict | None:
         n_min = max(0, int((model_gib - TI_USABLE) / gib) + 1)
         ladder = [n for n in (n_min, n_min + 3, n_min + 6, max_layers) if 0 < n <= max_layers]
         cpu_from = None
-        log(f"CALIB: FITS regime — minimise 3090; min band {n_min} layers "
+        log(f"CALIB: FITS regime, minimise 3090; min band {n_min} layers "
             f"({n_min*gib:.1f} GiB of {model_gib:.1f} GiB)")
     else:
         ladder = [n for n in (max_layers, int(max_layers * 0.7), int(max_layers * 0.45))
                   if n > 0]
         cpu_from = ti_expert_layers        # set per-candidate below
-        log(f"CALIB: OVERSIZED regime — {model_gib:.1f} GiB > VRAM. non-expert "
+        log(f"CALIB: OVERSIZED regime, {model_gib:.1f} GiB > VRAM. non-expert "
             f"{non_expert:.1f} GiB; Ti takes {ti_expert_layers} expert layers; "
             f"maximise 3090 band then RAM takes the rest")
 
@@ -180,7 +180,7 @@ def calibrate(model_key: str) -> dict | None:
         prof = dict(base)
         prof["key"] = f"{model_key}-ot{n}"
         # DROP -ncmoe: it and -ot are competing placement policies. Keeping both left 8 GiB
-        # of experts on the CPU while the -ot band moved to the 3090 — total VRAM residency
+        # of experts on the CPU while the -ot band moved to the 3090, total VRAM residency
         # was unchanged, defeating the point (observed 2026-07-30, first calibration run).
         # -ot places the 3090's band explicitly; everything else follows the tensor split,
         # and only what genuinely cannot fit spills to RAM.
@@ -219,7 +219,7 @@ def calibrate(model_key: str) -> dict | None:
             break          # sweep runs most-aggressive-first, so the first pass is the best
     server_stop()
     if best is None:
-        log(f"CALIB {model_key}: no config met the power budget — keeping original profile")
+        log(f"CALIB {model_key}: no config met the power budget, keeping original profile")
         return None
     with ledger.connect() as c:
         cur = c.execute("UPDATE unit SET server_profile=? WHERE model_key=? AND state='pending'",

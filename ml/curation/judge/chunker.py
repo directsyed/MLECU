@@ -1,8 +1,8 @@
 """Structure-aware splitter for over-length docs. Pure function, no I/O.
 
 Fast path: median doc is ~2.7k chars -> one untouched chunk. For the ~50 long forum threads
-(max 330k) we split on structure in priority order — post separators, then headings, then
-blank-line paragraphs — greedily packing segments up to max_chars. Never split mid-paragraph;
+(max 330k) we split on structure in priority order, post separators, then headings, then
+blank-line paragraphs, greedily packing segments up to max_chars. Never split mid-paragraph;
 a single pathological paragraph longer than max_chars is hard-split as a last resort.
 `overlap_chars` carries the previous chunk's tail into the next so a claim that straddles a
 boundary is seen with its context at least once.

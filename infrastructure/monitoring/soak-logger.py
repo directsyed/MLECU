@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""soak-logger.py — unified PER-GPU thermal logger for the T630 GPU soak (MLECU).
+"""soak-logger.py, unified PER-GPU thermal logger for the T630 GPU soak (MLECU).
 
 Every INTERVAL seconds, writes one CSV row with per-GPU columns, combining three sources no single
 tool covers on Linux:
@@ -163,7 +163,7 @@ def console_line(ts, per, sm, f1, f2, cpu, inlet, idxs):
 
 def main():
     if os.geteuid() != 0:
-        print("[warn] not root — gputemps & ipmitool will be blank; re-run with sudo", file=sys.stderr)
+        print("[warn] not root, gputemps & ipmitool will be blank; re-run with sudo", file=sys.stderr)
     gt, _ = gputemps_read()
     idxs = sorted(gt.keys()) or sorted(nvsmi_read().keys())
     if not idxs:

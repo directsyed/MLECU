@@ -4,7 +4,7 @@ WHY THIS EXISTS: the pipeline spans ~4 days across burn-in, guard trials, and a 
 showdown, on a box whose 3090 has killed it 11 times. A bash chain cannot survive that.
 This copies the judge's proven pattern (corpus_pipeline/core/state.py): sqlite + WAL,
 idempotent migrate, atomic claim, all-or-nothing completion. A unit is either fully done
-or fully pending — never half-credited — so a reboot mid-run resumes exactly where it
+or fully pending, never half-credited, so a reboot mid-run resumes exactly where it
 stopped.
 
 THE VALIDATION RULE IS THE POINT. `harness.cli` exits 0 even when a run is garbage, so
@@ -61,7 +61,7 @@ MAX_TRUNCATED_FRAC = 0.20
 
 @contextmanager
 def connect(path: Path | None = None):
-    # resolved at CALL time, not def time — a default arg would bind DB_PATH at import
+    # resolved at CALL time, not def time, a default arg would bind DB_PATH at import
     # and silently ignore any later redirect (found by the test suite, 2026-07-29)
     conn = sqlite3.connect(path or DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
@@ -74,7 +74,7 @@ def connect(path: Path | None = None):
 
 
 def init(path: Path | None = None) -> None:
-    """Idempotent — safe to call on every driver start."""
+    """Idempotent, safe to call on every driver start."""
     with connect(path) as c:
         c.executescript(SCHEMA)
         c.commit()
@@ -150,7 +150,7 @@ def requeue(unit_id: int, note: str = "") -> None:
     on a pending unit makes every duration and ordering query built on it lie: the re-queued
     35B cell reported a running time of MINUS 228 minutes, because `ended_at` still held the
     moment its failed attempt died while `started_at` had moved forward to the retry.
-    `out_path`/`n_rows_got` are cleared for the same reason — they describe an attempt that is
+    `out_path`/`n_rows_got` are cleared for the same reason; they describe an attempt that is
     no longer the unit's result.
     """
     with connect() as c:
@@ -211,7 +211,7 @@ def validate_output(path: Path, model_tag: str, n_expected: int, arm: str,
     (row count mismatch); mislabeled cell (model tag); silent arm-A degradation on a
     retrieval arm (arms.build_user returns [] refs when retrieve() finds nothing);
     and a model that returned nothing usable (thinking-budget exhaustion, or grammar
-    unsupported on a new architecture — both produce well-formed empty rows).
+    unsupported on a new architecture; both produce well-formed empty rows).
     """
     if not path.exists():
         return False, "output file missing"
@@ -231,12 +231,12 @@ def validate_output(path: Path, model_tag: str, n_expected: int, arm: str,
     answered = sum(1 for r in rows if _has_answer(r))
     if answered < min_answer_frac * len(rows):
         return False, f"only {answered}/{len(rows)} rows carry an answer"
-    # "answered" is not "engaged" — the 2026-07-30 lesson. The Qwen3-Next Instruct variant
+    # "answered" is not "engaged", the 2026-07-30 lesson. The Qwen3-Next Instruct variant
     # returned a valid grammar-constrained answer on every row in ~8 tokens, i.e. no
     # reasoning at all, and passed every other check. A thinking model that suddenly emits
     # near-zero tokens is either the wrong variant or has reasoning disabled, and its scores
     # are not a capability measurement. Flag it rather than silently banking the cell.
-    # A MISSING field means the harness didn't record token counts — not evidence about the
+    # A MISSING field means the harness didn't record token counts, not evidence about the
     # model. Only judge when the field is actually present.
     toks = sorted(r["completion_tokens"] for r in rows
                   if r.get("completion_tokens") is not None)
@@ -246,7 +246,7 @@ def validate_output(path: Path, model_tag: str, n_expected: int, arm: str,
                        f"answering without reasoning (wrong variant / thinking disabled?)")
     # finish_reason census (2026-08-02). The 8192-token ceiling silently truncated Thinking
     # models mid-trace on 2026-07-31 and their blanks scored as misses, understating them by
-    # up to 14pp — with nothing in the ledger to show it. A cell where a large share of rows
+    # up to 14pp, with nothing in the ledger to show it. A cell where a large share of rows
     # died at the ceiling is not a capability measurement, it is a budget measurement.
     census: dict[str, int] = {}
     for r in rows:
@@ -254,10 +254,10 @@ def validate_output(path: Path, model_tag: str, n_expected: int, arm: str,
     n_len = census.get("length", 0)
     if n_len > MAX_TRUNCATED_FRAC * len(rows):
         return False, (f"{n_len}/{len(rows)} rows hit the token ceiling "
-                       f"(finish_reason=length) — raise --max-tokens before banking this cell")
+                       f"(finish_reason=length), raise --max-tokens before banking this cell")
     # a stale dense index or a silent hybrid->BM25 fallback changes what the model was shown
     if any(r.get("index_stale") for r in rows):
-        return False, "rows report a STALE dense index — rebuild before banking this cell"
+        return False, "rows report a STALE dense index, rebuild before banking this cell"
     if any(r.get("dense_fallback") for r in rows):
         return False, "hybrid silently fell back to BM25 (dense index unavailable)"
     cen = " ".join(f"{k}={v}" for k, v in sorted(census.items()))

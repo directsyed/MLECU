@@ -1,5 +1,5 @@
 """The write-path guard. `apply_proposal` is THE ONLY function in the whole car/ package that
-turns a Proposal into applied Table edits — every write (algorithm, future LLM, human override)
+turns a Proposal into applied Table edits; every write (algorithm, future LLM, human override)
 goes through here, so "the LLM never writes ECU values directly" is true by construction.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ def apply_proposal(tables: TableSet, prop: Proposal, ctx: ClampContext) -> tuple
 
     Returns (new_tables, result). If the proposal is blocked (knock abort / deferral) or nothing
     survives, the tables are returned UNCHANGED. This is the only call site permitted to invoke
-    TableSet.with_edits — enforced by the meta-test in tests/test_write_path.py.
+    TableSet.with_edits, enforced by the meta-test in tests/test_write_path.py.
     """
     result = apply_clamps(prop, ctx)
     if not result.ok or not result.clamped_edits:

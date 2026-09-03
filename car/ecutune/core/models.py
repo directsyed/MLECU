@@ -1,11 +1,11 @@
-"""Core data contracts for the deterministic tuning layer — THE types every module shares.
+"""Core data contracts for the deterministic tuning layer, THE types every module shares.
 
 Mirrors corpus_pipeline/core/models.py (dataclass + __post_init__ + dumps/loads), adapted
 from documents to ECU tables/proposals.
 
 The load-bearing safety object is `Proposal`: the typed unit of change. A Proposal NEVER
 reaches a Table except through safety.apply_proposal(). The future LLM is just another
-Proposal producer — same path, same clamps, same audit trail. That is what makes "the LLM
+Proposal producer, same path, same clamps, same audit trail. That is what makes "the LLM
 never writes ECU values" true *by construction*, not by promise.
 """
 from __future__ import annotations
@@ -38,7 +38,7 @@ class Table:
     kind: str                       # "scalar" | "curve_1d" | "map_2d"
     values: np.ndarray
     units: str = ""
-    hard_min: float = -math.inf     # absolute floor (config / base-def) — never crossable
+    hard_min: float = -math.inf     # absolute floor (config / base-def), never crossable
     hard_max: float = math.inf
     x_axis: TableAxis | None = None   # cols (load / airflow / battery_v)
     y_axis: TableAxis | None = None   # rows (rpm)
@@ -109,7 +109,7 @@ class Proposal:
     proposal_id: str
     stage: str                      # "idle_stage2" | "stage3_boost" | ...
     edits: tuple[CellEdit, ...]
-    targets_kind: str               # "fuel" | "timing" | "boost" — drives ordering clamps
+    targets_kind: str               # "fuel" | "timing" | "boost", drives ordering clamps
     provenance: str                 # "algorithm:idle_global_scalar" | "llm:vN" | "human"
     metadata: dict = field(default_factory=dict)
 
@@ -129,7 +129,7 @@ class Proposal:
 @dataclass(frozen=True)
 class ClampViolation:
     """One audit-trail entry: a clamp modified or rejected an edit. Every modification is
-    recorded — auditability is itself a safety property (and a future training signal)."""
+    recorded, auditability is itself a safety property (and a future training signal)."""
     clamp: str                      # e.g. "ve_rate_limit"
     table_id: str
     row: int
@@ -183,7 +183,7 @@ class ClampContext:
     # bend a table because the layer had no independent basis on which to disagree.
     fault_estimate: object | None = None
     # The archived stock-ROM values. clamp_ve_rate_limit bounds RATE (3%/iteration) and nothing
-    # bounded cumulative displacement — 12 iterations compounds to 43%. clamp_belief_envelope
+    # bounded cumulative displacement, 12 iterations compounds to 43%. clamp_belief_envelope
     # bounds distance from here.
     baseline_tables: TableSet | None = None
     # --- 2026-08-27: evidence behind a SENSOR recalibration ---------------------------------

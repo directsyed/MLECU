@@ -1,4 +1,4 @@
-"""The ROM write path — the safety-critical build.
+"""The ROM write path, the safety-critical build.
 
 `romread/__init__.py` states the read package is "strictly one-directional: bytes in, numbers
 out. There is deliberately no write/patch path in this package." These tests cover the path that

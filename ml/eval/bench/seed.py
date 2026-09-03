@@ -3,14 +3,14 @@
 Idempotent: labels are UNIQUE, so re-running adds only what's missing. Run with
   car/.venv/bin/python -m bench.seed [--phase burnin|guard|showdown|all]
 
-PROTOCOL NOTES BAKED IN HERE (not incidental — comparability depends on them):
+PROTOCOL NOTES BAKED IN HERE (not incidental, comparability depends on them):
  * Arm B top-k is SUITE-SPECIFIC: E1v2 @3 (the incumbent's ratified 93.9% PASS cell),
    E2 @6 +guard (the B-v3 gate cell). A single k would make half the matrix
    non-comparable to the incumbent's records.
  * --probes and --cases are ALWAYS explicit: the CLI defaults are the 93-line draft probe
    file and the v1 case file, neither of which is what we measure.
  * --model-name always carries "<model>|<config-tag>" because the result FILENAME does not
-   encode the model — only the row field does.
+   encode the model, only the row field does.
  * 1 run per challenger cell (Syed 2026-07-29); the incumbent's 4-invocation re-baseline
    establishes the noise band that decides what counts as a real difference.
 """
@@ -39,7 +39,7 @@ def prof(key, gguf, extra=None, ti_only=False) -> str:
 # ------------------------------------------------------------------ phase 1
 
 def seed_burnin() -> None:
-    """Serial. Nothing else may run until these pass — a bad DIMM would silently corrupt
+    """Serial. Nothing else may run until these pass, a bad DIMM would silently corrupt
     every downstream measurement, and B4 already proved this hardware isn't perfect."""
     units = [
         ("burnin-edac-baseline", "for f in /sys/devices/system/edac/mc/mc*/ce_count "
@@ -49,12 +49,12 @@ def seed_burnin() -> None:
         # checkerboard, bit spread/flip, XOR/SUB/MUL/DIV, sequential increment). ~6-9h.
         ("burnin-memtester-100g",
          "memtester 100G 1 > ml/finetuning/logs/memtester-20260729.log 2>&1"),
-        # stress-ng: concurrent multi-threaded writers — the contention pattern memtester's
+        # stress-ng: concurrent multi-threaded writers, the contention pattern memtester's
         # single-threaded walk cannot produce. 28 workers = one per physical core.
         ("burnin-stressng-vm",
          "stress-ng --vm 28 --vm-bytes 4G --vm-method all --verify --timeout 2h "
          "--metrics-brief > ml/finetuning/logs/stressng-20260729.log 2>&1"),
-        # Real aggregate bandwidth across both NUMA nodes — replaces my ~120GB/s estimate
+        # Real aggregate bandwidth across both NUMA nodes, replaces my ~120GB/s estimate
         # with a measurement, and is the number the MoE offload projections rest on.
         ("burnin-numa-bandwidth",
          "numactl --interleave=all stress-ng --stream 28 --stream-madvise hugepage "
@@ -78,7 +78,7 @@ def seed_guard() -> None:
     seq = 0
 
     # (1) The noise band / MTP experiment: SAME cell, 4 separate invocations.
-    # 2 with MTP + 2 without answers three questions at once — how much variance a
+    # 2 with MTP + 2 without answers three questions at once, how much variance a
     # comparison must clear, whether MTP causes the cross-invocation drift, and what the
     # 93.9% cell scores on CURRENT retrieval code (it predates the 07-25 retriever fixes).
     for i in (1, 2):
@@ -93,7 +93,7 @@ def seed_guard() -> None:
                                       "--retrieval-mode", "hybrid", "--model-name", name]))
             seq += 1
 
-    # (2) Arm D + guard — the guard's live value has never been measured on a model that
+    # (2) Arm D + guard, the guard's live value has never been measured on a model that
     # actually fabricates (base attempted 1; the fine-tune attempted 14-15).
     name = "qwen27b-q8+qlora-v1|hybrid-k6+guard"
     ledger.add_unit(phase="guard", seq=seq, model_key="qwen27b-ft", label="guard-armD-k6",
@@ -104,7 +104,7 @@ def seed_guard() -> None:
                                           "--retrieval-mode", "hybrid", "--model-name", name]))
     seq += 1
 
-    # (3) Arm B + guard at k3 — completes the guard matrix.
+    # (3) Arm B + guard at k3, completes the guard matrix.
     name = "qwen3.6-27b-q8_0|hybrid-k3+guard"
     ledger.add_unit(phase="guard", seq=seq, model_key="qwen27b-dense", label="guard-armB-k3",
                     kind="harness", server_profile=base_mtp, arm="B", suite="e2",
@@ -138,7 +138,7 @@ SHOWDOWN = [
      ["-ncmoe", "20"]),                                                 # 63.4 GB NATIVE MXFP4
     # DEVIATION FROM THE Q6 FLOOR, deliberate and logged: Mistral's UD-Q6_K is 99.4 GB,
     # which forces ~77 GB into RAM and lands the cell below the >=10 t/s interactive floor
-    # — i.e. Q6 would make this cell unmeasurable rather than merely slow. MXFP4_MOE
+    #, i.e. Q6 would make this cell unmeasurable rather than merely slow. MXFP4_MOE
     # (71.8 GB) is the MoE-optimised 4-bit format, directly analogous to gpt-oss's native
     # release, keeping the two 100B-class cells comparable. Mistral is the droppable
     # exploratory cell; flagged for Syed in the final report.
@@ -179,7 +179,7 @@ def seed_showdown() -> None:
 PROBES_V2 = "data/e2_probes_v2.jsonl"
 
 # The CALIBRATED profiles the showdown actually adopted, read back out of the ledger and
-# cleaned up (the calibrator appended its -ot flags twice on two models — harmless but
+# cleaned up (the calibrator appended its -ot flags twice on two models: harmless but
 # confusing, and llama.cpp takes the last one anyway). Every profile carries ctx 24576:
 # prompt and completion share the window, so a 16384 completion budget cannot live in a
 # 16384 context. That was the 2026-08-01 truncation defect and it is not repeatable here.
@@ -213,7 +213,7 @@ E2V2_MODELS = [
       "ti_only": False, "tensor_split": "1,0", "ctx": 24576}, False),
 ]
 
-# Uniform across every cell — these are the comparability contract, not tuning knobs.
+# Uniform across every cell: these are the comparability contract, not tuning knobs.
 E2V2_COMMON = ["--max-tokens", "16384", "--timeout", "1800", "--retrieval-mode", "hybrid"]
 
 
@@ -222,12 +222,12 @@ def seed_e2v2() -> None:
 
     MTP is OFF everywhere. MTP is NOT output-invariant (measured 2026-07-31: 91.2% answer
     agreement on-vs-off), so it is a variable, and a comparison matrix may hold only one
-    value of a variable. The deployed 27B still serves MTP-on — that is a serving decision,
+    value of a variable. The deployed 27B still serves MTP-on; that is a serving decision,
     not a measurement one.
 
     DELIBERATE EXPANSION of the plan's 10 cells to 15, logged in decisions.md: the plan
     reruns arm B only, on the reasoning that the snippet fix cannot touch a closed-book arm.
-    True — but `finish_reason` did not exist when the arm-A cells were run, so their empty
+    True, but `finish_reason` did not exist when the arm-A cells were run, so their empty
     completions cannot be separated into truncated vs no_answer retroactively, and arm A is
     where most empty completions happened. The A2 fix is unmeasurable on arm A without a
     rerun. ~4h added to a ~17h run to close a gap the plan itself opens.

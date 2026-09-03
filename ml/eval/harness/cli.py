@@ -1,4 +1,4 @@
-"""Eval CLI — mirrors judge.cli ergonomics.
+"""Eval CLI, mirrors judge.cli ergonomics.
 
   python -m harness.cli --run-e1 --arm B [--runs 2] [--limit N]   # run arm(s) on sim cases
   python -m harness.cli --score results/e1-armB-run1-*.jsonl      # score a results file
@@ -31,7 +31,7 @@ def main() -> None:
                         "completion, so the request died mid-cell (2026-08-01).")
     p.add_argument("--max-tokens", type=int, default=None,
                    help="max_completion_tokens (reasoning + answer share ONE budget). 8192 "
-                        "truncated Thinking-class models mid-trace on 2026-07-31 — their "
+                        "truncated Thinking-class models mid-trace on 2026-07-31, their "
                         "blanks scored as misses and understated them by up to 14pp.")
     p.add_argument("--runs", type=int, default=2, help="repeat count (determinism check)")
     p.add_argument("--limit", type=int, default=None, help="first N cases only (smoke)")
@@ -44,8 +44,8 @@ def main() -> None:
     p.add_argument("--guard", action="store_true",
                    help="deterministic citation guard on retrieval arms (B-v3+): stated "
                         "numbers must appear in retrieved snippets or become declines")
-    # C4 (2026-08-02): this defaulted to the 93-row DRAFT file — the one whose own header says
-    # "DRAFT ONLY — Syed spot-check required before any arm runs against it". Any E2 invocation
+    # C4 (2026-08-02): this defaulted to the 93-row DRAFT file, the one whose own header says
+    # "DRAFT ONLY, Syed spot-check required before any arm runs against it". Any E2 invocation
     # that forgot --probes silently benchmarked against unratified probes.
     p.add_argument("--probes", type=Path, default=EVAL_DIR / "data/e2_probes_v2.jsonl",
                    help="ratified probe file (never the draft). v2 = v1 + one question fix "
@@ -76,13 +76,13 @@ def main() -> None:
     if args.gen_pairs:
         llm.health_check(cfg.llm)
         pairgen.generate(cfg, limit=args.limit or 400)
-        print("DRAFT ONLY — Syed spot-check (knob C3) before any training mix.")
+        print("DRAFT ONLY, Syed spot-check (knob C3) before any training mix.")
         return
 
     if args.gen_e2:
         llm.health_check(cfg.llm)
         e2gen.generate(cfg, limit=args.limit or 60)
-        print("DRAFT ONLY — Syed spot-check required before any arm runs against it.")
+        print("DRAFT ONLY, Syed spot-check required before any arm runs against it.")
         return
 
     if args.score_e2:

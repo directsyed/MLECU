@@ -1,9 +1,9 @@
-"""Fault taxonomy — each fault is a seeded perturbation of believed tables vs engine truth.
+"""Fault taxonomy; each fault is a seeded perturbation of believed tables vs engine truth.
 
 Baseline truth is THIS build (OEM 2005 FXT ~500 cc/min injectors, 1.0 ms dead time, unity MAF
 transfer). Magnitude ranges are chosen to produce realistic trim signatures (roughly +6..+20%),
 inside typical A/F-learning authority. `acceptable` lists faults genuinely indistinguishable from
-the label at this fidelity (leak vs dead-time needs a voltage sweep — real-car territory).
+the label at this fidelity (leak vs dead-time needs a voltage sweep, real-car territory).
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def build_case_world(spec: FaultSpec, rng: np.random.Generator) -> tuple[TableSe
     """Return (believed tables, true engine params, magnitude_pct) for one sampled fault instance.
 
     The ECU's believed tables start CORRECT (matched OEM build) and the fault perturbs exactly one
-    thing — either a belief (scaling faults) or the engine itself (leak).
+    thing, either a belief (scaling faults) or the engine itself (leak).
     """
     lo, hi = spec.magnitude_range
     mag = float(rng.uniform(lo, hi))

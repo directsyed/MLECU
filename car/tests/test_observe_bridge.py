@@ -4,7 +4,7 @@ This is the real-car analog of `simulation.harness.collect_observations` that
 `car/logging/CAPTURE-PROTOCOL.md` always specified but was never built. These tests pin two
 things: (1) the bridge transforms the THREE COMMITTED REAL HOLDS into the diagnosis Claude read
 by hand (no leak; ~5% rich bias that the layer honestly refuses to pin to MAF-vs-flow from a
-self-referential baseline); (2) a leak-shaped capture still makes the layer flag a leak — the
+self-referential baseline); (2) a leak-shaped capture still makes the layer flag a leak, the
 capability is intact, not tuned away.
 """
 from __future__ import annotations
@@ -50,7 +50,7 @@ def test_layer_diagnoses_no_leak_and_refuses_to_guess_maf_vs_flow():
     believed, _t, _o, _r = fxt_rom_into_ej20x()
     obs = observations_from_logs(HOLDS, BASE, maf_term=False)   # self-referential default
     est = identify(believed, obs, EngineParams())
-    # THE leak is ruled out — the whole point of the fast-idle probe (a leak's trim would shrink
+    # THE leak is ruled out, the whole point of the fast-idle probe (a leak's trim would shrink
     # with airflow; ours went the other way).
     assert est.fault_id != "vacuum_leak"
     assert "vacuum_leak" not in [k for k, _ in

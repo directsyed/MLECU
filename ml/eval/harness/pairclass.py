@@ -1,9 +1,9 @@
-"""Pair classification — executes the hardened review standard (ml/CLAUDE.md, 2026-07-15).
+"""Pair classification, executes the hardened review standard (ml/CLAUDE.md, 2026-07-15).
 
 Every synthetic pair gets judged on BOTH coupled axes: structural quality (depth of the
 causal arc) AND fit to the project's CURRENT need (idle-tune-first, modern-ECU Subaru).
 Output feeds the assembly pass: dedup -> drop legacy/shallow -> 70/30 stratify -> cap.
-The classifier model never sees provenance, only the pair text — no source-prestige bias.
+The classifier model never sees provenance, only the pair text; no source-prestige bias.
 Resume-safe: appends, skips already-classified ids on restart.
 """
 from __future__ import annotations
@@ -17,13 +17,13 @@ from .config import Config, MLECU
 
 SYSTEM = (
     "You grade training pairs for an ECU-tuning assistant. PROJECT CONTEXT: the current goal "
-    "is making a modern MAF-metered, closed-loop Subaru idle and drive correctly — priority "
+    "is making a modern MAF-metered, closed-loop Subaru idle and drive correctly, priority "
     "topics are MAF calibration, idle control, injector flow/latency, VE/load-model, fuel "
     "trims/AFR; ignition and boost matter later. OUT OF FIELD entirely (grade off_field): "
     "diesel calibration/fuel delivery, engine CONSTRUCTION or fabrication (porting, machining, "
     "part selection), combustion research and simulation mathematics (heat flux, radiation, "
     "chemical kinetics), emissions-lab regulation work, and vintage tech (carburetors, points) "
-    "— anything a gasoline-ECU calibrator cannot act on with a laptop and a ROM editor. "
+    " - anything a gasoline-ECU calibrator cannot act on with a laptop and a ROM editor. "
     "Grade BOTH axes independently and honestly."
 )
 
@@ -37,7 +37,7 @@ Grade it:
 - relevance: subaru (Subaru/EJ-FA specific), modern_general (transfers to any modern
   gasoline EFI engine AND is actionable via ECU calibration), legacy_tech (carburetors,
   points, vintage fitment), off_field (diesel, engine construction/machining, combustion
-  research math, emissions-lab — not gasoline-ECU-calibration work)
+  research math, emissions-lab, not gasoline-ECU-calibration work)
 - depth: deep (diagnosis states the causal mechanism and excludes alternatives; change names
   a specific parameter with direction/magnitude), adequate (correct arc, thinner reasoning),
   shallow (label-matching, 'fix by applying fix', restated outcome)
@@ -83,7 +83,7 @@ def classify(cfg: Config, drafts=DRAFTS, out: Path = OUT, only_ids=None,
                     json_schema=SCHEMA)
                 verdict = json.loads(content)
             except (llm.LlmError, json.JSONDecodeError, KeyError) as e:
-                log(f"  [{i+1}/{len(pairs)}] {p['pair_id']}: FAILED ({e}) — skipping")
+                log(f"  [{i+1}/{len(pairs)}] {p['pair_id']}: FAILED ({e}), skipping")
                 continue
             f.write(json.dumps({"pair_id": p["pair_id"], **verdict}) + "\n")
             f.flush()

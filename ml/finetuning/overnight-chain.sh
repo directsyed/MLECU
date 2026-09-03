@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MLECU overnight chain — 2026-07-22 (Syed asleep; plan: ~/.claude/plans/snug-shimmying-spring.md)
+# MLECU overnight chain: 2026-07-22 (Syed asleep; plan: ~/.claude/plans/snug-shimmying-spring.md)
 # Train arm-C QLoRA -> serve adapter -> batteries C, D@6 -> base server -> B-v2@6 ->
 # top_k sweeps (runs=1) -> judge batch (333 pending) -> done.
 # Every stage logs here; a failed stage aborts its DEPENDENTS only. No sudo anywhere.
@@ -42,7 +42,7 @@ server_stop(){
 
 battery(){                            # battery <arm> <e1_topk> <e2_topk> <runs> <model_name>
   local ARM=$1 K1=$2 K2=$3 RUNS=$4 NAME=$5
-  log "battery arm=$ARM E1@$K1 E2@$K2 runs=$RUNS model=$NAME — order E1v2, E2, E1v1"
+  log "battery arm=$ARM E1@$K1 E2@$K2 runs=$RUNS model=$NAME, order E1v2, E2, E1v1"
   cd "$M/ml/eval" || return 1
   "$V/python" -m harness.cli --run-e1 --arm "$ARM" --runs "$RUNS" \
       --cases data/sim_cases_v2.jsonl --top-k "$K1" --model-name "$NAME" >> "$LOG" 2>&1 \
@@ -57,20 +57,20 @@ battery(){                            # battery <arm> <e1_topk> <e2_topk> <runs>
 
 log "=========== CHAIN START ==========="
 
-# ---- STAGE 0: training (smoke gate, then the real run) — Ti ONLY ----
+# ---- STAGE 0: training (smoke gate, then the real run) - Ti ONLY ----
 log "=== STAGE 0: QLoRA training ==="
 cd "$M"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True   # 04:30 fix: defragment the tight fit
 if CUDA_VISIBLE_DEVICES=0 "$V/python" ml/finetuning/train.py --smoke >> "$LOG" 2>&1; then
-  log "smoke OK — full run starting"
+  log "smoke OK, full run starting"
   if CUDA_VISIBLE_DEVICES=0 "$V/python" ml/finetuning/train.py >> "$LOG" 2>&1; then
     log "training COMPLETE"
     TRAINED=1
   else
-    log "training FAILED — C/D batteries aborted"; TRAINED=0
+    log "training FAILED, C/D batteries aborted"; TRAINED=0
   fi
 else
-  log "SMOKE FAILED — training + C/D aborted"; TRAINED=0
+  log "SMOKE FAILED, training + C/D aborted"; TRAINED=0
 fi
 
 # ---- STAGE 1: adapter -> GGUF ----
@@ -80,7 +80,7 @@ if [ "$TRAINED" = 1 ]; then
         --base "$BF16_DIR" --outfile "$ADAPTER_GGUF" --outtype f16 >> "$LOG" 2>&1; then
     log "adapter GGUF ready: $(du -h "$ADAPTER_GGUF" | cut -f1)"
   else
-    log "adapter conversion FAILED — C/D batteries aborted"; TRAINED=0
+    log "adapter conversion FAILED, C/D batteries aborted"; TRAINED=0
   fi
 fi
 
@@ -97,22 +97,22 @@ if [ "$TRAINED" = 1 ]; then
       battery D 3 6 1 "$FT_NAME|e1k3-e2k6"
       battery D 3 3 1 "$FT_NAME|k3-all"
     else
-      log "dense index NEVER appeared — D batteries ABORTED (no mislabeled cells)"
+      log "dense index NEVER appeared, D batteries ABORTED (no mislabeled cells)"
     fi
     server_stop
   else
-    log "fine-tuned server failed — C/D skipped"
+    log "fine-tuned server failed, C/D skipped"
   fi
 fi
 
 # ---- STAGE 4: base server (certified judge config, MTP on) -> B-v2 battery + sweeps ----
 log "=== STAGE 4: arm B-v2 battery (base + hybrid retrieval @6) ==="
-# 04:30 fix: HARD index requirement — first chain ran B-v2 on silent BM25 fallback
+# 04:30 fix: HARD index requirement - first chain ran B-v2 on silent BM25 fallback
 # (mislabeled cell, quarantined in results/aborted-20260723). Retrieval batteries now
 # refuse to start hybrid-labeled without the dense index.
 for _ in $(seq 1 240); do [ -f "$INDEX" ] && break; sleep 30; done
 if [ ! -f "$INDEX" ]; then
-  log "dense index NEVER appeared — B-v2 battery ABORTED (no mislabeled cells)"
+  log "dense index NEVER appeared, B-v2 battery ABORTED (no mislabeled cells)"
 elif server_start base --spec-type draft-mtp; then
   battery B 6 6 2 "$BASE_NAME"
   log "=== STAGE 6b: arm B-v2 top_k sweeps (runs=1) ==="
@@ -120,12 +120,12 @@ elif server_start base --spec-type draft-mtp; then
   battery B 3 3 1 "$BASE_NAME|k3-all"
 
   # ---- STAGE 5: judge batch on the SAME base server (its certified config) ----
-  log "=== STAGE 5: judge batch — 333 pending docs incl. re-queued 5781 ==="
+  log "=== STAGE 5: judge batch, 333 pending docs incl. re-queued 5781 ==="
   cd "$M/ml/curation" || true
   "$V/python" -m judge.cli --run >> "$LOG" 2>&1 || log "judge batch FAILED (non-fatal)"
   server_stop
 else
-  log "base server failed — B-v2 + judge batch skipped"
+  log "base server failed, B-v2 + judge batch skipped"
 fi
 
 log "=========== CHAIN COMPLETE ==========="

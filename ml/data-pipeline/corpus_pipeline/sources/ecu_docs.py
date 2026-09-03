@@ -1,6 +1,6 @@
-"""EFI-reference HTML doc ingester — standalone-ECU / EFI manuals (reference tier).
+"""EFI-reference HTML doc ingester, standalone-ECU / EFI manuals (reference tier).
 
-Scrapes a curated list of doc pages (config `doc_sets`) into REFERENCE-tier Documents — the
+Scrapes a curated list of doc pages (config `doc_sets`) into REFERENCE-tier Documents, the
 canonical engine-management math that both informs the deterministic tuning algorithms AND
 gives the Stage-B judge an authoritative tier to ground noisy forum claims against (no
 circularity: the judge checks community claims against this trusted tier, never trains on the
@@ -60,7 +60,7 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
                 continue
             title, text = _clean(html)
             if len(text) < min_chars:
-                log.info("ecu_docs: %s thin (%d chars) — skip", page, len(text))
+                log.info("ecu_docs: %s thin (%d chars), skip", page, len(text))
                 continue
             yield Document(
                 source=name, source_id=f"{ds_name}:{page}",

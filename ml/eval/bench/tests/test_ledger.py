@@ -164,7 +164,7 @@ def test_validate_accepts_genuine_reasoning(tmp_path):
 
 
 def test_requeue_clears_the_previous_attempts_completion_fields(tmp_path, monkeypatch):
-    """A stale ended_at on a pending unit makes every duration query built on it lie — the
+    """A stale ended_at on a pending unit makes every duration query built on it lie, the
     re-queued 35B cell reported a running time of MINUS 228 minutes (2026-08-03)."""
     db = tmp_path / "l.sqlite"
     monkeypatch.setattr(ledger, "DB_PATH", db)

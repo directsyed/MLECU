@@ -1,4 +1,4 @@
-# J2534 interface died at flash start — 2026-08-31
+# J2534 interface died at flash start: 2026-08-31
 
 **Status: OPEN.** The ECU is fine. The interface is not.
 
@@ -16,8 +16,8 @@ Syed connected the Washinglee Openport 2.0 clone (serial `TAhJALxt`, FW `1.17.48
 
 ## The ECU was never touched
 
-Stuck at 0% with a dead interface means nothing was transmitted. The D28 hazard — an erase that
-is sent unconditionally, leaving a page erased and unprogrammed — requires the tool to reach a
+Stuck at 0% with a dead interface means nothing was transmitted. The D28 hazard, an erase that
+is sent unconditionally, leaving a page erased and unprogrammed, requires the tool to reach a
 programming session and send the erase. That cannot happen through an interface with no power.
 Confirmed empirically: the car runs.
 
@@ -33,17 +33,17 @@ the laptop floating there is no return path through the USB ground, so no loop c
 
 Recorded rather than deleted, in the same spirit as D30: the reasoning was sound for the setup
 I assumed and wrong about the setup that existed. **The checklist change it prompted stands on
-its own merits** — laptop on battery is still correct practice and costs nothing — but it is no
+its own merits**, laptop on battery is still correct practice and costs nothing, but it is no
 longer an explanation of THIS failure, and it should not be cited as one.
 
 ### Revised hypotheses, in order
 
 1. **A transient on the 12 V rail from the battery pack.** Now the leading candidate, because it
    is the only mains- or supply-side variable that was actually present. Cheap chargers and
-   maintainers — especially anything with a pulse/desulfation mode — can put spikes well above
+   maintainers, especially anything with a pulse/desulfation mode, can put spikes well above
    14 V on the battery terminals. Pin 16 of the OBD connector feeds the interface's regulator
    directly, and a clone has no TVS clamp in front of it. **Open question for Syed: what kind of
-   pack — a mains-powered maintainer/charger, or a portable lithium jump pack?** A maintainer in
+   pack, a mains-powered maintainer/charger, or a portable lithium jump pack?** A maintainer in
    desulfation mode is a very different risk from a passive lithium pack.
 2. **The clone simply failed.** Random hardware mortality on an unprotected board, exposed by the
    one operation that stresses it: the mode switch into programming changes current draw and
@@ -58,20 +58,20 @@ stage rather than at the FTDI or the PIC.
 ## Superseded: the ground-loop reasoning
 
 The pre-flash checklist said **"battery charger on, laptop on AC"** (`docs/ROADMAP.md`, and the
-footer of every change report). That puts **two mains-earthed devices** — the laptop PSU and the
-battery charger — bonded together through the OBD connector's ground pin, with the interface in
+footer of every change report). That puts **two mains-earthed devices**: the laptop PSU and the
+battery charger, bonded together through the OBD connector's ground pin, with the interface in
 the middle.
 
 A J2534 clone has **no galvanic isolation**, minimal TVS/ESD protection and a cheap regulator on
 pin 16 (+12 V from the car). Any potential difference between the two earths flows through the
 interface's ground, and the moment of highest stress is exactly when the tool switches into
-programming mode and the current draw changes — which is when this died.
+programming mode and the current draw changes, which is when this died.
 
 This is a well-known failure mode for OBD interfaces generally and clones specifically. It is not
 proof, but it is the hypothesis that fits the timing, the symptom, and our own procedure.
 
 **Checklist corrected 2026-08-31: the laptop runs on its OWN BATTERY, fully charged.** The
-battery maintainer on the car stays (it prevents a voltage sag mid-write) — it is the only thing
+battery maintainer on the car stays (it prevents a voltage sag mid-write); it is the only thing
 that should be on mains. A Subaru ROM write takes a few minutes; a charged laptop will not die in
 that window, and the ground loop is the larger risk.
 
@@ -87,8 +87,8 @@ connectors joined** (retested 2026-08-29), which is why FastECU is the only usab
 
 1. **Measure the OBD port with a multimeter: pin 16 (+12 V) to pin 4 or 5 (ground).** Should read
    battery voltage, ~12.4 V. This settles the car side definitively in one minute and is far
-   better than reasoning about fuses. A blown OBD fuse **sets no DTC** — nothing monitors that
-   circuit; the connector's power exists for the scan tool, not for the ECU — so "no code" is not
+   better than reasoning about fuses. A blown OBD fuse **sets no DTC**: nothing monitors that
+   circuit; the connector's power exists for the scan tool, not for the ECU, so "no code" is not
    evidence the port is healthy.
 2. **Try the interface on a different PC.** Rules out the laptop's USB stack and drivers in one
    step. Highest-value test after the multimeter.
@@ -101,14 +101,14 @@ connectors joined** (retested 2026-08-29), which is why FastECU is the only usab
 **The tool is dead independently of the car.** Pin 16 supplies +12 V and USB supplies 5 V by
 separate paths, and it responds to neither. A blown OBD fuse would explain the missing LEDs on
 the car but cannot explain the missing USB enumeration. Step 1 therefore is not about diagnosing
-the interface — it is about not plugging a new one into a faulty circuit.
+the interface; it is about not plugging a new one into a faulty circuit.
 
 ## Measurements taken 2026-08-31, and two corrections to my reasoning
 
 | measurement | result | meaning |
 |---|---|---|
 | CAR's OBD pin 16 → pin 4, DC volts | **12.7 V** | car side is healthy. Port live, fuse intact, wiring fine. A replacement can be plugged in safely. |
-| DEVICE's OBD plug pin 16 → pin 4, Ω | **11 kΩ** | **NOT shorted.** The input stage is intact — this rules out the failure I thought most likely, and rules out the mode that would have taken the car's fuse. |
+| DEVICE's OBD plug pin 16 → pin 4, Ω | **11 kΩ** | **NOT shorted.** The input stage is intact; this rules out the failure I thought most likely, and rules out the mode that would have taken the car's fuse. |
 
 **CORRECTION 1, ITSELF WITHDRAWN.** I first called "no LEDs on the OBD port" near-conclusive,
 then withdrew that on the grounds that many clones are USB-powered only. **Syed confirms this
@@ -118,7 +118,7 @@ vehicle-powered, the original reading was right, and the withdrawal was wrong. N
 
 **HARDWARE DETAIL THAT MATTERS: the device side is USB MINI-B, not Type-A.** The cable is
 DETACHABLE, not captive. Two consequences: a suspect cable can be eliminated by substitution in
-thirty seconds, and the Mini-B *socket* on the board becomes a candidate in its own right —
+thirty seconds, and the Mini-B *socket* on the board becomes a candidate in its own right -
 those are small surface-mount parts whose pads crack from repeated plugging.
 
 ## What the combination actually implies
@@ -129,20 +129,20 @@ Both supply paths are dead:
 * **USB power** enters at Mini-B pin 1 → normally enumerates → now nothing
 
 Those two inputs arrive on different pins, through different front-end components. **When two
-independent inputs both stop working, suspect what they SHARE** — and what they share is the
+independent inputs both stop working, suspect what they SHARE**, and what they share is the
 internal regulator and the rail it feeds (and the micro on that rail, which is what actually
 drives the LEDs).
 
 The 11 kΩ from pin 16 to ground supports this. At 12.7 V that path draws ~1.15 mA; a working
 interface draws tens of milliamps. That reads like a bleeder or divider still present while the
-main supply path is not conducting — consistent with an open series element or a dead regulator,
+main supply path is not conducting, consistent with an open series element or a dead regulator,
 and inconsistent with a healthy board.
 
 **Leading hypothesis is now the internal voltage regulator (or the micro it feeds).** That is a
 single-point failure explaining every symptom at once, and it is cheap and realistic to repair if
 the part can be identified.
 
-**CORRECTION 2 — a genuine Openport 2.0 is not a practical replacement.** It has been out of
+**CORRECTION 2, a genuine Openport 2.0 is not a practical replacement.** It has been out of
 production for years and now sells for thousands. The earlier recommendation to "buy genuine" was
 written without checking that, and it is not actionable. See the revised recommendation.
 
@@ -150,7 +150,7 @@ written without checking that, and it is not actionable. See the revised recomme
 
 A meter can prove the interface is dead; it cannot prove it is alive. A shorted input is
 conclusive; the absence of a short is not, because an open regulator and a dead microcontroller
-both measure the same as a healthy board. Run these anyway — the shorted case is the most likely
+both measure the same as a healthy board. Run these anyway, the shorted case is the most likely
 one and it is the one that also endangers the next tool.
 
 **Disconnect from BOTH the car and the PC first.** Resistance readings on a powered circuit are
@@ -165,7 +165,7 @@ meaningless and can damage the meter.
 
 **A short from pin 16 to ground is the signature to look for.** It explains the instant USB
 complaint, the total absence of LEDs, and it is the failure mode that blows the car's OBD fuse on
-its way out — so finding it also tells you to check that fuse before plugging anything else in.
+its way out, so finding it also tells you to check that fuse before plugging anything else in.
 
 Not measurable with a meter: the FTDI USB bridge, the PIC, and the K-line transceiver. Their
 state cannot be inferred from resistance, so "no short found" ends the meter's usefulness and the
@@ -176,7 +176,7 @@ next step is a different PC.
 A genuine Openport 2.0 is out of production and priced in the thousands, so "buy genuine" is not
 an option. The realistic plan:
 
-**Buy TWO of the exact same clone** — Washinglee Openport 2.0, the same model and seller. Two
+**Buy TWO of the exact same clone**: Washinglee Openport 2.0, the same model and seller. Two
 reasons for the same model rather than a different one: this specific unit is *proven* against
 this ECU with FastECU's `sub_ecu_denso_sh7058` profile, and clone firmware varies enough between
 vendors that an unknown one may fail in an entirely new way on a car that is already awkward
@@ -184,6 +184,6 @@ vendors that an unknown one may fail in an entirely new way on a car that is alr
 they are cheap, and the project has several writes left. **Treat these as consumables, not
 instruments.**
 
-Keep the dead one. If it turns out to be a broken solder joint at the captive cable — a common
-and very repairable failure — it becomes a **logging-only spare**. It logged for hours without
+Keep the dead one. If it turns out to be a broken solder joint at the captive cable, a common
+and very repairable failure; it becomes a **logging-only spare**. It logged for hours without
 complaint and died the instant it was asked to write, so it never touches a flash again.

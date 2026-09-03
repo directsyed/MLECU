@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 retrieval = pytest.importorskip("harness.retrieval",
-                                reason="harness/retrieval.py not built yet — Syed's project")
+                                reason="harness/retrieval.py not built yet. Syed's project")
 
 from harness import arms, e1                                        # noqa: E402
 from harness.config import Config                                   # noqa: E402

@@ -1,4 +1,4 @@
-"""MVEM + convergence harness — the keystone offline proof that the loop fixes the bad idle."""
+"""MVEM + convergence harness, the keystone offline proof that the loop fixes the bad idle."""
 from __future__ import annotations
 
 import numpy as np

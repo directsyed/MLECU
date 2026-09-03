@@ -1,10 +1,10 @@
-"""The idle global-scalar corrector — Stage 2 for the bad idle.
+"""The idle global-scalar corrector. Stage 2 for the bad idle.
 
 The EJ20X-into-EJ255-ECU mismatch is GLOBAL (injectors + airflow estimate differ), so we fix
 global scalars, not map cells: idle only ever visits ~one fuel cell, but the wrong scalar poisons
 the whole map. Each iteration we read the steady-state trim error, run it through the bounded
 controller, and split the resulting feedforward correction across the three scalars (latency,
-flow, MAF) in priority order — emitting ONE Proposal. We never touch a Table here: the caller
+flow, MAF) in priority order, emitting ONE Proposal. We never touch a Table here: the caller
 routes the Proposal through safety.apply_proposal.
 
 We correct only feedforward tables; the ECU's own closed-loop fuel PI tracks AFR live. We are
@@ -30,7 +30,7 @@ class AlgoState:
 
     This was ONE BoundedIntegralState shared across all three tables. The integral term exists
     to kill stubborn residual error, but with a single accumulator a correction applied to
-    injector LATENCY inherited the urgency accumulated while correcting injector FLOW — a
+    injector LATENCY inherited the urgency accumulated while correcting injector FLOW, a
     multiplexed controller sharing one integrator, which is simply a control bug.
 
     Honest scope: anti-windup FREEZES the integral whenever the output saturates at the clamp,
@@ -50,7 +50,7 @@ def _scalar(tables: TableSet, table_id: str) -> float:
 
 
 def _dominant_knob(split: fueling.ScalarSplit) -> str:
-    """Which table this split actually moves — the integrator key."""
+    """Which table this split actually moves, the integrator key."""
     return max(((FUEL_INJECTOR_LATENCY, split.w_latency),
                 (FUEL_INJECTOR_FLOW, split.w_flow),
                 (SENSOR_MAF_TRANSFER, split.w_maf)), key=lambda kv: kv[1])[0]
@@ -66,7 +66,7 @@ def propose_idle_correction(grid: BinnedGrid, tables: TableSet, state: AlgoState
     `provenance` / `metadata` (2026-08-05): when an LLM diagnosis selected the split, the audit
     trail must say so. Proposal's own docstring has always specified "llm:vN", but this function
     hardcoded the algorithm string, so an edit made on a model's say-so was indistinguishable
-    from one the neutral default made — in a safety-critical write path where the clamps'
+    from one the neutral default made, in a safety-critical write path where the clamps'
     docstring calls auditability "itself a safety property".
     """
     split = split or fueling.ScalarSplit()

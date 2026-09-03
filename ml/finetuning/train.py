@@ -1,7 +1,7 @@
-"""QLoRA fine-tune of Qwen3.6-27B on pilot-mix-v3 — arm C training run (2026-07-22 night).
+"""QLoRA fine-tune of Qwen3.6-27B on pilot-mix-v3, arm C training run (2026-07-22 night).
 
 WHAT THIS DOES (morning-read version): loads the verified BF16 checkpoint with its weights
-quantized on-the-fly to 4-bit NF4 (frozen scaffolding — never updated, chosen because a
+quantized on-the-fly to 4-bit NF4 (frozen scaffolding, never updated, chosen because a
 27B in Q8 is 27GB and cannot fit one 24GB card with training overhead), bolts full-precision
 LoRA adapters (rank 16) onto every attention and MLP projection matrix, and trains ONLY the
 adapters on the 242 chat transcripts, watching the 28-pair held-out slice for the
@@ -29,7 +29,7 @@ OUT = HERE / "runs/qlora-v1"
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true",
-                    help="2 optimizer steps then exit 0 — chain gate before the real run")
+                    help="2 optimizer steps then exit 0, chain gate before the real run")
     args = ap.parse_args()
 
     import torch
@@ -39,7 +39,7 @@ def main() -> None:
     from trl import SFTConfig, SFTTrainer
 
     assert torch.cuda.device_count() == 1, \
-        "expected exactly 1 visible GPU (the Ti) — launcher must set CUDA_VISIBLE_DEVICES=0"
+        "expected exactly 1 visible GPU (the Ti), launcher must set CUDA_VISIBLE_DEVICES=0"
     print(f"training on: {torch.cuda.get_device_name(0)}")
 
     bnb = BitsAndBytesConfig(
@@ -68,7 +68,7 @@ def main() -> None:
         # weight to fp32 per chunk (vocab 124k x 5120 x 4B = the 2.37GiB OOM, independent of
         # seq length). "nll" keeps the head in bf16; logits at our lengths are ~250MB peak.
         loss_type="nll",
-        # 04:55 fix (attempt 4): epoch-1 EVAL pass OOM'd (2.69GiB) — eval batch defaults
+        # 04:55 fix (attempt 4): epoch-1 EVAL pass OOM'd (2.69GiB), eval batch defaults
         # to 8 and the eval loop accumulates logits on-GPU. We need only eval_loss.
         per_device_eval_batch_size=1,
         prediction_loss_only=True,
@@ -78,7 +78,7 @@ def main() -> None:
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
         max_length=512, packing=False,   # measured: longest transcript = 484 tokens (04:30
-                                         # fix — 1024 OOM'd the fp32 logits chunk in trl's
+                                         # fix, 1024 OOM'd the fp32 logits chunk in trl's
                                          # loss: 2.37GiB ask vs 1.61 free on the Ti)
     )
     if args.smoke:
@@ -97,7 +97,7 @@ def main() -> None:
         print("assistant_only_loss: ON")
     except TypeError:
         cfg = SFTConfig(**sft)
-        print("assistant_only_loss: NOT SUPPORTED by this trl — full-sequence loss (logged)")
+        print("assistant_only_loss: NOT SUPPORTED by this trl, full-sequence loss (logged)")
 
     trainer = SFTTrainer(model=model, args=cfg, peft_config=lora,
                          train_dataset=ds["train"],

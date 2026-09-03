@@ -1,4 +1,4 @@
-"""E4 acceptance suite — proves the SCORING before a real model is ever spent on it.
+"""E4 acceptance suite, proves the SCORING before a real model is ever spent on it.
 
 The plan's verification clause: "E4 dry-run with a scripted fake-LLM (returns ground truth /
 returns wrong fault) proving diagnosis_accuracy, masking, and no-edit paths score correctly before a
@@ -47,7 +47,7 @@ def test_every_fault_id_has_an_action():
 
 
 def test_unknown_diagnosis_makes_no_edit_rather_than_defaulting():
-    """A model output we do not recognise must NOT fall through into the neutral split — that
+    """A model output we do not recognise must NOT fall through into the neutral split; that
     would smear a correction across all three beliefs on the strength of a garbage token."""
     assert e4_map.action_for("") is e4_map.NO_EDIT
     assert e4_map.action_for("banana") is e4_map.NO_EDIT
@@ -86,7 +86,7 @@ def test_oracle_never_masks(report):
 
 def test_masking_is_falsifiable(report):
     """The metric must be able to FIRE. Once the cross-check gate is live a deliberately wrong
-    model can no longer mask, so this is measured with the gate OFF — otherwise "metric broken"
+    model can no longer mask, so this is measured with the gate OFF, otherwise "metric broken"
     and "gate working" are indistinguishable from the outside."""
     assert report["wrong_knob_ungated"]["masking_total"] > 0
 
@@ -145,7 +145,7 @@ def test_correct_action_on_a_leak_is_to_make_no_edit():
 
 def test_wrong_label_but_right_knob_is_not_masking():
     """maf_low vs maf_high both move the MAF belief, and the DIRECTION comes from the measured
-    trim rather than the label — so the loop still corrects the belief that was wrong. Scoring
+    trim rather than the label, so the loop still corrects the belief that was wrong. Scoring
     that as masking would flag a system that behaved correctly."""
     from ecutune.evals.faults import FAULTS_V2
     spec = next(f for f in FAULTS_V2 if f.fault_id == "maf_high")

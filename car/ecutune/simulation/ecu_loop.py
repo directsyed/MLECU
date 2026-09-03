@@ -3,7 +3,7 @@
 The real ECU splits its fuel feedback into a fast short-term term (AF Correction) and a slow
 long-term term it learns and stores (AF Learning). At steady state the learning term has absorbed
 most of the error and the correction term carries the small remainder. We reproduce that split so
-the synthetic log looks like a real RomRaider log — and so binning's `af_correction + af_learning`
+the synthetic log looks like a real RomRaider log, and so binning's `af_correction + af_learning`
 recovers the full trim, exactly as on the car.
 """
 from __future__ import annotations

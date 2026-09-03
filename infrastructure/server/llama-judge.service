@@ -1,11 +1,11 @@
-# MLECU — llama-server for the curation judge (dense Qwen3.6-27B Q8, SKEWED dual-GPU, MTP).
+# MLECU: llama-server for the curation judge (dense Qwen3.6-27B Q8, SKEWED dual-GPU, MTP).
 #
 # 2026-07-08 crash-diagnosis config (crashes #10/#11 killed the 1,1 split at locked 1005MHz /
 # ~230W / <65C): --tensor-split 2,1 puts two thirds of the layers on the healthy Ti, cutting the
 # convicted OEM 3090's per-token duty and decode power (~230W -> ~150-170W expected). Paired
 # with gpu-powerlimit.service dropping the 3090 lock 1000 -> 800MHz. Speed stays ~45-55 t/s
 # (layer split is sequential; the Ti is the faster segment). Syed's explicit call: accept crash
-# risk for speed + diagnostic data — a crash at 2,1 + 800MHz + ~150W rules out raw power draw
+# risk for speed + diagnostic data: a crash at 2,1 + 800MHz + ~150W rules out raw power draw
 # and points the teardown at signal integrity / cracked joints.
 # DB snapshotted before each run of this config (data-backups/, .backup API).
 #
@@ -17,7 +17,7 @@
 #          nvidia-smi  (Ti ~19-20 GiB, 3090 ~10 GiB)
 #
 # Historical configs: 1,1 even split (certified 2026-07-05, ran reference tier); Ti-only + CPU
-# offload variant (2026-07-08, rejected for speed) — both in git history.
+# offload variant (2026-07-08, rejected for speed): both in git history.
 [Unit]
 Description=MLECU curation judge llama-server (27B Q8, 2:1 split, 3090 duty-reduced)
 After=network.target gpu-powerlimit.service

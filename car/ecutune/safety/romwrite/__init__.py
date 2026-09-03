@@ -1,4 +1,4 @@
-"""The ROM write path — clamped edits to a verified flashable image.
+"""The ROM write path, clamped edits to a verified flashable image.
 
 Read-only by design elsewhere: `romread/__init__.py` says "Strictly one-directional: bytes in,
 numbers out. There is deliberately no write/patch path in this package." This is that path, and
@@ -10,7 +10,7 @@ tests/test_write_path.py keeps covering it.
   patcher.py   apply a ClampResult to a ROM copy + the 4-stage verification stack
   report.py    the human CHANGE REPORT Syed reads before anything is flashed
 
-We emit a FILE. We never drive the flash tool — that stays a human act in ECUFlash
+We emit a FILE. We never drive the flash tool; that stays a human act in ECUFlash
 (ROADMAP Phase E.5).
 """
 from __future__ import annotations

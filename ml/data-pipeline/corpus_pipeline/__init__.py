@@ -1,1 +1,1 @@
-"""MLECU corpus pipeline — config-driven ingestion of automotive tuning knowledge."""
+"""MLECU corpus pipeline, config-driven ingestion of automotive tuning knowledge."""

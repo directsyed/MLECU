@@ -1,9 +1,9 @@
-"""retrieval-v2 (hybrid dense+BM25) unit tests — 2026-07-22 overnight build.
+"""retrieval-v2 (hybrid dense+BM25) unit tests, 2026-07-22 overnight build.
 
 Everything here runs WITHOUT the dense index or the embedding model: the fusion math is
 tested directly, and the fallback path is tested by pointing index_path at a missing file.
 The end-to-end hybrid smoke (real index, paraphrase query) runs in the overnight chain and
-is logged there — it needs the 2.3GB model, too heavy for a unit suite.
+is logged there; it needs the 2.3GB model, too heavy for a unit suite.
 """
 from pathlib import Path
 

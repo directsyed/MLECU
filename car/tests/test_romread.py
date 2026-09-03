@@ -42,7 +42,7 @@ REV_XML = """<rom>
   <table name="Injector Latency" address="20"><table name="Y" address="14"/></table>
 </rom>"""
 
-# Same base, latency shifted to a WRONG address (revision drift) — reads garbage.
+# Same base, latency shifted to a WRONG address (revision drift): reads garbage.
 REV_DRIFT_XML = REV_XML.replace("TESTREV1", "TESTREV2").replace("TESTREV</xmlid>", "TESTDRIFT</xmlid>") \
                        .replace('"Injector Latency" address="20"', '"Injector Latency" address="26"') \
                        .replace('name="Y" address="14"', 'name="Y" address="8"')

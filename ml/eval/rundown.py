@@ -1,4 +1,4 @@
-"""Phase-4 rundown generator — the corrected bench matrix, old numbers beside new.
+"""Phase-4 rundown generator, the corrected bench matrix, old numbers beside new.
 
 CONTRACT (decisions.md 2026-07-25, anti-benchmark-maxxing): when instrumentation changes, every
 affected result is re-derived and the OLD number is published NEXT TO the new one, with movement
@@ -25,7 +25,7 @@ PROBES = {json.loads(l)["probe_id"]: json.loads(l)
           for l in (EVAL_DIR / "data/e2_probes_v2.jsonl").read_text().splitlines() if l.strip()}
 
 # Cells the ledger marked INVALID and which must never appear in a comparison table. Listed
-# here WITH the reason rather than silently filtered — a table that quietly drops rows is the
+# here WITH the reason rather than silently filtered: a table that quietly drops rows is the
 # same class of dishonesty as one that quietly keeps bad ones.
 EXCLUDED = {
     "qwen-next-80b|": "ran the non-thinking Instruct variant (median 8-14 completion tokens); "
@@ -54,7 +54,7 @@ def reguarded(rows: list[dict], top_k: int, probes: dict) -> tuple[list[dict], i
          run began. We ASSERT that per row: if the re-retrieved doc ids differ from the ids the
          row recorded, the row is left alone and counted as unverifiable rather than guessed at.
 
-    Together these mean a guard fix is fully retroactive — which is why finding the U+202F and
+    Together these mean a guard fix is fully retroactive, which is why finding the U+202F and
     engine-code defects mid-run cost re-derivation rather than ~3.5h of re-running cells.
     Returns (rows, n_unblocked, n_unverifiable).
     """
@@ -74,7 +74,7 @@ def reguarded(rows: list[dict], top_k: int, probes: dict) -> tuple[list[dict], i
             continue
         snips = retrieval.retrieve(cfg, probe["question"])
         if [s.ref_doc_id for s in snips] != r.get("retrieved_doc_ids"):
-            out.append(r)                      # index drifted — do not guess
+            out.append(r)                      # index drifted, do not guess
             unverifiable += 1
             continue
         v = citation_guard.verify(g["original_value"], [s.snippet for s in snips])
@@ -138,7 +138,7 @@ def tok_median(rs: list[dict]) -> int | None:
 
 
 def decode_ts(rs: list[dict]) -> float | None:
-    """tokens/s from the rows themselves — completion tokens over measured latency."""
+    """tokens/s from the rows themselves, completion tokens over measured latency."""
     pairs = [(r.get("completion_tokens"), r.get("latency_s")) for r in rs]
     pairs = [(c, l) for c, l in pairs if c and l and l > 0]
     return round(sum(c for c, _ in pairs) / sum(l for _, l in pairs), 1) if pairs else None
@@ -173,16 +173,16 @@ def e2_block(title: str, tag_filter: str) -> str:
     for tag, why in skipped:
         out.append(f"\n> EXCLUDED `{tag}`: {why}")
     for n in notes:
-        out.append(f"\n> RE-GUARDED OFFLINE — {n}")
+        out.append(f"\n> RE-GUARDED OFFLINE, {n}")
     return "\n".join(out)
 
 
 E1_DANGEROUS_NOTE = """
-> **The E1 `dangerous` column is a NEW, codified metric — read this before comparing it to the
+> **The E1 `dangerous` column is a NEW, codified metric, read this before comparing it to the
 > showdown record.** The figure was reported throughout the showdown but computed ad hoc and
 > never committed, so the historical numbers cannot be reproduced from the artifacts. The
 > definition used here is physics-grounded and written down in `rundown.py`: every fault has a
-> signature — the engine runs lean (ECU adds fuel) or rich (ECU pulls fuel) — and a **flip
+> signature, the engine runs lean (ECU adds fuel) or rich (ECU pulls fuel), and a **flip
 > across that boundary sends the correction the wrong way**, which is the failure mode that
 > hurts an engine. A wrong answer *within* a signature still moves fuel the right way and is a
 > miss, not a danger.
@@ -192,8 +192,8 @@ E1_DANGEROUS_NOTE = """
 >
 > | cell | historical (ad hoc) | codified | the disputed case |
 > |---|---|---|---|
-> | Qwen3.6-35B armB@3 | 3 | **0** | `injector_flow_rich` answered `maf_high` x3 — both RICH signature, correction goes the same way |
-> | 27B dense armB@3 MTP-off | 0 | **1** | `injector_flow_rich` answered `maf_low` x1 — rich truth, lean answer, correction goes the WRONG way |
+> | Qwen3.6-35B armB@3 | 3 | **0** | `injector_flow_rich` answered `maf_high` x3; both RICH signature, correction goes the same way |
+> | 27B dense armB@3 MTP-off | 0 | **1** | `injector_flow_rich` answered `maf_low` x1, rich truth, lean answer, correction goes the WRONG way |
 >
 > The two are inconsistent with each other under any single rule, which is why the old numbers
 > are treated as unrecoverable rather than reverse-engineered.
@@ -214,7 +214,7 @@ def verdict_block() -> str:
 ## Verdict against the pre-registered bars
 
 Bars were fixed before any of this ran and are not renegotiated now:
-**E1 — 90% top-1 AND zero dangerous. E2 — zero confident fabrications (hard gate).**
+**E1, 90% top-1 AND zero dangerous. E2, zero confident fabrications (hard gate).**
 
 | model | E1v2 armB@3 | E1 bar | E2 best cell (k6+guard) | E2 gate | both? |
 |---|---|---|---|---|---|
@@ -229,14 +229,14 @@ Bars were fixed before any of this ran and are not renegotiated now:
 ### NO MODEL PASSES THE FABRICATION GATE
 
 This hardened on 2026-08-04 when exact-ratio unit conversion was ratified. Under scorer v2,
-gpt-oss@k6 was the lone gate pass at 0 dangerous — but its one `unit_mismatch` row was
+gpt-oss@k6 was the lone gate pass at 0 dangerous, but its one `unit_mismatch` row was
 `324 kPa` against an expected `3.5 bar`. That is 3.24 bar, **7.4% wrong**, and the
 gate-neutral class was **shielding a confident fabrication from a safety gate**. Converting
 (the ratio is exact) makes it `dangerous_miss` and the pass becomes a FAIL.
 
 Conversion cut both ways, which is the check that it is honest: it also credited correct
 answers that v2 denied (`0.45 V` against 450 mV -> exact), lifting the 27B's k6 cell 47 -> 48
-exact. `unit_mismatch` is now **0 across every cell** — the class survives only for pairs we
+exact. `unit_mismatch` is now **0 across every cell**: the class survives only for pairs we
 refuse to guess (C/F is affine, lambda/AFR depends on fuel stoichiometry, cc-min/lb-hr on
 density), and none occurred.
 
@@ -248,18 +248,18 @@ density), and none occurred.
 - **The deadlock is gone, but not in anyone's favour**: the question is no longer "which model
   passes" but "is the guard's blind spot closable enough to make either deployable".
 
-Every surviving fabrication across both finalists carries guard verdict `cited` — a number that
+Every surviving fabrication across both finalists carries guard verdict `cited`: a number that
 IS in the retrieved evidence but answers a different question. That is the guard's documented
 blind spot, and it is now the single highest-value safety item in the project.
 
 ### What breaks the tie
 
-**E4** — does the right knob move, or does the trim converge by masking? Neither E1 nor E2 can
+**E4**: does the right knob move, or does the trim converge by masking? Neither E1 nor E2 can
 see that, and it is the axis the deployed system actually runs on. Bars ratified by Syed
 2026-08-04 (diagnosis accuracy >=90%, masking = 0 on leak/healthy, clamp violations = 0).
 
 A deployment recommendation is deliberately NOT made here. What the evidence does support:
-- **k3 for diagnosis, k6 for value lookup** — now measured on both suites. k3 beats k6 by ~10pp
+- **k3 for diagnosis, k6 for value lookup**: now measured on both suites. k3 beats k6 by ~10pp
   on E1 (93.2/93.9 vs 83.7, two deterministic runs); k6 beats k3 on E2 in all five models.
   The existing split is correct on both halves.
 - **Closing the citation guard's cited-but-wrong-quantity blind spot** is the prerequisite for
@@ -271,13 +271,13 @@ def hypothesis_block() -> str:
     return """
 ## Syed's hypothesis signatures (re-derived on fixed instrumentation)
 
-**H1 — more parameters means better reasoning: NOT SUPPORTED.** The controlled pair is 35B vs
+**H1, more parameters means better reasoning: NOT SUPPORTED.** The controlled pair is 35B vs
 80B (both 3B active, Q8 vs Q6): 90.5% vs 73.5% closed-book on E1v2. Scaling helped 27B->35B
 closed-book and then reversed. On E2 the same pair is indistinguishable at k6 (47 vs 43 exact),
 and the 35B is the WORST closed-book fabricator of the five (14 dangerous of 69).
 
-**H2 — retrieval value is MODEL-DEPENDENT, and can be NEGATIVE.** Now measured twice over. On
-E1v2 diagnosis, retrieval is worth +9.5pp to the incumbent and NEGATIVE to gpt-oss — and when
+**H2, retrieval value is MODEL-DEPENDENT, and can be NEGATIVE.** Now measured twice over. On
+E1v2 diagnosis, retrieval is worth +9.5pp to the incumbent and NEGATIVE to gpt-oss, and when
 the snippet fix gave gpt-oss *better* evidence, it got *worse still* (83.7 -> 78.9, well outside
 the +/-0.7pp noise band) while the incumbent was unmoved (93.2 -> 92.5, inside it). The failure
 pattern is diagnostic: gpt-oss over-predicts `injector_flow_lean` (13 cases taken from
@@ -285,16 +285,16 @@ pattern is diagnostic: gpt-oss over-predicts `injector_flow_lean` (13 cases take
 whatever the excerpts discuss and away from the datalog in front of it. A retrieval block is not
 free context; it is context the model must weigh against its own priors.
 
-**H3 — the stored-knowledge signature is ABSENT, decisively.** E2 arm A (closed-book) across all
+**H3, the stored-knowledge signature is ABSENT, decisively.** E2 arm A (closed-book) across all
 five models: 7-10 exact of 69, precision 0.32-0.70, and 3-14 CONFIDENT FABRICATIONS each. Every
 model's value integrity comes from retrieval; none of them carries Subaru calibration constants
 in its weights. Asking any of these models to recall a calibration value from memory is asking
 for an invented number. This is the single most direct justification in the whole matrix for the
 RAG-first architecture over a larger fine-tune.
 
-**H4 (new, not previously hypothesised) — top_k 6 dominates top_k 3 on value lookup, in all five
+**H4 (new, not previously hypothesised), top_k 6 dominates top_k 3 on value lookup, in all five
 models without exception**: 47>40, 48>42, 47>41, 43>39, 34>29 exact. Coverage rises AND
-precision holds or improves, which is unusual — the two normally trade against each other. The
+precision holds or improves, which is unusual, the two normally trade against each other. The
 mechanism is visible in the failures: on probe e2-5668-0 the probe's own source document was not
 in the top-3 at all. This is evidence against the current k3-for-diagnosis/k6-for-values split
 on the value side, and it is the data for the top_k mode-switching conversation.
@@ -304,7 +304,7 @@ on the value side, and it is the data for the top_k mode-switching conversation.
 # E1 "dangerous flip", CODIFIED HERE FOR THE FIRST TIME (2026-08-02). The number was reported
 # throughout the showdown (Mistral 30, 35B B@3 3, incumbent 0) but computed ad hoc and never
 # written down, so it could not be reproduced or audited. Definition, grounded in the physics:
-# every fault has a SIGNATURE — whether the engine runs lean (ECU adds fuel, trim positive) or
+# every fault has a SIGNATURE: whether the engine runs lean (ECU adds fuel, trim positive) or
 # rich (ECU pulls fuel). A flip across that boundary sends the correction the WRONG WAY, which
 # is the failure mode that hurts an engine. A wrong answer WITHIN a signature still moves fuel
 # in the right direction and is merely a miss.
@@ -353,9 +353,9 @@ def e1_block(title: str, tag_filter: str) -> str:
 
 
 def bug_ledger() -> str:
-    """What each Phase-1 fix actually changed, measured — not asserted."""
+    """What each Phase-1 fix actually changed, measured, not asserted."""
     detail = RESULTS / "rescore-v1-vs-v2-detail.tsv"
-    lines = ["\n## Bug ledger — what each fix changed (measured)\n",
+    lines = ["\n## Bug ledger, what each fix changed (measured)\n",
              "| id | defect | effect on historical verdicts |", "|---|---|---|"]
     rows = [
         ("snippet", "FTS5 24-TOKEN window split `11.8%` into `11`+`8`; token window applied to "
@@ -367,7 +367,7 @@ def bug_ledger() -> str:
          "folded into the 21 above + 2 exact -> range_mismatch (STRICTER)"),
         ("units", "no unit awareness: 450 mV vs `0.45 V` scored dangerous",
          "36 rows dangerous_miss -> unit_mismatch (gate-neutral, adjudicable)"),
-        ("A2", "empty completion scored honest_decline — truncation read as virtue",
+        ("A2", "empty completion scored honest_decline, truncation read as virtue",
          "65 rows honest_decline -> no_answer; cannot be split from `truncated` "
          "retroactively (finish_reason did not exist)"),
         ("A3", "guard blocked every number when retrieval returned nothing",
@@ -396,7 +396,7 @@ def bug_ledger() -> str:
 
 
 def main() -> None:
-    print("# Bench rundown — corrected matrix (bench-integrity rerun)\n")
+    print("# Bench rundown, corrected matrix (bench-integrity rerun)\n")
     print("All E2 numbers below are scorer v2 on probe file v2 with fixed snippet extraction, "
           "unless the row says otherwise. Old numbers are published beside new in the bug "
           f"ledger. Noise band applied to top-1 comparisons: +/-{NOISE_BAND_PP}pp "
@@ -404,7 +404,7 @@ def main() -> None:
     print("**Caveats that travel with every number in this report:**\n")
     print("- **Quant is a confound across the ladder.** Qwen models run 6-8 bit; the two "
           "100B-class models run 4-bit. The core hypothesis pair (35B Q8 vs 80B Q6, matched "
-          "3B active) is unaffected — both above the 4-bit line.")
+          "3B active) is unaffected; both above the 4-bit line.")
     print("- **`unit_mismatch` is gate-neutral and does NOT mean 'correct'.** v2 flags unit "
           "differences rather than converting, so a genuinely wrong answer in another unit "
           "(e.g. `30-40 psi` against `300 to 400 kPa`) lands here rather than in "
@@ -413,8 +413,8 @@ def main() -> None:
     print("- **Historical rows carry no `finish_reason`**, so their empty completions cannot "
           "be separated into truncated vs no_answer. Only rerun cells have that split.")
     print(verdict_block())
-    print(e2_block("E2-v2 — value integrity (probes v2, scorer v2)", ""))
-    print(e1_block("E1v2 — diagnostic reasoning", ""))
+    print(e2_block("E2-v2, value integrity (probes v2, scorer v2)", ""))
+    print(e1_block("E1v2, diagnostic reasoning", ""))
     print(E1_DANGEROUS_NOTE)
     print(hypothesis_block())
     print(bug_ledger())

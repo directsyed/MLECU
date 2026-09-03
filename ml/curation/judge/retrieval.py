@@ -1,14 +1,14 @@
-"""Reference-tier grounding retrieval — FTS5/BM25 baseline (D2; embeddings are a later swap).
+"""Reference-tier grounding retrieval, FTS5/BM25 baseline (D2; embeddings are a later swap).
 
 Why BM25 first: grounding queries in this domain are lexically sharp ("Primary Open Loop
-Fueling", "injector latency", PID names) — exact-term match over 5.6k reference docs is
+Fueling", "injector latency", PID names), exact-term match over 5.6k reference docs is
 adequate, inspectable, and needs zero new dependencies. The public seam is
 `grounding(state, cfg, text) -> list[RefSnippet]`; swapping in embeddings later touches only
 this module.
 
 The index is a contentless FTS5 table (`ref_fts`) living in the SAME sqlite file as the corpus
 (rowid == document.id, text never duplicated into the index storage beyond the trigram/posting
-data). It is rebuilt whenever the reference kept-count changes — the corpus grows nightly and a
+data). It is rebuilt whenever the reference kept-count changes, the corpus grows nightly and a
 full rebuild of 5.6k docs is sub-second.
 """
 from __future__ import annotations
@@ -61,8 +61,8 @@ def ensure_community_index(state: State, min_score: int = 4,
                            table: str = COMMUNITY_TABLE) -> bool:
     """Create/refresh the SEPARATE community FTS index (2026-08-16, Syed ruling 3).
 
-    Mirrors ensure_index() for ref_fts — same contentless FTS5 shape, rowid == document.id,
-    rebuilt only when the (count, min_score) stamp moves — but reads `community_kept_docs`
+    Mirrors ensure_index() for ref_fts, same contentless FTS5 shape, rowid == document.id,
+    rebuilt only when the (count, min_score) stamp moves, but reads `community_kept_docs`
     (tier='community', kept, judge_score >= min_score, gone-marked docs INCLUDED per the
     NARROW gone policy). Never touches ref_fts, never writes document.tier.
 
@@ -87,7 +87,7 @@ def ensure_community_index(state: State, min_score: int = 4,
 
 def _query_terms(text: str, max_terms: int = 12) -> list[str]:
     """Salient query terms: frequency-ranked content words, longest-first tiebreak.
-    Each term is double-quoted — FTS5 treats bare tokens as syntax (AND/OR/NEAR, '-')."""
+    Each term is double-quoted, FTS5 treats bare tokens as syntax (AND/OR/NEAR, '-')."""
     freq: dict[str, int] = {}
     for w in _WORD.findall(text):
         lw = w.lower()

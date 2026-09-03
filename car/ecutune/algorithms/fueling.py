@@ -6,7 +6,7 @@ The three idle global scalars all move delivered fuel, but not in the same direc
   * Injector Latency (dead time): DIRECT. More dead time -> longer total pulse -> more fuel.
   * MAF Sensor Scaling (airflow estimate): DIRECT. Higher airflow estimate -> more commanded fuel.
 
-A trim of +N% means the ECU is ADDING N% fuel to hold stoich because the base map is N% lean —
+A trim of +N% means the ECU is ADDING N% fuel to hold stoich because the base map is N% lean -
 so the feedforward correction we want is to add that same fraction.
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ class ScalarSplit:
     """How the per-iteration fuel correction is shared across the three global scalars. Weights
     sum to ~1 so the NET feedforward fuel change is the controller's bounded output.
 
-    Default is NEUTRAL (equal) — we deliberately do NOT pre-prioritize one lever over another. At a
+    Default is NEUTRAL (equal); we deliberately do NOT pre-prioritize one lever over another. At a
     single idle point the three are DEGENERATE (a MAF error and an injector error look identical in
     the trim), so any fixed split is a guess. Real attribution needs logs across operating conditions
     (voltage + load range); the data sets the priorities, not us. This stays configurable so an

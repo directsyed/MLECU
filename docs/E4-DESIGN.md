@@ -1,7 +1,7 @@
-# E4 — closed-loop competence: does the RIGHT knob move? (2026-08-02)
+# E4: closed-loop competence: does the RIGHT knob move? (2026-08-02)
 
 **Status: bars RATIFIED by Syed 2026-08-04; running.** They were written to the ledger `meta`
-table (key `e4_bars`) BEFORE the first real episode — same pre-registration protocol as E1 and
+table (key `e4_bars`) BEFORE the first real episode, same pre-registration protocol as E1 and
 E2, for the same reason: a bar chosen after seeing the numbers is not a bar.
 
 ---
@@ -17,7 +17,7 @@ a **single utterance**. The deployed system is a **loop**:
         └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-A model can score well on E1 and still be useless — or actively harmful — inside that loop,
+A model can score well on E1 and still be useless, or actively harmful, inside that loop,
 because **there are two ways to drive a fuel trim to zero**:
 
 | | what happens | trim after | calibration after |
@@ -27,7 +27,7 @@ because **there are two ways to drive a fuel trim to zero**:
 
 Both converge. Only one leaves the calibration true. On a real engine, masking is how you end
 up with an injector-latency table bent to hide a vacuum leak: idle looks perfect, and every
-off-idle load point that relied on those beliefs is now wrong — and you find out under boost.
+off-idle load point that relied on those beliefs is now wrong, and you find out under boost.
 
 **`masking` is the metric this suite exists for.** Everything else is supporting evidence.
 
@@ -50,7 +50,7 @@ model  ──emits──▶  ONE ENUM TOKEN        (grammar-constrained; it phys
 **There is no path from model output to a table value.** The model cannot choose a magnitude,
 cannot widen a correction, cannot reach a table it was not routed to, and cannot act at all on
 a diagnosis that maps to `NO_EDIT`. A confused, hallucinating or adversarial model can at worst
-**select the wrong pathway** — which is exactly what `masking` scores.
+**select the wrong pathway**: which is exactly what `masking` scores.
 
 `harness/e4_map.py` is deliberately the dullest file in the repo, and carries no ecutune
 imports, so a reviewer can audit the entire model→ECU interface on one screen.
@@ -62,42 +62,42 @@ imports, so a reviewer can audit the entire model→ECU interface on one screen.
 | `maf_low`, `maf_high` | `ScalarSplit(0, 0, 1.0)` | move the MAF belief only |
 | `injector_flow_lean/rich` | `ScalarSplit(0, 1.0, 0)` | move injector flow only |
 | `injector_latency_lean` | `ScalarSplit(1.0, 0, 0)` | move dead time only |
-| `vacuum_leak` | **NO EDIT** | unmetered air isn't in any table — the fix is to find the leak. Any edit here converges the trim by corrupting a belief that was correct. |
+| `vacuum_leak` | **NO EDIT** | unmetered air isn't in any table; the fix is to find the leak. Any edit here converges the trim by corrupting a belief that was correct. |
 | `healthy` | **NO EDIT** | nothing to correct |
 | anything unrecognised | **NO EDIT** | an unknown token must not fall through into the neutral split |
 
 The algorithm's default `ScalarSplit(0.34, 0.33, 0.33)` is what it uses when *nobody knows*
 which lever is at fault: it smears the correction across all three beliefs, converges the trim,
 and leaves every belief slightly wrong. **That is the masking behaviour E4 exists to detect**,
-so E4 never uses it — the diagnosis is precisely the informed setting the neutral default was
+so E4 never uses it; the diagnosis is precisely the informed setting the neutral default was
 always documented as awaiting (`algorithms/fueling.py:22`).
 
 ## 4. Scoring
 
 Per episode:
 
-- **`diagnosis_accuracy`** — majority diagnosis == seeded fault. This measures the LABEL, not
+- **`diagnosis_accuracy`**: majority diagnosis == seeded fault. This measures the LABEL, not
   the knob; it was called `knob_accuracy` until 2026-08-04, which was simply a wrong name.
   Denominator counts only episodes
   where the model was actually *asked* (a `healthy` episode converges at iteration 1 before any
   diagnosis is requested; scoring that as a miss penalises a model for a question never put).
   A model that *was* asked and answered nothing still counts against itself.
-- **`knob_correct`** — did the majority diagnosis route to the right *knob*? Distinguished from
+- **`knob_correct`**: did the majority diagnosis route to the right *knob*? Distinguished from
   accuracy on purpose: `maf_low` vs `maf_high` both move the MAF belief, and the **direction
   comes from the measured trim, not the label**, so the loop still corrects the belief that was
   wrong. Wrong label + right knob is not masking.
-- **`masking`** — the headline. `converged AND wrong knob` on a real fault, or **any edit at
+- **`masking`**: the headline. `converged AND wrong knob` on a real fault, or **any edit at
   all** on `vacuum_leak`/`healthy`.
-- **`residual_belief_error`** — |final believed scalar − truth| / truth, on the *fault's* knob.
+- **`residual_belief_error`**: |final believed scalar − truth| / truth, on the *fault's* knob.
   Convergence tolerance is ±5% trim while fault magnitudes run 6–27%, so a converged episode
   can still leave a materially wrong belief. Measured in the dry run: oracle **3.8%** vs
-  wrong-knob **9.3%** — the metric separates a fix from a mask by ~2.4×.
-- **`clamp_violations`** — must be 0. See §6.
-- **trajectory determinism** — same seed ⇒ identical `trim_history` and final scalars.
+  wrong-knob **9.3%**: the metric separates a fix from a mask by ~2.4×.
+- **`clamp_violations`**: must be 0. See §6.
+- **trajectory determinism**: same seed ⇒ identical `trim_history` and final scalars.
 
 Battery: **7 faults × 3 seeds = 21 episodes**, ~4–6 LLM calls each ⇒ ~2–4 h per model.
 
-## 5. Falsifiability — the dry run
+## 5. Falsifiability: the dry run
 
 `car/.venv/bin/python -m harness.e4 --dry-run` (no server, no GPU, no tokens) runs three
 scripted models and asserts the scoring can both pass *and fail*:
@@ -116,14 +116,14 @@ wrong knob cannot make `masking` fire, then `masking = 0` on a real run means no
 ## 6. Hazards designed around (measured, not assumed)
 
 - **step-clamp knife edge.** With one weight at 1.0 the whole correction lands on one scalar, so
-  the requested step equals `step_clamp` exactly — and `step_clamp` defaults to the same 0.03 as
+  the requested step equals `step_clamp` exactly, and `step_clamp` defaults to the same 0.03 as
   `SafetyCfg.max_ve_step`. Float rounding then trips a spurious `ve_rate_limit` on ~2/3 of
   sampled values. E4 asks for **0.029**. This narrows what the algorithm *requests*; the safety
   clamp stays at 0.03. **The clamp is never relaxed.**
 - **convergence tol vs fault magnitude.** Score `residual_belief_error`, not just `converged`.
-- **`healthy` ends at iteration 1** by design — scored on "made no edit".
+- **`healthy` ends at iteration 1** by design, scored on "made no edit".
 - **prompt parity with E1v2.** Same `_PROMPT_V2` template, same three probe points, same noise
-  model, `arms.build_user("B", …)` retrieval@3 — so an E4-vs-E1 difference is a *loop*
+  model, `arms.build_user("B", …)` retrieval@3, so an E4-vs-E1 difference is a *loop*
   difference, not a prompt difference.
 
 ## 7. The honest caveat
@@ -135,17 +135,17 @@ measures **the loop**, and every number it produces is labelled
 
 ---
 
-## 8. PRE-REGISTERED BARS — **RATIFIED 2026-08-04**
+## 8. PRE-REGISTERED BARS: **RATIFIED 2026-08-04**
 
 Written to ledger `meta` key `e4_bars` before the first real episode:
 
 | metric | proposed bar | rationale |
 |---|---|---|
-| `diagnosis_accuracy` | **≥ 90%** | Syed set this to match the E1 bar exactly — same task, same standard. (Renamed from `knob_accuracy`: it measures whether the LABEL is right; `knob_correct` is the one that measures whether the right TABLE was selected.) |
+| `diagnosis_accuracy` | **≥ 90%** | Syed set this to match the E1 bar exactly, same task, same standard. (Renamed from `knob_accuracy`: it measures whether the LABEL is right; `knob_correct` is the one that measures whether the right TABLE was selected.) |
 | `masking` on `vacuum_leak`/`healthy` | **= 0** | hard gate. Editing a table to hide a leak is the failure mode that destroys calibrations |
 | `clamp_violations` | **= 0** | the deterministic layer must never be pushed past its bound |
 | convergence on real faults | **≥ 13 / 15** | restated over the real denominator: 5 table-fixable faults x 3 seeds = 15 episodes. The plan's "6/7" did not match the battery shape. |
-| `residual_belief_error` (median) | **report only, no bar** | first measurement of this quantity — setting a bar before we know its distribution would be inventing one |
+| `residual_belief_error` (median) | **report only, no bar** | first measurement of this quantity, setting a bar before we know its distribution would be inventing one |
 
 **Models:** incumbent Qwen3.6-27B dense + gpt-oss-120b (Syed's 2026-08-01 choice), ~4–8 h total.
 

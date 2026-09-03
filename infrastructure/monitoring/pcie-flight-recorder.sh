@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# PCIe flight recorder — 1 Hz samples of the slot-3 GPU + its root port, fsync'd per line so
+# PCIe flight recorder: 1 Hz samples of the slot-3 GPU + its root port, fsync'd per line so
 # the final pre-crash samples SURVIVE a bus-fatal hang. Run with sudo in its own tmux window:
 #
 #   sudo bash infrastructure/monitoring/pcie-flight-recorder.sh
 #
 # Captures per second:
 #   - nvidia-smi: pstate, link gen/width, temp, power, clocks, util, vram (both GPUs)
-#   - PCIe Replay counter (NVIDIA's own count of link-level retries — rises on a bad link)
+#   - PCIe Replay counter (NVIDIA's own count of link-level retries: rises on a bad link)
 #   - lspci CESta/UESta raw error-status registers on the root port AND the GPU
 #     (readable even when firmware-first AER hides errors from the kernel)
 #   - kernel sysfs AER counters (zeros under firmware-first = itself a finding)
 # One-time header: lspci tree, full root-port + GPU PCIE state.
 set -u
-# Auto-detect the OEM 3090's PCI address (survives slot moves — 2026-07-06 slot-1 test).
+# Auto-detect the OEM 3090's PCI address (survives slot moves: 2026-07-06 slot-1 test).
 # The " Ti]" suffix keeps the match from hitting the 3090 Ti.
 GPU_BDF=$(lspci -Dnn | grep -i "GeForce RTX 3090\]" | head -1 | awk '{print $1}')
 [ -z "$GPU_BDF" ] && GPU_BDF="0000:04:00.0"   # fallback: last known address
@@ -29,7 +29,7 @@ log "=== one-time root port state ==="
 lspci -s "${PORT_BDF#0000:}" -vv >> "$OUT" 2>&1
 log "=== one-time GPU PCIE state ==="
 nvidia-smi -q -i 0 -d PCIE >> "$OUT" 2>&1
-log "=== sampling at 1 Hz — columns: time | nv(idx,pstate,gen,width,temp,W,sm,mem,util,vram) | replay | CESta/UESta rp,gpu | sysfs aer rp ==="
+log "=== sampling at 1 Hz, columns: time | nv(idx,pstate,gen,width,temp,W,sm,mem,util,vram) | replay | CESta/UESta rp,gpu | sysfs aer rp ==="
 
 aer_sysfs() {  # $1 = bdf
   local d="/sys/bus/pci/devices/$1" out=""

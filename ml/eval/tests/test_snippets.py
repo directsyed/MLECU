@@ -48,7 +48,7 @@ def test_number_is_never_bisected_at_the_window_edge():
 
 
 def test_digit_run_split_by_a_space_survives_whole():
-    """'30 000' must not emit as a bare '000' or a bare '30' — PDF extraction routinely
+    """'30 000' must not emit as a bare '000' or a bare '30', PDF extraction routinely
     breaks thousands across a space, and half of it in the evidence pool is a number the
     source never states (which the citation guard would then happily 'ground')."""
     text = PAD + "the limiter is set to 30 000 rpm in this table. " + PAD
@@ -148,7 +148,7 @@ def tiny_db(tmp_path):
 
 def test_missing_rowids_are_reported_not_silently_dropped(tiny_db):
     """A11: the old _snippets_for dropped any rowid it could not resolve, so a top-ranked hit
-    could vanish and top_k=3 would quietly serve 2 — with nothing in the row to say so."""
+    could vanish and top_k=3 would quietly serve 2, with nothing in the row to say so."""
     cfg = RetrievalCfg(db_path=tiny_db)
     snips, missing = R._snippets_for(cfg, [1, 999, 2], "boost psi idle")
     assert [s.ref_doc_id for s in snips] == [1, 2]

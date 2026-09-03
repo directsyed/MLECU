@@ -1,4 +1,4 @@
-# FastECU patch — MY2005 SH7058 K-Line `RequestDownload` sweep
+# FastECU patch: MY2005 SH7058 K-Line `RequestDownload` sweep
 
 One-file patch against [FastECU](https://github.com/miikasyvanen/FastECU) that makes the
 `dataFormatIdentifier` byte of SID `0x34` **configurable at runtime**, plus raw TX/RX + NRC logging.
@@ -17,12 +17,12 @@ session**, then rejects `RequestDownload`:
 
 FastECU's `sub_ecu_denso_sh7058` profile is documented **2006-2007**; EcuFlash's `read_sti05`
 covers **2005**-2007 on the same SH7058/`sti05` combination. **MY2005 sits in the coverage gap.**
-The kernel address is *not* the problem — verified: `0xFFFFxxxx` references inside
+The kernel address is *not* the problem, verified: `0xFFFFxxxx` references inside
 `ssmk_kline_sh7058.bin` cluster at `0xFFFF3000/4000/5000`, matching its configured `0xFFFF3000`
 (same test validates the SH7055 kernel against `0xFFFF6004`).
 
 Upstream hardcodes the 5th byte and **every** `send_sid_34` in the tree uses `0x04`, so there is no
-working alternative to copy — it has to be parameterised.
+working alternative to copy; it has to be parameterised.
 
 ## Safety properties
 
@@ -43,7 +43,7 @@ out-of-range, malformed, and whitespace. Run it anywhere:
 g++ -std=c++11 -Wall -Wextra -o sid34_check sid34_check.cpp && ./sid34_check
 ```
 
-Note this validates the *added logic*, not the Qt build — that needs the real toolchain.
+Note this validates the *added logic*, not the Qt build; that needs the real toolchain.
 
 ## Apply
 
@@ -55,13 +55,13 @@ git apply /path/to/0001-my2005-sh7058-sid34-format.patch
 
 ## Use
 
-Build, then sweep without rebuilding — the value is read at each call:
+Build, then sweep without rebuilding; the value is read at each call:
 
 ```bash
 set FASTECU_SID34_FORMAT=0x00
 ```
 
-Order to try: **`0x00`** (KWP2000 "no compression, no encryption" — most likely), then `0x01`,
+Order to try: **`0x00`** (KWP2000 "no compression, no encryption", most likely), then `0x01`,
 `0x02`, `0x03`. Unset it to reproduce the known failure as a control.
 
 **Control test first.** With the variable unset, the run must still fail at `7F 34 10`. That proves
@@ -77,10 +77,10 @@ SID 0x34 request upload: addr=0xffff3000 len=0x17ac dataFormatIdentifier=0x0 (EN
 ```
 
 Success = anything other than `7F 34 ..`; a `74` positive response means the read proceeds.
-Key-cycle between attempts — repeated failures make the ECU refuse SSM2 init.
+Key-cycle between attempts, repeated failures make the ECU refuse SSM2 init.
 
 ## Upstream
 
 If a value works, this plus `car/ecu/FASTECU-SH7058-KLINE-BUG.md` (byte-level trace, elimination
-table) is a complete bug report. Worth filing either way — a confirmed non-working sweep is also
+table) is a complete bug report. Worth filing either way, a confirmed non-working sweep is also
 information the maintainer doesn't have.

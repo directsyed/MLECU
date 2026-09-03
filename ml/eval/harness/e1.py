@@ -1,11 +1,11 @@
-"""E1 — diagnostic-reasoning eval runner + scorer.
+"""E1, diagnostic-reasoning eval runner + scorer.
 
 Scoring is delegated to car/ecutune/evals/scoring.py loaded BY FILE PATH (importlib): the LLM
 arms must be scored by byte-identical code to the rules baseline (85.7% top1 / 100% acceptable)
 or the comparison is meaningless. The module is stdlib-only, so loading it cross-venv is safe.
 
 Results are JSONL, one row per case per run, with full provenance (arm, model tag, retrieved
-doc ids, latency, token usage) — the raw material for the paired-comparison stats when C/D
+doc ids, latency, token usage), the raw material for the paired-comparison stats when C/D
 exist. chat_fn is injectable for tests (stub instead of a live server).
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ def load_scoring(path: Path):
         raise RuntimeError(f"cannot load scoring module at {path}")
     mod = importlib.util.module_from_spec(spec)
     # must register BEFORE exec: the module defines @dataclass classes, and dataclass
-    # creation resolves cls.__module__ through sys.modules — unregistered means None.
+    # creation resolves cls.__module__ through sys.modules, unregistered means None.
     sys.modules[spec.name] = mod
     spec.loader.exec_module(mod)
     return mod
@@ -50,7 +50,7 @@ def run_arm(cfg: Config, arm: str, run_idx: int, cases: list[dict],
             user, ref_ids, rmeta = arms.build_user(arm, cfg, case["prompt"], task="e1")
             content, usage, latency = chat_fn(
                 cfg.llm, arms.SYSTEM, user, json_schema=arms.answer_schema(case["choices"]))
-            # The grammar guarantees shape ONLY if generation reached the content phase — a
+            # The grammar guarantees shape ONLY if generation reached the content phase, a
             # thinking model that exhausts its budget mid-deliberation returns "" (overnight
             # 2026-07-09, case 43). An unanswerable case is a MISS for that arm, never a
             # harness crash.
@@ -65,7 +65,7 @@ def run_arm(cfg: Config, arm: str, run_idx: int, cases: list[dict],
                 "retrieved_doc_ids": ref_ids, "latency_s": round(latency, 2),
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
-                # provenance (audit C3/C5) — an empty answer from a model that hit the token
+                # provenance (audit C3/C5), an empty answer from a model that hit the token
                 # ceiling is a DIFFERENT fact from one that answered off-grammar, and until
                 # 2026-08-02 the row could not tell them apart.
                 "finish_reason": usage.get("finish_reason"),
@@ -96,10 +96,10 @@ def score_results(cfg: Config, results_path: Path):
 
 
 def determinism(path_a: Path, path_b: Path, n_expected: int | None = None) -> tuple[int, int]:
-    """(identical, total) answers across two runs of the same arm — temp-0 sanity check.
+    """(identical, total) answers across two runs of the same arm, temp-0 sanity check.
 
     A12 (2026-08-02): v1 scored the INTERSECTION of the two files, so a run that died after
-    case 3 reported a triumphant "3/3 identical" — the denominator shrank to match the
+    case 3 reported a triumphant "3/3 identical", the denominator shrank to match the
     damage. Worse, two empty answers ("" == "") counted as agreement, so a pair of runs that
     both failed to answer scored as perfectly deterministic. The denominator is now the
     expected case count (from the rows, or the caller), missing cases count as disagreement,

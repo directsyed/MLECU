@@ -2,11 +2,11 @@
 
 query_terms: Syed, solo, 2026-07-08 (his first working Python).
 RefSnippet + retrieve + the arms.py branch: finished by Claude same night for schedule
-(Syed stopped at the piece-2 scaffold) — resume the walkthrough from retrieve() next session.
+(Syed stopped at the piece-2 scaffold), resume the walkthrough from retrieve() next session.
 
 2026-08-02 (bench-integrity Phase 1): snippet extraction rewritten (see the block above
 extract_window), retrieval provenance exposed via retrieve_with_meta(), dense-index
-freshness checked at load. query_terms() is UNTOUCHED — it is Syed's code and it is correct.
+freshness checked at load. query_terms() is UNTOUCHED; it is Syed's code and it is correct.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ class RefSnippet:
     snippet: str
     # 2026-08-16 (community index, Syed ruling 3): provenance travels WITH the row so the
     # citation guard and the prompt builder can tell a forum post from a textbook, and so a
-    # per-parent cap has something to key on. Additive with defaults — every existing
+    # per-parent cap has something to key on. Additive with defaults; every existing
     # RefSnippet(rowid, title, snippet) construction and consumer is unchanged.
     tier: str = "reference"
     parent: str = ""          # source_id before '#' (the book/PDF), or the whole source_id
@@ -90,7 +90,7 @@ def _bm25_ranked(cfg: RetrievalCfg, text: str, limit: int,
 
 # --- unified snippet extraction (2026-08-02, bench-integrity Phase 1) ------------------
 #
-# WHY THIS EXISTS. retrieval-v1 showed models `snippet(ref_fts, 1, '', '', ' … ', 24)` — a
+# WHY THIS EXISTS. retrieval-v1 showed models `snippet(ref_fts, 1, '', '', ' … ', 24)`: a
 # 24-TOKEN window cut by the FTS5 tokenizer. That tokenizer splits "11.8%" into the tokens
 # "11" and "8", so a window boundary landing between them emitted "11 …". On probe
 # e2-5723-1 three separate models were scored `dangerous_miss` for faithfully quoting the
@@ -98,13 +98,13 @@ def _bm25_ranked(cfg: RetrievalCfg, text: str, limit: int,
 # for the harness's own truncation is measuring the harness, not the model.
 #
 # Second defect, same code path (audit A6): the token window was applied ONLY to BM25 hits.
-# Dense-only hits got 1200 clean characters. So a document both rankers agreed on — the
-# best evidence in the pool — was the one served mangled, while a weaker dense-only hit came
+# Dense-only hits got 1200 clean characters. So a document both rankers agreed on: the
+# best evidence in the pool: was the one served mangled, while a weaker dense-only hit came
 # through intact. The asymmetry ran backwards from quality.
 #
 # THE FIX: one character-window extractor used for every hit in hybrid mode. It centres on
 # the first query-term match, snaps to whitespace so no token is ever bisected, and refuses
-# to end (or begin) inside a run of number characters — including runs broken across a space
+# to end (or begin) inside a run of number characters: including runs broken across a space
 # ("30 000") or trailing a unit sign ("11.8 %"). The number guard is bounded so a table row
 # of digits cannot drag the window open indefinitely.
 _NUMISH_HEAD = re.compile(r"[0-9%]")
@@ -186,7 +186,7 @@ def _bisects_number_at_start(text: str, start: int) -> bool:
 
 def _no_cut_number_start(text: str, start: int, hard_floor: int) -> int:
     """Same contract at the leading edge. Emitting the tail of '30 000' as a bare '000'
-    would inject a number into the evidence pool that the source never states — and the
+    would inject a number into the evidence pool that the source never states, and the
     citation guard would then happily 'ground' a fabrication against it."""
     while _bisects_number_at_start(text, start):
         p_start, _ = _prev_token(text, start)
@@ -206,7 +206,7 @@ def extract_window(text: str, terms: list[str], max_chars: int,
     Contract (the regression tests are the spec): no token is ever bisected; no number run
     is ever bisected; elisions are marked with '…' so the model can see the text was cut;
     and the result is NEVER longer than max_chars, markers included. That last clause is
-    Syed's — his RAG acceptance test asserts it, and it caught this function overshooting by
+    Syed's, his RAG acceptance test asserts it, and it caught this function overshooting by
     7 chars on the first pass. The no-cut allowance is therefore RESERVED up front rather
     than spent on top of the budget.
     """
@@ -265,13 +265,13 @@ def _term_hits(text_low: str, terms: list[str]) -> list[tuple[int, int]]:
 
 def _best_span(text: str, terms: list[str], width: int) -> tuple[int, int]:
     """The densest passage: the `width`-char span covering the most DISTINCT query terms.
-    Returns (span_start, span_end) — the first and last hit offsets inside that span.
+    Returns (span_start, span_end), the first and last hit offsets inside that span.
 
     Two earlier drafts of this were wrong, and both were caught by running real probes
     through it rather than by reading the code:
       1. Anchoring on the FIRST term hit lands on whichever query word appears earliest in
          the chunk. On probe e2-5723-1's source, "mechanical" occurs ~7,000 chars before the
-         passage that answers the question — the window served a paragraph about ignition
+         passage that answers the question, the window served a paragraph about ignition
          amplifiers and dropped the answer entirely.
       2. Left-anchoring the window at the densest hit still missed probe e2-2207-0's answer
          by 43 characters, because the span extended past the window's right edge.
@@ -345,13 +345,13 @@ _STALE_WARNED: set[str] = set()
 
 
 def index_freshness(cfg: RetrievalCfg, index_path=None, table: str = REF_TABLE) -> dict:
-    """{stamp, live, stale} — stale is None when it cannot be determined.
+    """{stamp, live, stale}, stale is None when it cannot be determined.
 
     A10 (2026-08-02): ref_dense_v1 was built at 5,608 rows while ref_fts had grown to 5,638.
     Thirty chunks were invisible to the dense ranker for the entire five-model showdown and
     nothing in the pipeline noticed. An index that cannot prove its own freshness is an
     unrecorded variable, so the stamp now travels inside the artifact and is checked here.
-    (2026-08-16: `index_path`/`table` let the same check cover the community index — the
+    (2026-08-16: `index_path`/`table` let the same check cover the community index, the
     stamp is carried forward, per the runbook.)
     """
     index_path = cfg.index_path if index_path is None else index_path
@@ -361,7 +361,7 @@ def index_freshness(cfg: RetrievalCfg, index_path=None, table: str = REF_TABLE) 
     stale = None if (stamp is None or live is None) else (stamp != live)
     if stale and str(index_path) not in _STALE_WARNED:
         _STALE_WARNED.add(str(index_path))
-        print(f"WARNING: dense index STALE — {index_path.name} built at {stamp} rows, "
+        print(f"WARNING: dense index STALE, {index_path.name} built at {stamp} rows, "
               f"{table} now has {live}. Rebuild: python -m harness.embed_index")
     return {"stamp": stamp, "live": live, "stale": stale}
 
@@ -405,13 +405,13 @@ def _fetch_rows(cfg: RetrievalCfg, rowids: list[int],
 
 def _parent_of(source_id: str) -> str:
     """Parent-document key: the part before '#' (books are chunked as '<file>#p612'), or the
-    whole source_id when there is no '#' (forum threads, wiki pages — one row IS the doc)."""
+    whole source_id when there is no '#' (forum threads, wiki pages; one row IS the doc)."""
     return source_id.split("#", 1)[0] if source_id else ""
 
 
 def _provenance_for(cfg: RetrievalCfg, rowids: list[int]) -> dict[int, tuple[str, str]]:
     """{rowid: (tier, parent)} from the `document` table (rowid == document.id). Empty when
-    the DB has no `document` table (test fixtures) — callers fall back to defaults."""
+    the DB has no `document` table (test fixtures), callers fall back to defaults."""
     if not rowids:
         return {}
     conn = sqlite3.connect(f"file:{cfg.db_path}?mode=ro", uri=True)
@@ -432,7 +432,7 @@ def _snippets_for(cfg: RetrievalCfg, ordered_rowids: list[int], query_text: str,
 
     Returns (snippets, missing_rowids). A11: the old version silently dropped any rowid it
     could not resolve, so a top-ranked hit could vanish from the pool without a trace and
-    top_k=3 would quietly serve 2. Missing ids are now returned and recorded — a rowid the
+    top_k=3 would quietly serve 2. Missing ids are now returned and recorded, a rowid the
     dense index knows but ref_fts does not IS index drift, and the caller should see it.
     """
     rows = _fetch_rows(cfg, ordered_rowids, table)
@@ -452,7 +452,7 @@ def _snippets_for(cfg: RetrievalCfg, ordered_rowids: list[int], query_text: str,
 
 
 def _rrf(*rankings: list[int]) -> list[int]:
-    """Reciprocal Rank Fusion over any number of rankings — score(doc) = Σ 1/(60 + rank).
+    """Reciprocal Rank Fusion over any number of rankings, score(doc) = Σ 1/(60 + rank).
     Byte-identical to the inline loop it replaced for two rankings (same K, same order)."""
     scores: dict[int, float] = {}
     for ranking in rankings:
@@ -462,7 +462,7 @@ def _rrf(*rankings: list[int]) -> list[int]:
 
 
 def _take_top(cfg: RetrievalCfg, ranked: list[int], k: int, meta: dict) -> list[int]:
-    """The top-k slice — with the per-parent cap applied first when max_per_parent > 0.
+    """The top-k slice, with the per-parent cap applied first when max_per_parent > 0.
 
     max_per_parent == 0 (default) is EXACTLY `ranked[:k]`. Otherwise walk the fused ranking,
     keep at most N rowids per parent document, record what was skipped in meta['capped_out']
@@ -559,7 +559,7 @@ def _community_hits(cfg: RetrievalCfg, text: str, qvec, meta: dict) -> list[RefS
             dense = _dense_ranked(cfg, text, _CAND, index_path=cfg.community_index_path,
                                   qvec=qvec if qvec is not None else _encode_query(text))
     if not bm25 and not dense:
-        meta["community_fallback"] = "community index absent — no community hits"
+        meta["community_fallback"] = "community index absent; no community hits"
         return []
     fused = _rrf([r["rowid"] for r in bm25], dense)
     top = _take_top(cfg, fused, cfg.community_top_k, meta) if cfg.max_per_parent > 0 \
@@ -578,10 +578,10 @@ def _community_hits(cfg: RetrievalCfg, text: str, qvec, meta: dict) -> list[RefS
 def retrieve(cfg: RetrievalCfg, text: str) -> list[RefSnippet]:
     """Top-k reference snippets for an eval prompt, or [] when nothing matches.
 
-    mode="bm25": retrieval-v1 exactly (Syed's build, preserved for audit/repro) — including
+    mode="bm25": retrieval-v1 exactly (Syed's build, preserved for audit/repro), including
     its FTS token snippet, so historical cells stay reproducible byte-for-byte.
     mode="hybrid" (default since 2026-07-22): BM25 top-20 and BGE-M3 cosine top-20 fused by
-    Reciprocal Rank Fusion — score(doc) = sum over rankers of 1/(60 + rank). RRF needs no
+    Reciprocal Rank Fusion, score(doc) = sum over rankers of 1/(60 + rank). RRF needs no
     tuned weights and rewards documents both rankers like, while letting either ranker
     alone carry a hit the other missed (the paraphrase case BM25 can't see). Falls back to
     pure BM25 when the dense index hasn't been built.

@@ -33,14 +33,14 @@ REGISTRY: dict[str, FetchFn] = {
     "forum_legacygt": forum_legacygt.fetch,
     "local_pdf": local_pdf.fetch,
     "ecu_docs": ecu_docs.fetch,
-    # phpBB boards — one engine, per-site bindings (universal-first source expansion)
+    # phpBB boards; one engine, per-site bindings (universal-first source expansion)
     "forum_speeduino": forum_phpbb.fetch_for("forum_speeduino"),
     "forum_msextra": forum_phpbb.fetch_for("forum_msextra"),
     "forum_romraider": forum_phpbb.fetch_for("forum_romraider"),
     "forum_nasioc": forum_nasioc.fetch,
     "tunerstudio_ini": tunerstudio_ini.fetch,
-    # XenForo boards (VerticalScope 202 stub) — one engine, per-site bindings
+    # XenForo boards (VerticalScope 202 stub); one engine, per-site bindings
     "forum_subaruforester": forum_xenforo.fetch_for("forum_subaruforester"),
     "forum_iwsti": forum_xenforo.fetch_for("forum_iwsti"),
-    # kaggle_datalogs — later.
+    # kaggle_datalogs, later.
 }

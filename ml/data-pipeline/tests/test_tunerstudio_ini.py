@@ -1,4 +1,4 @@
-"""tunerstudio_ini — parser tests on a synthetic speeduino.ini fragment."""
+"""tunerstudio_ini, parser tests on a synthetic speeduino.ini fragment."""
 from __future__ import annotations
 
 from corpus_pipeline.sources.tunerstudio_ini import _parse_ini

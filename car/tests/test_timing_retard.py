@@ -2,7 +2,7 @@
 
 The plan (`docs/PLAN-timing-stage-2026-08-30.md`) found five defects that would each have made
 the timing stage silently wrong rather than loudly broken. Each has a test here named after it,
-because "we fixed it" is not a property — "it stays fixed" is.
+because "we fixed it" is not a property, "it stays fixed" is.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from ecutune.simulation.rom_seed import DEFAULT_DEFS, SIBLING_DEFS
 CFG = load_config()
 ROM_DIR = pathlib.Path(__file__).resolve().parents[1] / "ecu" / "rom read"
 
-# The Base Timing load axis AS THE ROM ACTUALLY STORES IT — float32, so the decimal literals in
+# The Base Timing load axis AS THE ROM ACTUALLY STORES IT: float32, so the decimal literals in
 # config.yaml are NOT these numbers. Hardcoded on purpose: this is the regression pin for
 # blocker 1, and reading them from the ROM would let the test drift with the ROM.
 ROM_LOAD_BREAKS = (0.25, 0.3999999761581421, 0.5499999523162842, 0.699999988079071,
@@ -64,7 +64,7 @@ def test_load_ceilings_fire_at_the_ROMs_real_float32_breakpoints():
 
     config.yaml ratifies bands at load >= 0.55 and >= 0.85. The ROM stores those breakpoints as
     float32: 0.5499999523162842 and 0.8499999642372131. A bare `load >= 0.55` is FALSE at both,
-    so BOTH ratified bands silently started one column late — col 2 got the 45 deg cruise
+    so BOTH ratified bands silently started one column late, col 2 got the 45 deg cruise
     ceiling instead of 30, and col 4, where this car makes boost, got 30 instead of 22.
 
     Asserted against the stored breakpoints, never against the decimal literals.
@@ -130,7 +130,7 @@ def test_cumulative_floor_is_inert_without_a_baseline():
 def test_ceiling_then_rate_limit_compose():
     """The ordering that made Syed's 6 deg/iteration ruling real (D31).
 
-    The ceiling floors a cell to an absolute value in ONE move — up to 18.12 deg on this ROM.
+    The ceiling floors a cell to an absolute value in ONE move, up to 18.12 deg on this ROM.
     Running it after the rate limit would let it override the ratified step. Running it BEFORE
     means the ceiling picks the destination and the rate limit paces the journey.
     """
@@ -161,7 +161,7 @@ def test_knock_abort_still_kills_a_fuel_proposal():
 
 
 def test_knock_abort_exempts_a_verified_retard_only_timing_proposal():
-    """The car knocks — that is why this stage exists. Without the exemption the clamp aborts
+    """The car knocks; that is why this stage exists. Without the exemption the clamp aborts
     the one change that reduces the hazard it is reacting to."""
     ts = _ts([[40.0]])
     res = apply_clamps(_prop([CellEdit(IGNITION_BASE_TIMING, 0, 0, 36.0)]),
@@ -227,7 +227,7 @@ def _grid_for(tables, log):
 
 
 def test_undriven_cells_get_the_ceiling_and_nothing_else():
-    """Syed's ruling: apply the ceiling to undriven cells — it is an octane/compression limit,
+    """Syed's ruling: apply the ceiling to undriven cells; it is an octane/compression limit,
     not a measurement, and the drive to the shop is a highway."""
     ts = _ts([[40.0] * 5], loads=ROM_LOAD_BREAKS[:5], rpms=(800.0,))
     prop, _ = propose_timing_retard(_grid_for(ts, _log([(800.0, 0.25)])), ts, TimingState(),
@@ -249,7 +249,7 @@ def test_measured_knock_retards_beyond_the_ceiling_requirement():
 
 
 def test_learned_ADVANCE_is_not_evidence_for_retarding():
-    """Fine Learning Knock Correction reached +0.35 deg on the real log — the ECU had learned it
+    """Fine Learning Knock Correction reached +0.35 deg on the real log, the ECU had learned it
     could give a little advance back. Only the retard half of the channel is evidence."""
     ts = _ts([[40.0]], loads=(0.25,), rpms=(800.0,))
     log = _log([(800.0, 0.25)], fine=+2.0, iam=CFG.safety.iam_reference)
@@ -271,7 +271,7 @@ def test_iam_deficit_is_measured_from_the_worst_sample_and_falls_back_cleanly():
 def test_iam_reference_and_authority_come_from_the_ROM_when_available():
     """Two ROM-derived facts replace two guesses.
 
-    `Advance Multiplier (Initial)` on this ROM is 0.5, NOT 1.0 — so an observed IAM of 0.500 is
+    `Advance Multiplier (Initial)` on this ROM is 0.5, NOT 1.0, so an observed IAM of 0.500 is
     the factory value and the deficit at IAM 0 is half the advance map, not all of it. And
     `Knock Correction Advance Max` is 0.0 across the entire idle/cruise region, so IAM
     collapsing costs those cells NOTHING: a flat constant was retarding a band the project has
@@ -297,7 +297,7 @@ def test_iam_reference_and_authority_come_from_the_ROM_when_available():
 
 def test_idle_cells_are_not_retarded_by_the_iam_term():
     """The regression that motivated reading the ROM: with a flat 2 deg IAM constant, cell
-    (0,0) — 800 rpm, 0.25 g/rev, the validated knock-free idle band — was pulled 2.11 deg."""
+    (0,0), 800 rpm, 0.25 g/rev, the validated knock-free idle band, was pulled 2.11 deg."""
     data = _rom_paths()[0].read_bytes()
     defs = EcuFlashDefs(DEFAULT_DEFS)
     raw, _ = read_semantic_tables(RomImage(data), defs, list(SIBLING_DEFS),
@@ -501,7 +501,7 @@ def test_cumulative_retard_bound_can_actually_reach_the_ratified_ceiling():
     worst = float(np.max(np.maximum(stock - target, 0.0)))
     assert worst <= CFG.safety.max_timing_retard + 1e-9, (
         f"the ceiling demands {worst:.3f} deg of retard but max_timing_retard is "
-        f"{CFG.safety.max_timing_retard} — cells would stall short of their own ceiling")
+        f"{CFG.safety.max_timing_retard}, cells would stall short of their own ceiling")
 
 
 def test_undriven_cell_reaches_its_ceiling_in_one_pass():
@@ -532,7 +532,7 @@ def test_a_DRIVEN_cell_is_still_rate_limited():
 
 def test_the_undriven_exemption_cannot_go_below_the_ceiling():
     """It waives the STEP, never the ceiling. An undriven cell asked to go far below its own
-    ceiling is still rate limited — otherwise the exemption would be an unbounded pull."""
+    ceiling is still rate limited, otherwise the exemption would be an unbounded pull."""
     ts = _ts([[45.0] * 5], loads=ROM_LOAD_BREAKS[:5])
     counts = {IGNITION_BASE_TIMING: np.zeros((1, 5))}
     res = apply_clamps(_prop([CellEdit(IGNITION_BASE_TIMING, 0, 4, -50.0)]),

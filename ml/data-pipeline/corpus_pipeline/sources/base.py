@@ -1,7 +1,7 @@
 """Common types + helpers for source modules.
 
 A source module sets `name` and defines `fetch(cfg, source_cfg, http) -> Iterator[Document]`,
-yielding RAW Documents. It does NOT gate or judge — `gates.evaluate` and the Stage-B judge
+yielding RAW Documents. It does NOT gate or judge, `gates.evaluate` and the Stage-B judge
 own that. Wrap fetch bodies so one broken source never kills the pass (the orchestrator also
 isolates per-source). Mirrors Hardware Parser's sources/base.py.
 """

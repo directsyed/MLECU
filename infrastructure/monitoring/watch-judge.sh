@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# MLECU judge cockpit — 3-pane tmux viewer (pure viewer: closing it affects nothing).
+# MLECU judge cockpit: 3-pane tmux viewer (pure viewer: closing it affects nothing).
 #   top    = live tokens/sec from llama-judge (journal print_timing lines)
 #   middle = judge verdict feed (one line per doc)
 #   bottom = GPU vitals + service health + flight-recorder heartbeat (line count must grow)
 # Usage: bash infrastructure/monitoring/watch-judge.sh   (reattach: tmux attach -t watch)
 set -u
 MLECU="$HOME/Shared/Computing Projects/MLECU"
-# newest *run*.log at launch — each batch run gets its own log file, so restart the
+# newest *run*.log at launch: each batch run gets its own log file, so restart the
 # cockpit after starting a new run to re-resolve
 TIER_LOG="$(ls -t "$MLECU/ml/curation/data/"*run*.log | head -1)"
 S=watch

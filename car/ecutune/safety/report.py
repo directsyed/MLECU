@@ -1,4 +1,4 @@
-"""The disagreement report — what the human gets when the layer refuses a proposal.
+"""The disagreement report, what the human gets when the layer refuses a proposal.
 
 SYED'S REQUIREMENT (2026-08-05), verbatim in intent: *"we need the system to give a DETAILED
 excerpt of why there was a disagreement, all the data from the LLM that led it to the diagnosis,
@@ -6,7 +6,7 @@ and all the data and computations from the DL to make it disagree, so the human 
 of the coin."*
 
 The point is not to announce a verdict. A refusal means the two independent analyses reached
-different conclusions and **we do not know which one is right** — so the report has to put the
+different conclusions and **we do not know which one is right**: so the report has to put the
 human in a position to adjudicate, not to rubber-stamp. That means showing the runner-up
 hypotheses and how close they were, not just the winner; and showing the exact evidence the
 model was given, not a summary of it.
@@ -33,7 +33,7 @@ def disagreement_report(prop: Proposal, ctx: ClampContext, result: ClampResult,
     `llm_context` carries everything the model side knows and the safety layer does not: the
     prompt it was shown, the retrieved excerpts, the per-iteration diagnosis history, the model
     tag, finish_reason and token counts. The layer cannot reconstruct these, so the orchestrator
-    passes them in — and if it passes nothing, the report says so loudly rather than implying
+    passes them in, and if it passes nothing, the report says so loudly rather than implying
     the model had no reasoning.
     """
     est = ctx.fault_estimate
@@ -41,7 +41,7 @@ def disagreement_report(prop: Proposal, ctx: ClampContext, result: ClampResult,
     ranked = sorted(residuals.items(), key=lambda kv: kv[1])
 
     return {
-        "verdict": "REFUSED — deterministic layer disagrees with the diagnosis",
+        "verdict": "REFUSED, deterministic layer disagrees with the diagnosis",
         "aborted_by": result.aborted_by,
         "proposal": {
             "proposal_id": prop.proposal_id,
@@ -53,7 +53,7 @@ def disagreement_report(prop: Proposal, ctx: ClampContext, result: ClampResult,
             "metadata": prop.metadata,
         },
         "llm_side": llm_context or {
-            "WARNING": "no LLM context supplied by the caller — the model's reasoning is NOT "
+            "WARNING": "no LLM context supplied by the caller, the model's reasoning is NOT "
                        "recoverable from the safety layer alone; the orchestrator must pass it",
         },
         "deterministic_side": {
@@ -77,14 +77,14 @@ def disagreement_report(prop: Proposal, ctx: ClampContext, result: ClampResult,
         "what_the_human_must_decide": (
             "Two independent analyses of the same engine disagree about WHICH belief is wrong. "
             "Nothing has been written. Either (a) accept the deterministic estimate and re-run, "
-            "(b) accept the model's diagnosis and override, or (c) capture more probe points — "
+            "(b) accept the model's diagnosis and override, or (c) capture more probe points, "
             "the layer's `why_not` field says whether the data was simply insufficient."
         ),
     }
 
 
 def to_markdown(rep: dict) -> str:
-    """Human-facing rendering. Deliberately puts BOTH conclusions adjacent and near the top —
+    """Human-facing rendering. Deliberately puts BOTH conclusions adjacent and near the top -
     the whole purpose is that the reader compares them rather than reads a verdict."""
     d, p = rep["deterministic_side"], rep["proposal"]
     llm = rep["llm_side"]
@@ -97,11 +97,11 @@ def to_markdown(rep: dict) -> str:
            f"`{', '.join(p['tables_it_would_move']) or '(none)'}` |",
            f"| **Deterministic layer** | `{d['verdict']}` | `{d['would_move'] or '(no table edit)'}` |",
            "", f"Layer identifiable: **{d['identifiable']}**"
-           + (f" — {d['why_not']}" if d["why_not"] else ""),
+           + (f", {d['why_not']}" if d["why_not"] else ""),
            f"  ·  fitted magnitude `{d['fitted_magnitude']}`"
            f"  ·  margin over next different action `{d['margin_over_next_different_action']}`"
            f"  ·  {d['n_observations']} probe points", "",
-           "## Deterministic side — every hypothesis, ranked", "",
+           "## Deterministic side; every hypothesis, ranked", "",
            "Lower residual = better fit. The runner-up matters: a narrow gap means the data",
            "genuinely does not separate them, which is a different problem from a wrong model.", "",
            "| rank | hypothesis | residual (SSE) |", "|---|---|---|"]
@@ -117,7 +117,7 @@ def to_markdown(rep: dict) -> str:
                        f"| {o.get('maf_reading')} | {o.get('nominal_maf')} "
                        f"| {o.get('nominal_validated', '?')} |")
 
-    out += ["", "## LLM side — the evidence it was given", ""]
+    out += ["", "## LLM side, the evidence it was given", ""]
     if "WARNING" in llm:
         out.append(f"> **{llm['WARNING']}**")
     else:

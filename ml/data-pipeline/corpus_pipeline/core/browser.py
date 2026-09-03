@@ -1,8 +1,8 @@
-"""Patchright (stealth Playwright) fetcher — the JS/anti-bot fallback.
+"""Patchright (stealth Playwright) fetcher, the JS/anti-bot fallback.
 
-For sources whose WAF defeats plain `requests`: legacygt (202 JS-challenge stub — cleared by a real
+For sources whose WAF defeats plain `requests`: legacygt (202 JS-challenge stub, cleared by a real
 headless browser + networkidle + waiting for a content selector) and NASIOC (Cloudflare *managed*
-challenge — NOT clearable headless; needs an injected cf_clearance cookie, see cookies=).
+challenge, NOT clearable headless; needs an injected cf_clearance cookie, see cookies=).
 
 Design note: launch()+new_context() with a viewport/UA is what actually renders legacygt here;
 launch_persistent_context returned an empty body on this box (verified), so we do NOT use it. The
@@ -22,7 +22,7 @@ class BrowserFetcher:
     """Headless Chromium context, reused across page fetches.
 
     cookies: optional list of Playwright cookie dicts (e.g. a real-browser cf_clearance for a hard
-    managed challenge — must come from the same public IP + matching UA as this host).
+    managed challenge, must come from the same public IP + matching UA as this host).
     profile_dir is accepted for call-site compatibility but unused (persistent context misbehaves here).
     """
 
@@ -53,7 +53,7 @@ class BrowserFetcher:
         boards keep trackers polling and never reach networkidle), but letting networkidle run its
         full timeout gives the 202-stub JS the ~15-30s it needs to clear to real content; we then
         confirm with wait_selector and read once. A short CF-interstitial retry handles Cloudflare's
-        "Just a moment" (which swaps out on its own). Do NOT reload-loop per page — that multiplies
+        "Just a moment" (which swaps out on its own). Do NOT reload-loop per page; that multiplies
         the per-page cost on boards whose challenge is inherently slow.
         """
         pg = self._ctx.new_page()

@@ -1,4 +1,4 @@
-"""Yield of a judge run — score distribution of what it judged, by source, vs the prior state.
+"""Yield of a judge run, score distribution of what it judged, by source, vs the prior state.
 
 WHY (2026-08-16): no distribution tooling existed beyond `--status`'s corpus-wide histogram and
 the end-of-run RunStats. Judging 314 community docs is only worth doing if the result is read

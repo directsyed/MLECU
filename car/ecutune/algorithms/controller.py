@@ -1,4 +1,4 @@
-"""The bounded-integral controller — the reusable control primitive behind every tuning stage.
+"""The bounded-integral controller, the reusable control primitive behind every tuning stage.
 
 The iterative loop `log -> propose -> clamp -> apply -> re-log` IS a discrete PI controller:
   * input  = the fuel trim error (how far the ECU is having to correct to hold AFR)
@@ -8,7 +8,7 @@ The iterative loop `log -> propose -> clamp -> apply -> re-log` IS a discrete PI
 Anti-windup via conditional integration: while the output is saturated at the clamp, we FREEZE
 the integral instead of letting it accumulate the part we couldn't apply. Without this, a big
 initial error would wind the integral up and then overshoot (blow past target) once the error
-finally shrank. Damping < 1 makes the steps deliberately small — it creeps to target rather than
+finally shrank. Damping < 1 makes the steps deliberately small; it creeps to target rather than
 ringing. That is why the loop is provably stable, not just "usually fine".
 """
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""forum_phpbb generic engine — parse-level tests on synthetic prosilver/subsilver markup."""
+"""forum_phpbb generic engine, parse-level tests on synthetic prosilver/subsilver markup."""
 from __future__ import annotations
 
 from bs4 import BeautifulSoup
@@ -29,7 +29,7 @@ _VIEWTOPIC = """
 </div>
 <div class="post bg2">
   <p class="author"><span class="username-coloured">mod_alice</span></p>
-  <div class="content">Check injector latency first — voltage dependent.</div>
+  <div class="content">Check injector latency first, voltage dependent.</div>
 </div>
 <div class="pagination"><a href="./viewtopic.php?t=777&start=10">2</a><a href="./viewtopic.php?t=777&start=20">3</a></div>
 </body></html>

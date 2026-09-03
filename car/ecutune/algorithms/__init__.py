@@ -1,5 +1,5 @@
 """Deterministic tuning algorithms. Each stage is a pure function that consumes a binned log +
-current tables and emits a Proposal — it NEVER applies it (that is safety.apply_proposal's job).
+current tables and emits a Proposal; it NEVER applies it (that is safety.apply_proposal's job).
 The registry mirrors corpus_pipeline's source REGISTRY pattern."""
 from __future__ import annotations
 

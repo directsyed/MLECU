@@ -1,25 +1,25 @@
-# Community score-3 docs — retrieval-usefulness review (2026-08-16)
+# Community score-3 docs: retrieval-usefulness review (2026-08-16)
 
 **What this is.** Syed's ruling (2026-08-15): keep the judge's ≥4 bar unchanged; recover value from
 the score-3 community docs by *review*, not by moving the bar; nothing enters any retrieval index
-without his sign-off. This file is that review — **recommendations only, nothing indexed.**
+without his sign-off. This file is that review, **recommendations only, nothing indexed.**
 
 **What was reviewed.** All **95** community documents with `judge_score = 3` at 2026-08-16 (the 95
-existing; the C2 overnight judge run adds more 3s later — they are NOT in this file and need the same
+existing; the C2 overnight judge run adds more 3s later; they are NOT in this file and need the same
 pass). Reviewed by Claude subagents in 8 batches under one fixed rubric (`community-3s-review-RUBRIC.md`; raw per-doc JSONL in
 `community-3s-review-2026-08-16.jsonl`; the rubric text is also reproduced at the bottom), each doc read
 in full including the 330 kB thread; ≥15% of verdicts spot-checked against the source text by the
 orchestrating agent (all held).
 
 **What "keep" means here.** *Would this thread be useful if RETRIEVED for the diagnostic queries the
-project currently lacks answers to* — idle diagnosis (leak vs latency vs MAF vs flow), smoke testing,
+project currently lacks answers to*, idle diagnosis (leak vs latency vs MAF vs flow), smoke testing,
 healthy-idle MAF baselines, EJ20X-in-EJ255 mismatch, VE/timing correction from logs, RomRaider/Openport
-procedure — judged as a forum post that would sit in the **separate, tier-tagged community index**
+procedure, judged as a forum post that would sit in the **separate, tier-tagged community index**
 (Track D machinery, built tonight, switched off). Not prose quality.
 
 **Honest limit (checklist §B6).** A text reviewer cannot know whether a fix actually worked. The
-`markers` columns record *signals of verifiability* — outcome reported, causal chain present, numbers
-with units+conditions, thread resolved, corroboration by more than one poster — **not correctness.**
+`markers` columns record *signals of verifiability*, outcome reported, causal chain present, numbers
+with units+conditions, thread resolved, corroboration by more than one poster, **not correctness.**
 A confidently wrong post with all five markers is indistinguishable from a correct one here.
 
 ## Counts
@@ -38,7 +38,7 @@ Retrieval value for the current gaps (all / keep): high 2/2 · medium 25/25 · l
 
 Verifiability markers present (all / keep): outcome_reported 32/17 · causal_chain 56/27 · numbers_with_units_conditions 64/27 · thread_resolved 19/7 · corroboration 38/19
 
-### Needs-alignment census — topics (all docs / keep docs)
+### Needs-alignment census: topics (all docs / keep docs)
 
 | topic | all | keep |
 |---|---|---|
@@ -65,7 +65,7 @@ Verifiability markers present (all / keep): outcome_reported 32/17 · causal_cha
 **Reading the census honestly.** The score-3 pile is dominated by generic/off-platform chat and
 MegaSquirt/Speeduino config threads; the Subaru idle-diagnosis material the project actually lacks
 (vacuum_leak, smoke_test, injector_latency, maf_baseline) is a small minority, and *no doc in the pile
-supplies a healthy-idle MAF g/s baseline for an EJ engine* — the single number the deterministic layer
+supplies a healthy-idle MAF g/s baseline for an EJ engine*, the single number the deterministic layer
 most needs (checklist A3) is not in these forums at score 3. What the keeps DO supply: leak-vs-latency
 reasoning with numbers, smoke-test examples, injector-latency-vs-scaling separation, MAF-scaling
 practice, Subaru timing/AVCS/TGV table architecture, wideband wiring, and a few EJ20X-swap facts.
@@ -93,7 +93,7 @@ practice, Subaru timing/AVCS/TGV table architecture, wideband wiring, and a few 
 | 1104 | romraider | 2002 wrx sti singapore model | JDM WRX ECU into EDM 02 STi: no CEL, no fuel prime, no OBD comms; reply: swap cam/crank pins, try FastECU to read locked ECU. | **drop** | Two-line ECU pinout swap question, no procedure or outcome; too thin to serve ROM-read or any diagnostic query. | low | `·····` |
 | 1108 | romraider | Tuning help baja MT ez30/36R lost | Baja EZ36R on EZ30R MT ECU: IAM drops to zero at start, no knock, AVCS stuck 10%, idle locked 500 rpm; single post, no replies. | **drop** | Symptom list only, no diagnosis or replies; H6 ECU/harness mismatch not a usable analog for EJ20X-in-EJ255 calibration query. | low | `··●··` |
 | 1109 | romraider | 04 forester not making expected power, what am i doing wrong | 04 FXT VF48 250hp not 300, ~90% WGDC, AFR 10.5-11 vs 11.5 target, suspects uppipe leak; replies: pre-turbo leak lean, post-turbo leak rich. | **keep** | Forester XT + VF48 near-match; gives the leak-location vs trim/AFR direction principle and MAF-rescale suspicion with numbers; outcome pending. | medium | `·●●·●` |
-| 1110 | subaruforester | Datalog discussion thread | FXT log-sharing; thefoos: set injector scalar to tested flow, leave latency, dial MAF in RomRaider; a6n6d6y: injectors first then MAF; meth AFR ~12.5. | **keep** | Two experienced posters give reasoned order-of-operations for injector scaling vs latency vs MAF scaling — directly the gap-1 separation question; rest is boost chat. | medium | `●●●·●` |
+| 1110 | subaruforester | Datalog discussion thread | FXT log-sharing; thefoos: set injector scalar to tested flow, leave latency, dial MAF in RomRaider; a6n6d6y: injectors first then MAF; meth AFR ~12.5. | **keep** | Two experienced posters give reasoned order-of-operations for injector scaling vs latency vs MAF scaling, directly the gap-1 separation question; rest is boost chat. | medium | `●●●·●` |
 | 1112 | legacygt | '99 GT-B tuning 300 - 320bhp? | NZ 99 Legacy GT-B owner asks how to reach 300 bhp; replies: pre-Rev-D ECUs barely tunable, buy a Rev D instead; resale and S401 chat. | **drop** | Platform/tuner-availability and market chat, no data or diagnostics; irrelevant to gaps. | low | `·····` |
 | 1121 | speeduino | Please anaylize this tune MSQ file,from a commercial SPeedui | CB400 with commercial Speeduino MSQ hard to start, runs lean, VT stuck at 12V; replies: tables corrupted, tune the VE table yourself; no outcome. | **drop** | Off-platform corrupted-tune request with no diagnosis or numbers; nothing transferable. | low | `·····` |
 | 1122 | speeduino | 0.3 version board not support the idle control motor? | Speeduino v0.3 board lacks stepper IAC; advice to tune idle open-loop on fixed throttle stop, warm engine, WUE at 100% before enabling IAC. | **drop** | Speeduino hardware talk; only generic idle order-of-operations, no logs, numbers, or Subaru relevance to the current gaps. | low | `···●·` |
@@ -177,17 +177,17 @@ Markers legend: O outcome reported · C causal chain · N numbers with units+con
 1. Sign off (or edit) the **28 keeps** above. Nothing moves until you do.
 2. When the C2 judge run finishes, run the same rubric over the *new* score-3 docs and append them here.
 3. If approved: `ensure_community_index(state, min_score=4)` will index the ≥4 docs; the reviewed keeps
-   need a way in that does NOT rewrite `document.tier` or `judge_score` — e.g. a `human_label`
+   need a way in that does NOT rewrite `document.tier` or `judge_score`: e.g. a `human_label`
    row (`label_set='community-3s-review', rater='claude'`, `score=4`) that the community-index
    predicate can OR into. That predicate change is a one-liner and is **not** written tonight.
 
 ## Rubric (verbatim)
 
 ```
-# Score-3 community doc review — FIXED RUBRIC (2026-08-16)
+# Score-3 community doc review: FIXED RUBRIC (2026-08-16)
 
 You are reviewing forum threads that an LLM judge scored 3/5 ("some substance, not enough to
-promote") for MLECU — an AI-assisted ECU tuning system whose test car is a 2005 Subaru Forester
+promote") for MLECU, an AI-assisted ECU tuning system whose test car is a 2005 Subaru Forester
 XT with a JDM EJ20X 2.0 L swap running the stock EJ255 2.5 L calibration, TGVs deleted, exhaust
 AVCS deleted, VF48 turbo, catless. The car idles poorly and has never been driven.
 
@@ -195,13 +195,13 @@ The question is NOT "is this good writing" and NOT "is this correct" (a text rev
 whether a fix actually worked). The question is: **would this thread be USEFUL if RETRIEVED for
 the diagnostic queries the project currently lacks answers to?** Those gaps, in priority order:
 
-1. Idle diagnosis: vacuum leak vs injector latency vs MAF scaling vs injector flow — what
+1. Idle diagnosis: vacuum leak vs injector latency vs MAF scaling vs injector flow, what
    separates them in logs (trims vs airflow, trims vs battery voltage, smoke test results).
 2. Smoke/leak testing procedure and what leaks look like in trims/AFR.
 3. Healthy-idle MAF g/s baselines for EJ-series engines (esp. TGV-deleted), rpm dependence.
 4. EJ20X-in-EJ255-calibration (or similar displacement/CR mismatch) symptoms and fixes.
 5. VE / load-model correction from logged AFR vs target; timing for higher CR on 93 octane;
-   knock handling. (Timing is a RETREAT mechanism in MLECU — removing timing autonomously,
+   knock handling. (Timing is a RETREAT mechanism in MLECU, removing timing autonomously,
    adding requires human review.)
 6. RomRaider/ECUFlash/Openport logging + flashing procedure, SSM2, ROM read problems.
 7. Wideband install/logging (AEM 30-0300), MegaSquirt/Speeduino content is LOW value unless it
@@ -226,7 +226,7 @@ For EACH document, output ONE JSON object on ONE line (JSONL), no prose around i
 Rules:
 - "keep" means: worth putting into the SEPARATE community retrieval index (tagged as a forum
   post) because a realistic diagnostic query would be well served by it. A post that says "same
-  thing happened to me — smoke test found a torn intake boot, trims went from +12 to +2" is a
+  thing happened to me, smoke test found a torn intake boot, trims went from +12 to +2" is a
   KEEP even if it is two lines, because it is exactly what a vacuum-leak query needs.
 - "drop" means: generic chat, unresolved speculation with no numbers, off-platform tooling talk
   with no transferable principle, parts-for-sale, or duplicated content.
@@ -234,7 +234,7 @@ Rules:
   there a cause→effect chain, are there numbers WITH units and conditions, did the thread reach a
   resolution, does more than one poster corroborate.
 - Read the whole document (Read tool; long files: read in offsets). The judge's rationale is at
-  the top of each file — you may disagree with it.
+  the top of each file; you may disagree with it.
 - Do NOT invent content. If a doc is nearly empty, say so and drop it.
 - Output ONLY the JSONL lines, one per doc, in id order. Nothing else.
 
@@ -243,16 +243,16 @@ Rules:
 
 ---
 
-# PART 2 — the 93 NEW score-3 docs from the 2026-08-16 C2 judge run + ALL 34 score-4 community docs (2026-08-16)
+# PART 2: the 93 NEW score-3 docs from the 2026-08-16 C2 judge run + ALL 34 score-4 community docs (2026-08-16)
 
 **Why this part exists.** The overnight C2 run judged the 314 previously-pending community docs
-(0 failed) and produced 93 new 3s and 15 new 4s. Syed's rule: *nothing enters the corpus unreviewed* —
+(0 failed) and produced 93 new 3s and 15 new 4s. Syed's rule: *nothing enters the corpus unreviewed* -
 that covers the 4s too (19 old + 15 new = 34), which are what the community index would take first.
 Same rubric, same reviewer setup (Fable-5 subagents, verified from transcripts), same JSONL. For a
-score-4 doc, **drop = do not index it for MLECU** — usually a NEED-FIT call (off-platform / not transferable),
-occasionally a genuine judge over-promotion (arc missing) — the list below separates the two.
+score-4 doc, **drop = do not index it for MLECU**: usually a NEED-FIT call (off-platform / not transferable),
+occasionally a genuine judge over-promotion (arc missing), the list below separates the two.
 
-Reviewed here: **127** docs — 93 new 3s and
+Reviewed here: **127** docs, 93 new 3s and
 34 fours. Recommendations only; nothing indexed.
 
 ## Counts
@@ -268,31 +268,31 @@ Reviewed here: **127** docs — 93 new 3s and
 | **judge score 4 (34)** | 17 | 17 | 34 |
 | **judge score 3, new (93)** | 29 | 64 | 93 |
 
-**Fours the review recommends NOT indexing.** Read this carefully: a 'drop' on a score-4 doc is a NEED-FIT verdict (off-platform / not transferable to this car's gaps), not a claim the judge misapplied the rubric — spot-checks show most of these DO have the four-leg arc the rubric scores (rubric-correct 4, low value to MLECU). Marked ✱ where the reviewer's reason says the arc itself is missing (a genuine judge over-promotion, the doc-1081 pattern):
+**Fours the review recommends NOT indexing.** Read this carefully: a 'drop' on a score-4 doc is a NEED-FIT verdict (off-platform / not transferable to this car's gaps), not a claim the judge misapplied the rubric, spot-checks show most of these DO have the four-leg arc the rubric scores (rubric-correct 4, low value to MLECU). Marked ✱ where the reviewer's reason says the arc itself is missing (a genuine judge over-promotion, the doc-1081 pattern):
 
-- 938 (legacygt) ✱ — Boost-control anecdote with no resolution; over-promoted by judge; only TGV-plate smoke aside, no diagnostic arc for current gaps.
-- 1097 (msextra) — Megasquirt/Ford; WUE-taper stall analysis is neat but not transferable to Subaru OEM ECU idle gaps; judge over-promoted a remote-tune chat thread.
-- 1099 (msextra) — Megasquirt-specific idle controller parameter bug; no principle transferable to Subaru OEM ECU idle diagnosis.
-- 1114 (legacygt) ✱ — One-poster speculation on built/meth car fuel pressure; no diagnosis of idle, MAF, leaks or logging; not relevant to current gaps.
-- 1129 (msextra) ✱ — Megasquirt VW swap, unresolved, off-gap (power not idle); no transferable diagnostic principle for MLECU queries.
-- 5811 (msextra) — Megasquirt DBW config quirk; no transferable principle for Subaru OEM ECU idle gaps.
-- 5838 (msextra) — Megasquirt idle-tuning generalities; only weakly transferable (flatten tables near idle); no logs/numbers useful for Subaru gaps.
-- 5844 (romraider) ✱ — Boost-control tweak thread with no diagnostic detail; off current gaps; judge over-promoted a thin thread.
-- 5895 (legacygt) ✱ — Judge over-promoted: negative, unquantified outcome, no latency values shared, tip-in transient not idle; only advice is set latency in steady state
-- 5900 (msextra) — Judge over-promoted for our purpose: MegaSquirt IAC/PID parameter tuning; only generic idle-timing-reserve principle transferable, nothing on Subaru trims/MAF
-- 6017 (msextra) — Judge over-promoted for our purposes: MegaSquirt wiring EMI fix, no principle transferable to Subaru idle/leak/MAF gaps.
-- 6018 (msextra) — MegaSquirt IAC driver hardware fix; resolved but no relevance to Subaru ECU diagnostics.
-- 6057 (msextra) — Judge over-promoted: MegaSquirt table-axis/IAC config issue with only partial qualitative outcome; no principle transferable to Subaru idle diagnosis.
-- 6067 (msextra) — Judge over-promoted: MegaSquirt trigger-noise/ignition-module swap on AMC V8; no transferable principle for Subaru gaps.
-- 6081 (msextra) — MegaSquirt hardware electronics repair; no diagnostic principle transferable to Subaru ECU idle/fuel/timing gaps. Judge over-promoted.
-- 6214 (romraider) — Dyno-estimate/gear-ratio thread; resolved but no idle/fuel/timing/tooling diagnostic content for the gaps. Judge over-promoted.
-- 6287 (msextra) — Judge over-promoted: standalone-ECU trigger-wheel sync issue on EG33, no transferable content for stock-ECU idle/MAF/injector/EJ20X gaps.
+- 938 (legacygt) ✱, Boost-control anecdote with no resolution; over-promoted by judge; only TGV-plate smoke aside, no diagnostic arc for current gaps.
+- 1097 (msextra). Megasquirt/Ford; WUE-taper stall analysis is neat but not transferable to Subaru OEM ECU idle gaps; judge over-promoted a remote-tune chat thread.
+- 1099 (msextra). Megasquirt-specific idle controller parameter bug; no principle transferable to Subaru OEM ECU idle diagnosis.
+- 1114 (legacygt) ✱, One-poster speculation on built/meth car fuel pressure; no diagnosis of idle, MAF, leaks or logging; not relevant to current gaps.
+- 1129 (msextra) ✱, Megasquirt VW swap, unresolved, off-gap (power not idle); no transferable diagnostic principle for MLECU queries.
+- 5811 (msextra). Megasquirt DBW config quirk; no transferable principle for Subaru OEM ECU idle gaps.
+- 5838 (msextra). Megasquirt idle-tuning generalities; only weakly transferable (flatten tables near idle); no logs/numbers useful for Subaru gaps.
+- 5844 (romraider) ✱, Boost-control tweak thread with no diagnostic detail; off current gaps; judge over-promoted a thin thread.
+- 5895 (legacygt) ✱, Judge over-promoted: negative, unquantified outcome, no latency values shared, tip-in transient not idle; only advice is set latency in steady state
+- 5900 (msextra). Judge over-promoted for our purpose: MegaSquirt IAC/PID parameter tuning; only generic idle-timing-reserve principle transferable, nothing on Subaru trims/MAF
+- 6017 (msextra). Judge over-promoted for our purposes: MegaSquirt wiring EMI fix, no principle transferable to Subaru idle/leak/MAF gaps.
+- 6018 (msextra). MegaSquirt IAC driver hardware fix; resolved but no relevance to Subaru ECU diagnostics.
+- 6057 (msextra). Judge over-promoted: MegaSquirt table-axis/IAC config issue with only partial qualitative outcome; no principle transferable to Subaru idle diagnosis.
+- 6067 (msextra). Judge over-promoted: MegaSquirt trigger-noise/ignition-module swap on AMC V8; no transferable principle for Subaru gaps.
+- 6081 (msextra). MegaSquirt hardware electronics repair; no diagnostic principle transferable to Subaru ECU idle/fuel/timing gaps. Judge over-promoted.
+- 6214 (romraider). Dyno-estimate/gear-ratio thread; resolved but no idle/fuel/timing/tooling diagnostic content for the gaps. Judge over-promoted.
+- 6287 (msextra). Judge over-promoted: standalone-ECU trigger-wheel sync issue on EG33, no transferable content for stock-ECU idle/MAF/injector/EJ20X gaps.
 
 Retrieval value for the current gaps (all / keep): high 16/16 · medium 28/28 · low 83/2. Subaru-specific: 77/127.
 
 Verifiability markers present (all / keep): outcome_reported 60/32 · causal_chain 80/45 · numbers_with_units_conditions 96/44 · thread_resolved 41/23 · corroboration 37/25
 
-### Needs-alignment census — topics (all docs / keep docs)
+### Needs-alignment census: topics (all docs / keep docs)
 
 | topic | all | keep |
 |---|---|---|
@@ -320,7 +320,7 @@ Verifiability markers present (all / keep): outcome_reported 60/32 · causal_cha
 **Reading the census honestly (part 2).** Same shape as part 1: MegaSquirt/Speeduino config and generic
 chat dominate the msextra/romraider 3s; the Subaru-specific keeps cluster around knock/timing handling, MAF
 scaling practice, wideband/logging procedure and injector scaling/latency. Check `maf_baseline` in the table
-above — if it is still 0, the community tier at ANY score does not supply the healthy-idle MAF number the
+above, if it is still 0, the community tier at ANY score does not supply the healthy-idle MAF number the
 deterministic layer needs; that has to come from the car (three-hold capture).
 
 ## Per-document recommendations
@@ -383,7 +383,7 @@ deterministic layer needs; that has to come from the car (three-hold capture).
 | 5900 | 4 | msextra | Chasing a surging/hunting/high idle | MS3 blown Ford high idle ~1000-1100; smoke test clean; long MS idle-tuning primer; IAC min duty 35%->25% got 950rpm; PID/idle-advance nitpicks | **drop** | Judge over-promoted for our purpose: MegaSquirt IAC/PID parameter tuning; only generic idle-timing-reserve principle transferable, nothing on Subaru trims/MAF | low | `●●●·●` |
 | 5902 | 4 | msextra | 2001 Mustang Cobra new tuning issues | MS3Pro Cobra idle surge/dying; 1650cc injectors too big at idle (1150cc helped); leak test found TB-shaft leak + blocked IAC circuit; fixed idle 900rpm | **keep** | Transferable: pressure leak test found shaft leak after smoke-style checks missed it; oversized injectors/short PW cause idle instability; IAC output test as leak clue | medium | `●●●●●` |
 | 5903 | 3 | msextra | Ford Cologne 2.9l Tune - Review Politely Requested! :) | MS PNP Ranger 2.9 tune review request; idle surges ~100rpm, PID O2 won't engage; advice lock idle timing, tune VE; no data | **drop** | MegaSquirt generic tune-review chatter, no numbers, no outcome, no transferable principle | low | `·····` |
-| 5904 | 3 | msextra | WEIRD IDLE PROBLEM | FSAE Yamaha on MS3Pro won't idle below 2500rpm; concluded old injectors' 1.25ms dead time vs 1.8ms PW leaves ~0.55ms net fuel; no fix yet | **keep** | Clean worked example of injector latency dominating idle pulse width (numbers given) — the mechanism MLECU needs to separate latency from leaks at idle | medium | `·●●·●` |
+| 5904 | 3 | msextra | WEIRD IDLE PROBLEM | FSAE Yamaha on MS3Pro won't idle below 2500rpm; concluded old injectors' 1.25ms dead time vs 1.8ms PW leaves ~0.55ms net fuel; no fix yet | **keep** | Clean worked example of injector latency dominating idle pulse width (numbers given), the mechanism MLECU needs to separate latency from leaks at idle | medium | `·●●·●` |
 | 5905 | 3 | romraider | Knock in non-cruise 6th 2500rpm 75miles | 2011 STI knock only in 6th ~2500rpm/75mph with no torque; replies: lugging/gearbox false knock, verify with det cans, raise FBKC rpm/load range; AVCS reverted | **keep** | Subaru knock-handling: distinguishing phantom knock (lugging/drivetrain noise) from real, det-can verification, feedback-correction range knobs; useful for gap 5 | medium | `●●●·●` |
 | 5907 | 3 | romraider | Tuning Turbo Dynamics/DC for new bigger turbo | EJ207 with GTX2971R asks how to start boost control tune; reply: zero WGDC/TD, pull timing, log 4th-gear pull to map spring boost, iterate | **drop** | Boost-control planning advice, no data or outcome; not a current gap | low | `·····` |
 | 5910 | 3 | romraider | 02 WRX, nearly stock but 9:1, timing adjustment | JDM higher-CR long block on stock USDM WRX ROM, 93 oct: FKC -2.1 deg <1800rpm, IAM 16->14/15, fine learning -2 deg @0.75g/rev 2k; plans to pull base timing; ECUFlash read fails | **keep** | Closest analog to EJ20X-on-EJ255-cal: higher-CR JDM block on stock cal, how knock feedback/IAM/fine-learning show it and where to retreat timing; gap 4/5 | high | `·●●·●` |
@@ -449,7 +449,7 @@ deterministic layer needs; that has to come from the car (three-hold capture).
 | 6250 | 3 | msextra | VE table corrections? or other issues | MS3X 2.8 HFV6 turbo first start: AFR 22:1, MAP 8kPa idle, 600rpm rough, 50psi fuel; asks VE vs gaskets; reply asks for logs. | **drop** | Unresolved two-post MegaSquirt startup question, no answers. | low | `··●··` |
 | 6254 | 3 | romraider | Ignition timing ajustment on the Fly | Request for live global timing retard on Subaru 32-bit ROM beyond ECU Explorer's +/-5 deg; SSM global-adjust routine noted, RR Logger feature planned; posts duplicated. | **keep** | Subaru SSM live global timing adjust is a factual tooling nugget touching the timing-retreat mechanism; thin, no outcome, marginal keep. | low | `·●●·●` |
 | 6268 | 3 | msextra | Miata base timing, idle questions | Single post: MSPNP Miata timing marks off scale despite offset 40; switching to closed loop improved hot idle and A/C stalls; asks about spark mode. | **drop** | Unanswered MegaSquirt Miata post, qualitative only, no transferable content. | low | `●●●··` |
-| 6276 | 3 | msextra | MS3 — "Ignition Timing Transition Return" seems to never tri | MS3 ITB SBC overrun afterfire: PW 0ms during DFCO, AFR pinned 19.9 for 1-2.5s; timing transition return never fires across 30+ events; one-line reply. | **drop** | MegaSquirt firmware-feature question, unresolved, no relevance to Subaru diagnostic gaps. | low | `·●●··` |
+| 6276 | 3 | msextra | MS3, "Ignition Timing Transition Return" seems to never tri | MS3 ITB SBC overrun afterfire: PW 0ms during DFCO, AFR pinned 19.9 for 1-2.5s; timing transition return never fires across 30+ events; one-line reply. | **drop** | MegaSquirt firmware-feature question, unresolved, no relevance to Subaru diagnostic gaps. | low | `·●●··` |
 | 6284 | 3 | msextra | Lambda delay tables | MS3 user proposes method to measure lambda/EGO delay by stepping commanded AFR at idle while logging; fixed sensor delay 126ms; untested beyond idle. | **drop** | MegaSquirt-specific EGO delay table procedure; no outcome, no relevance to idle/vacuum/MAF/EJ20X gaps; transferable principle too thin. | low | `·●●··` |
 | 6285 | 3 | subaruforester | COBB Accessport for SJ FXT - Tuning Results Thread | SJ FXT Cobb OTS chatter; two posts explain FBKC/FKL/DAM semantics, transient -1.4 vs -8 low-load false knock, TD boost error -2.5, WOT AFR low 10s. | **keep** | Subaru knock-monitor interpretation (FBKC vs FKL, DAM reset after flash, transient vs persistent) serves knock-handling queries; rest is noise but tagged forum. | medium | `·●●·●` |
 | 6287 | 4 | msextra | Eg33 ignition settings | MicroSquirt on EG33: 12-tooth no-gap crank loses sync, needs cam signal or 12-1 mod; got running; later MS3 no-start unresolved. | **drop** | Judge over-promoted: standalone-ECU trigger-wheel sync issue on EG33, no transferable content for stock-ECU idle/MAF/injector/EJ20X gaps. | low | `●●·●·` |
@@ -459,6 +459,6 @@ Markers legend: O outcome reported · C causal chain · N numbers with units+con
 
 ## Recommended next step for part 2 (Syed's call)
 1. Sign off / edit the keeps in this part; the over-promoted fours should NOT be indexed even though the bar
-   passed them — that is exactly the "review everything before indexing" rule doing its job.
+   passed them; that is exactly the "review everything before indexing" rule doing its job.
 2. Combined with part 1 this is the complete sign-off list for the community tier (641 docs judged; every 3
    and 4 reviewed).

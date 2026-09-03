@@ -2,7 +2,7 @@
 
 Mirrors corpus_pipeline/core/config.py (pydantic tree + @lru_cache load_config). The
 safety limits and engine constants live in YAML so Syed reviews the *numbers* without
-touching code — these are safety-critical ceilings, not implementation details.
+touching code; these are safety-critical ceilings, not implementation details.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ class TimingCeiling(BaseModel):
 
 
 class TimingCeilingMap(BaseModel):
-    """The load x rpm advance ceiling — the primary timing limit since 2026-08-30.
+    """The load x rpm advance ceiling, the primary timing limit since 2026-08-30.
 
     It replaced a separable `min(rpm limit, load limit)` because the real constraint is not
     separable: 40 deg at 1200 rpm / 1.3 g/rev is lugging under load, the most knock-prone cell
@@ -45,7 +45,7 @@ class TimingCeilingMap(BaseModel):
 
 
 class LoadTimingCeiling(BaseModel):
-    """Timing ceiling keyed by LOAD — how hard the engine is actually working.
+    """Timing ceiling keyed by LOAD, how hard the engine is actually working.
 
     The rpm-only ceiling could not distinguish "40 deg at light cruise, entirely normal" from
     "40 deg at 0.9 g/rev in boost, dangerous", because on this platform both happen at the same
@@ -57,7 +57,7 @@ class LoadTimingCeiling(BaseModel):
 
 
 class SafetyCfg(BaseModel):
-    max_ve_step: float = 0.03            # +/-3% per iteration — the provable rate bound
+    max_ve_step: float = 0.03            # +/-3% per iteration, the provable rate bound
     afr_floor: float = 11.5              # AFR leaner (greater) than this at boost => abort
     boost_load_threshold: float = 0.60   # load (g/rev) above which a cell counts as "boost"
                                          # (measured MAP-crossing point on this car; see config.yaml)
@@ -102,7 +102,7 @@ class SafetyCfg(BaseModel):
     # max_ve_step bounds RATE. Nothing bounded DISPLACEMENT: at 3%/iteration, twelve iterations
     # compounds to 43% away from the stock calibration, and a sustained wrong diagnosis walks a
     # belief arbitrarily far. These are physically-motivated absolute bounds vs the archived
-    # stock ROM — an OEM injector does not flow 25% off spec, so hitting the envelope means the
+    # stock ROM, an OEM injector does not flow 25% off spec, so hitting the envelope means the
     # DIAGNOSIS is wrong, not that the hardware changed. Per-table so each reflects its own
     # physics. VALUES ARE SYED'S TO RATIFY; these are starting points, not measurements.
     belief_envelope: dict[str, float] = Field(default_factory=lambda: {

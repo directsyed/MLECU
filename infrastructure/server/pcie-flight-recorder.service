@@ -1,4 +1,4 @@
-# MLECU — PCIe flight recorder as a service (promoted 2026-07-05 after the tmux instance
+# MLECU: PCIe flight recorder as a service (promoted 2026-07-05 after the tmux instance
 # silently died at 03:42 and the overnight Bus Fatal went unrecorded).
 # 1 Hz fsync'd samples of slot-3 GPU + root port; logs survive hard hangs.
 # Deploy:  sudo cp infrastructure/server/pcie-flight-recorder.service /etc/systemd/system/

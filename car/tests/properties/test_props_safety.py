@@ -1,4 +1,4 @@
-"""Property-based (hypothesis) tests — the PROVABLE bounds of the safety layer. These are the
+"""Property-based (hypothesis) tests, the PROVABLE bounds of the safety layer. These are the
 mathematical heart of "deterministic clamps give provable bounds": they assert the invariants
 hold for *any* input, not just hand-picked cases."""
 from __future__ import annotations
@@ -113,7 +113,7 @@ def test_sensor_recal_never_exceeds_the_cap(new, col):
 @settings(deadline=None, max_examples=300)
 @given(new=st.floats(-1e5, 1e5), col=st.integers(1, 3))
 def test_sensor_recal_idempotent(new, col):
-    """clamp(clamp(x)) == clamp(x) — the invariant that stops an iterative loop ratcheting."""
+    """clamp(clamp(x)) == clamp(x), the invariant that stops an iterative loop ratcheting."""
     ts = TableSet({SENSOR_MAF_TRANSFER: _maf_curve(_CURVE)})
     v1 = apply_clamps(_sensor_prop(col, new), _ctx(ts)).clamped_edits[0].new_value
     v2 = apply_clamps(_sensor_prop(col, v1), _ctx(ts)).clamped_edits[0].new_value
@@ -141,7 +141,7 @@ def test_sensor_clamp_leaves_the_fuel_path_byte_identical(new, col):
 @given(vals=st.lists(st.floats(1.0, 50.0), min_size=4, max_size=8, unique=True),
        new=st.floats(-1e3, 1e3))
 def test_sensor_corrected_curve_never_breaks_a_sound_ordering(vals, new):
-    """If the stock curve is strictly ascending, the corrected curve still is — for any request.
+    """If the stock curve is strictly ascending, the corrected curve still is, for any request.
 
     This is the bound that keeps output flashable: romread.plausible() rejects a non-monotonic
     axis, so a curve that doubles back could never be written anyway.
@@ -158,12 +158,12 @@ def test_sensor_corrected_curve_never_breaks_a_sound_ordering(vals, new):
 # --- ignition timing (clamp_timing_rate_limit, 2026-08-30) --------------------------------
 # Timing was bounded by exactly ONE clamp before this: the row ceiling. These are the bounds
 # that make "deterministic clamps give provable bounds" true for the category where the only
-# direction we ever move is retard — and where over-retard is silent on this car, which is
+# direction we ever move is retard: and where over-retard is silent on this car, which is
 # fully catless with no EGT sensor.
 
 _TIMING = "ignition.base_timing"
 # The Base Timing load axis as the ROM STORES it (float32). Using the decimal literals here
-# would test a ceiling the real map never selects — that was blocker 1.
+# would test a ceiling the real map never selects: that was blocker 1.
 _ROM_LOADS = (0.25, 0.3999999761581421, 0.5499999523162842, 0.699999988079071,
               0.8499999642372131, 0.8999999761581421, 1.0)
 _LSB = 0.3515625        # Base Timing is uint8 at 0.3516 deg/step
@@ -234,7 +234,7 @@ def test_timing_bound_survives_uint8_storage(cur, new, load):
     This is the same class of defect as the float32 monotonicity collapse found on 2026-08-27:
     an in-memory guarantee that does not survive encoding is not a guarantee. Base Timing is
     uint8 at 0.3516 deg/step and the timing write uses round_mode='no_greater', so the stored
-    value may be up to one LSB further RETARDED than approved — and never one LSB advanced."""
+    value may be up to one LSB further RETARDED than approved, and never one LSB advanced."""
     from ecutune.romread.defs import Scaling
     from ecutune.romread.reader import _apply
     from ecutune.safety.romwrite.encoder import encode
@@ -263,11 +263,11 @@ def _converge(start, load, target, steps=40, **ctxkw):
 @settings(deadline=None, max_examples=100)
 @given(start=st.floats(23.0, 45.0), load=st.sampled_from(_ROM_LOADS))
 def test_unbounded_retard_requests_settle_on_the_absolute_floor(start, load):
-    """Asking for maximum retard, forever, settles at `min_timing_advance` — it does not walk.
+    """Asking for maximum retard, forever, settles at `min_timing_advance`: it does not walk.
 
     THIS TEST FOUND A REAL HOLE (2026-08-30). The cumulative floor goes inert without a
     baseline and the ceiling is a MAXIMUM, so before `min_timing_advance` existed this walked
-    a cell past 0 deg and on into after-TDC indefinitely — 12 iterations reached -49 deg. A
+    a cell past 0 deg and on into after-TDC indefinitely, 12 iterations reached -49 deg. A
     rate limit that bounds a single step does not bound a sequence.
     """
     settled = _converge(start, load, -100.0)
@@ -288,7 +288,7 @@ def test_iterations_converge_onto_the_ceiling_and_stop_there(start, load):
 @given(base=st.floats(30.0, 45.0), load=st.sampled_from(_ROM_LOADS))
 def test_iterations_settle_on_the_cumulative_floor_when_a_baseline_is_present(base, load):
     """With the archived stock ROM supplied, the sequence stops at `max_timing_retard` below
-    stock — or at the absolute floor, whichever is reached first."""
+    stock, or at the absolute floor, whichever is reached first."""
     stock = TableSet({_TIMING: _timing_map(base, load)})
     settled = _converge(base, load, -100.0, baseline_tables=stock)
     assert settled == pytest.approx(max(base - SAFETY.max_timing_retard,

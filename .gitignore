@@ -16,7 +16,7 @@ credentials*
 *.ckpt
 *.onnx
 
-# --- ECU ROM binaries (sacred — backed up separately, not in git) ---
+# --- ECU ROM binaries (sacred: backed up separately, not in git) ---
 *.rom
 *.hex
 *.srec

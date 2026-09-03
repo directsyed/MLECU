@@ -1,11 +1,11 @@
-"""legacygt.com forum ingester — Subaru EJ20X-swap reasoning threads (IPS Community).
+"""legacygt.com forum ingester. Subaru EJ20X-swap reasoning threads (IPS Community).
 
 legacygt's WAF defeats plain HTTP (202 JS-challenge stub), so this source uses the patchright
 BrowserFetcher fallback (per the approved plan). robots.txt allows /topic/ (only /search/ is
-disallowed), so we DON'T crawl search — instead we fetch a curated list of high-signal thread
+disallowed), so we DON'T crawl search, instead we fetch a curated list of high-signal thread
 URLs (`seed_threads` in config) + their pagination, and emit one Document per thread.
 
-Each Document is a full thread (title + every post with author/date) — a reasoning conversation,
+Each Document is a full thread (title + every post with author/date), a reasoning conversation,
 exactly the (symptom → diagnosis → change → outcome) material the Stage-B judge curates.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ _WAIT = '.ipsType_richText, [data-role="commentContent"]'
 # Coarse in-domain TITLE filter for discovery. The subforum scope already constrains to Subaru
 # EJ tuning; this just drops obvious off-topic. The Stage-B judge does the deep relevance/quality call.
 _DEFAULT_KEYWORDS = [
-    # platform / engine — the EJ25 <-> EJ20X realm
+    # platform / engine, the EJ25 <-> EJ20X realm
     "ej20x", "ej20y", "ej20", "ej255", "ej257", "ej25", "spec b",
     # tuning intent
     "swap", "tune", "tuning", "base map", "basemap", "ots map", "fuel map", "romraider",
@@ -123,7 +123,7 @@ def _discover(bf: BrowserFetcher, forum_url: str, keywords: list[str], reject: l
               max_pages: int, limit: int, skip: set[str]) -> list[str]:
     """Crawl a subforum listing; return URLs of NEW in-domain topics (capped at `limit`).
 
-    Walks up to `max_pages` listing pages for COVERAGE/backfill — `skip` already holds every
+    Walks up to `max_pages` listing pages for COVERAGE/backfill, `skip` already holds every
     stored thread id, so once the recent threads are captured, later runs reach deeper/older
     unseen ones. A title is taken iff it matches a keyword AND no reject term.
     """
@@ -165,7 +165,7 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
     ua = (cfg.pipeline.user_agent_pool or [None])[0]
     bf = BrowserFetcher(ua)
     try:
-        # 1) curated seeds — always re-fetched (catches new posts on watched threads)
+        # 1) curated seeds, always re-fetched (catches new posts on watched threads)
         for url in seeds:
             try:
                 doc = _fetch_thread(bf, url, max_pages, delay)
@@ -176,7 +176,7 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
                 log.info("legacygt[seed]: %s (%d posts)", doc.title[:55], doc.meta["post_count"])
                 yield doc
             time.sleep(delay)
-        # 2) discovery — bounded crawl for NEW keyword-matching threads (passive accumulation)
+        # 2) discovery, bounded crawl for NEW keyword-matching threads (passive accumulation)
         if discover_forums:
             kws = [k.lower() for k in extra.get("discover_keywords", _DEFAULT_KEYWORDS)]
             rej = [r.lower() for r in extra.get("discover_reject_keywords", _DEFAULT_REJECT)]

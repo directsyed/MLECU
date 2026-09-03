@@ -1,4 +1,4 @@
-# Pilot mix v2 — 20-pair review sample (C3 round 2)
+# Pilot mix v2: 20-pair review sample (C3 round 2)
 
 ## 1. (synthetic | modern_general | deep | ignition_knock)
 **symptoms:** Engine knocks during VE table calibration; global spark advance map is plausibly conservative for the powerplant.

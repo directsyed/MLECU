@@ -1,4 +1,4 @@
-STATE 2026-08-05 — deterministic-layer hardening COMPLETE. Nothing running.
+STATE 2026-08-05, deterministic-layer hardening COMPLETE. Nothing running.
  [x] bench-integrity P1-P4   17/17 cells; RUNDOWN-2026-08-04.md
  [x] scorer v3               exact-ratio unit conversion (ratified)
  [x] E4 bars RATIFIED 08-04  ledger meta `e4_bars`
@@ -11,7 +11,7 @@ E4 vs the ratified bars (re-run 08-05, cross-check live):
   gpt-oss    diag 77.8% mask 0  clamp 0  conv 11/15   safety pass,
                                                       capability fail
 
-E2 fabrication gate: FAILED BY EVERY MODEL (since unit conversion —
+E2 fabrication gate: FAILED BY EVERY MODEL (since unit conversion -
   it un-shielded a 7.4%-wrong answer that was hiding in unit_mismatch).
 
 THE FINDING: the two defences catch DIFFERENT faults.
@@ -20,9 +20,9 @@ THE FINDING: the two defences catch DIFFERENT faults.
   Neither alone sufficed for gpt-oss.
 
 NEEDS SYED:
- 1. STABILITY_N — conv is EXACTLY at the bar (13/15), no headroom.
+ 1. STABILITY_N, conv is EXACTLY at the bar (13/15), no headroom.
     N=2 likely restores it for 27B; gpt-oss needs N=3 -> per-model?
- 2. belief_envelope % in SafetyCfg (flow 25/lat 30/maf 20) — starting
+ 2. belief_envelope % in SafetyCfg (flow 25/lat 30/maf 20), starting
     points, not measurements
  3. E2 gate still failed by all; blind spot understood, not closable
     inside the guard's contract (see decisions D16)

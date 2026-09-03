@@ -1,13 +1,13 @@
 # Harvesting ROM binaries from forum attachments
 
 Stock/tuned ROMs live as phpBB **attachments**. The thread text is public (we already scrape it),
-but the attachment *download* needs a logged-in session — RomRaider returns **403** to guests
+but the attachment *download* needs a logged-in session. RomRaider returns **403** to guests
 (verified 2026-07-03). This is not an unbreakable wall; it's a one-time cookie. With your own free
-account's session cookie, the harvester downloads ROMs exactly like your browser does — same threads
+account's session cookie, the harvester downloads ROMs exactly like your browser does, same threads
 we already crawl, just targeting the `download/file.php?id=N` links.
 
 ROMs are **car-side data** (they feed the `car/ecu` ROM-value reader + a reference library of
-stock/tuned calibrations), NOT the LLM text corpus — they land as files under `data/raw/roms/`
+stock/tuned calibrations), NOT the LLM text corpus; they land as files under `data/raw/roms/`
 (gitignored) with a `manifest.json`, never as corpus Documents.
 
 ## One-time setup (per board)
@@ -33,12 +33,12 @@ It downloads ROM-extension attachments (`.srf/.hex/.bin/.rom` always; `.zip/.7z`
 filename hints a ROM) from the configured `rom_harvest.boards` threads + ROM-titled threads in the
 configured subforums, dedups against the manifest, and skips anything already fetched. Re-run anytime;
 it only fetches new attachments. A stale/expired cookie shows up as `blocked` (the download returns
-the login HTML instead of a binary) — refresh the cookie.
+the login HTML instead of a binary), refresh the cookie.
 
 ## Notes
 
 - **The 2005 FXT 4EAT stock ROM** (`3B12504206`, file `05 FXT 4EAT ...srf.zip`) is attached to the
-  seeded thread — that's your platform's factory calibration; grab it first.
+  seeded thread; that's your platform's factory calibration; grab it first.
 - `.srf` is the RomRaider/ECUFlash ROM image format; the future ROM-value reader resolves it against
   the ingested SubaruDefs (via the semantic-table adapters) to extract real calibration values.
 - Respect the boards: conservative `rate_limit_per_min`, and this is your own logged-in account.

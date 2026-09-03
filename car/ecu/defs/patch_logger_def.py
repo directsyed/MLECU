@@ -39,7 +39,7 @@ def patch(logger_path: Path, out_path: Path, report_path: Path,
     """Add TARGET to every ecuparam whose recovered address matches an existing <ecu> group.
 
     Two def formats are supported:
-      * GROUPED (v370/2021): `<ecu id="A,B,C"><address>0xFF5C18</address></ecu>` — we APPEND our id
+      * GROUPED (v370/2021): `<ecu id="A,B,C"><address>0xFF5C18</address></ecu>`: we APPEND our id
         to the group that already carries our recovered address. Minimal, surgical diff: no new XML
         nodes, and our ECU provably lands on the same address as the siblings in that group.
       * ONE-ID-PER-ELEMENT (0.3.5b/2009): no group matches, so we insert a new <ecu> element.
@@ -91,7 +91,7 @@ def patch(logger_path: Path, out_path: Path, report_path: Path,
         # duplicate-NAME ecuparams exist across protocol sections (e.g. "CL/OL Fueling*" is both
         # E3 and E33): the sibling group in the OTHER block was already patched, and adding a
         # second, node-style entry here risks a conflicting definition. Emitting a node also has
-        # to preserve v370's convention of omitting length for 1-byte params — writing
+        # to preserve v370's convention of omitting length for 1-byte params, writing
         # length="None" (an earlier bug, caught in validation) is malformed.
         if not create_nodes:
             skipped_no_group.append(name)
@@ -121,7 +121,7 @@ def main() -> int:
     ap.add_argument("--report", default=str(HERE / "recovered-3B12504206.report.json"))
     ap.add_argument("--create-nodes", action="store_true",
                     help="also emit standalone <ecu> elements where no address group matches "
-                         "(default OFF: group-append only — safest, no duplicate definitions)")
+                         "(default OFF: group-append only, safest, no duplicate definitions)")
     args = ap.parse_args()
     res = patch(Path(args.logger), Path(args.out), Path(args.report), args.create_nodes)
     print(f"patched -> {res['out']}")

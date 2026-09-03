@@ -6,12 +6,12 @@ WHY THIS EXISTS
     Swapping the model invalidates them, and an uncalibrated judge then silently gates what enters
     the RAG corpus.
 
-    E1/E2/E4 are NOT evidence for the judging role — they measure diagnosis and value lookup.
+    E1/E2/E4 are NOT evidence for the judging role; they measure diagnosis and value lookup.
     Agreement against human labels measures the actual job.
 
-TWO BAR SETS — kept distinct on purpose (found 2026-08-16)
+TWO BAR SETS, kept distinct on purpose (found 2026-08-16)
     * PRE-REGISTERED (the real gate): stored in the corpus DB as `meta['calibration-100:pass_bars']`
-      on 2026-07-05 *before* results — keep/drop >= 90, within +/-1 >= 90, dangerous == 0.
+      on 2026-07-05 *before* results, keep/drop >= 90, within +/-1 >= 90, dangerous == 0.
     * INCUMBENT: what 3.6 actually *achieved* on that day (93.1 / 97.7 / 0, rubric r2, n=87). An
       earlier revision of this file mislabelled these as "pre-registered". They are the number to
       beat, not the registration. Syed's ruling (2026-08-16): a candidate replaces the incumbent
@@ -20,7 +20,7 @@ TWO BAR SETS — kept distinct on purpose (found 2026-08-16)
 
 WHY IT DOESN'T TOUCH THE DATABASE
     `judge.cli --run` skips documents already marked 'judged', so re-scoring the calibration set
-    would need a force path or a status reset — i.e. mutating the corpus to run a measurement.
+    would need a force path or a status reset, i.e. mutating the corpus to run a measurement.
     Unnecessary: `calibrate.agreement()` already accepts `judged_scores` directly. This module
     scores the docs in memory through the REAL judging path (same chunker, same prompt pack, same
     verdict parser, same aggregation) and hands the scores straight to `agreement()`.
@@ -57,12 +57,12 @@ from .runner import _doc_synopsis, _judge_chunk
 
 log = logging.getLogger("recalibrate")
 
-# Fallback only — the authoritative pre-registration lives in the DB (see load_preregistered_bars).
+# Fallback only: the authoritative pre-registration lives in the DB (see load_preregistered_bars).
 PREREGISTERED_BARS_DEFAULT = {"keep_agree_pct": 90.0, "within1_pct": 90.0, "dangerous_max": 0}
 
 # What the incumbent (Qwen3.6-27B Q8, rubric r2) ACHIEVED on 2026-07-05, n=87. Not a registration.
 INCUMBENT_BARS = {"keep_agree_pct": 93.1, "within1_pct": 97.7, "dangerous_max": 0,
-                  "note": "3.6 achieved 2026-07-05 (rubric r2, n=87) — beat-the-incumbent, "
+                  "note": "3.6 achieved 2026-07-05 (rubric r2, n=87), beat-the-incumbent, "
                           "NOT the pre-registration"}
 
 
@@ -73,7 +73,7 @@ def load_preregistered_bars(state: State, label_set: str) -> dict:
     same keys as INCUMBENT_BARS so one comparator serves both."""
     raw = state.get_meta(f"{label_set}:pass_bars")
     if not raw:
-        log.warning("no meta['%s:pass_bars'] — using default pre-registered bars %s",
+        log.warning("no meta['%s:pass_bars'], using default pre-registered bars %s",
                     label_set, PREREGISTERED_BARS_DEFAULT)
         return dict(PREREGISTERED_BARS_DEFAULT, source="default (meta missing)")
     d = json.loads(raw)
@@ -91,7 +91,7 @@ def score_docs_in_memory(cfg: Config, state: State, doc_ids: list[int],
                          ) -> tuple[dict[int, int], list[dict]]:
     """Judge each doc through the real path and return {doc_id: score} plus per-doc detail.
 
-    Failures are SKIPPED, never defaulted to a score — a fabricated score would corrupt the
+    Failures are SKIPPED, never defaulted to a score, a fabricated score would corrupt the
     very measurement this exists to produce. Docs present in `prior_scores` are not re-judged
     (resume). `checkpoint(scores, detail)` is called after every doc so a crash loses one doc.
     """
@@ -169,7 +169,7 @@ def _write_report(out: str, payload: dict) -> None:
     tmp = f"{out}.tmp"
     with open(tmp, "w") as fh:
         json.dump(payload, fh, indent=2, default=str)
-    Path(tmp).replace(out)                     # atomic — a crash mid-write cannot corrupt --out
+    Path(tmp).replace(out)                     # atomic, a crash mid-write cannot corrupt --out
 
 
 def main(argv=None) -> None:
@@ -236,7 +236,7 @@ def main(argv=None) -> None:
                                           prior_scores=prior_scores, prior_detail=prior_detail,
                                           checkpoint=checkpoint)
     if not scores:
-        sys.exit("no documents scored — nothing to compare")
+        sys.exit("no documents scored; nothing to compare")
 
     ag = calibrate.agreement(state, cfg, label_set=label_set,
                              truth_rater=args.truth_rater, judged_scores=scores)
@@ -251,7 +251,7 @@ def main(argv=None) -> None:
     print("\n".join(prereg_lines))
     print(f"\nagainst the INCUMBENT's achieved numbers ({INCUMBENT_BARS['note']}):")
     print("\n".join(incumbent_lines))
-    verdict = ("PASS pre-registered" if passed_prereg else "FAIL pre-registered — do NOT swap")
+    verdict = ("PASS pre-registered" if passed_prereg else "FAIL pre-registered, do NOT swap")
     verdict += (" · beats/matches incumbent's 2026-07-05 numbers" if passed_incumbent
                 else " · below incumbent's 2026-07-05 numbers")
     print(f"\nVERDICT: {verdict}")

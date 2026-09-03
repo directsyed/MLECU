@@ -1,7 +1,7 @@
 """OpenAI-compatible client for llama-server. Grammar-enforced JSON via response_format.
 
 llama.cpp compiles a json_schema response_format into a GBNF grammar that constrains sampling
-itself — the model *cannot* emit schema-invalid JSON. verdict.py's parse/repair is therefore a
+itself, the model *cannot* emit schema-invalid JSON. verdict.py's parse/repair is therefore a
 second line of defense (for truncation or a server without grammar support), not the primary.
 """
 from __future__ import annotations
@@ -35,7 +35,7 @@ def chat(cfg: LlmCfg, system: str, user: str, json_schema: dict | None = None,
     """One completion. Returns (content, usage, reasoning). Retries transport errors.
 
     Thinking models (Qwen3.6) emit deliberation as `reasoning_content`, kept separate from
-    the grammar-constrained `content` by the server — we pass it through for the audit log."""
+    the grammar-constrained `content` by the server; we pass it through for the audit log."""
     body: dict[str, Any] = {
         "model": cfg.model,
         "temperature": cfg.temperature,

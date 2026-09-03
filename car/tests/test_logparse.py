@@ -127,7 +127,7 @@ def test_iam_maps_to_its_own_role():
 def test_base_timing_does_not_collide_with_total_timing():
     """"Ignition Base Timing*" matched r"\\btiming\\b" and landed on `timing_total`, the role
     that means FINAL commanded advance. It only lost to "Ignition Total Timing" because that
-    column happened to come first — and RomRaider's column order is not stable between
+    column happened to come first, and RomRaider's column order is not stable between
     sessions, which is precisely how "Final Fueling Base (lambda)" took over `wideband_afr`."""
     assert map_header("Ignition Base Timing* (degrees)") == "timing_base"
     assert map_header("Ignition Total Timing (degrees)") == "timing_total"
@@ -150,7 +150,7 @@ def test_tps_prefers_the_dbw_plate_angle_over_the_pedal_angle():
 
 
 def test_knock_sum_never_wins_the_knock_retard_role():
-    """"Knock Sum* (count)" is a cumulative COUNTER — non-zero on 6425 of 7402 samples on the
+    """"Knock Sum* (count)" is a cumulative COUNTER, non-zero on 6425 of 7402 samples on the
     2026-08-30 log. If a reordered export let it win, every timing evidence figure would be
     computed from a monotonically rising integer."""
     from ecutune.logparse.schema import prefer

@@ -10,9 +10,9 @@ ourselves.
 TWO SAFETY PROPERTIES THIS MODULE OWES
 
 1. ROUND-TRIP OR REFUSE. `encode` re-decodes what it just encoded and checks the result lands
-   within half a quantisation step of the value asked for. If it does not — a scaling whose
+   within half a quantisation step of the value asked for. If it does not, a scaling whose
    frexpr is not actually the inverse of its toexpr, an out-of-range value, a storage type
-   that cannot represent it — it RAISES. A write path that silently stores something other
+   that cannot represent it; it RAISES. A write path that silently stores something other
    than what was approved is the specific failure this project exists to prevent.
 
 2. INTEGER ROUNDING IS EXPLICIT. Float tables (our MAF curve) are lossless. uint8/uint16
@@ -59,9 +59,9 @@ def encode(values: np.ndarray, scaling: Scaling,
 
     `round_mode` controls what happens when a value falls between two storage steps:
 
-      "nearest"    — closest representable value (default). Correct when the error is
+      "nearest", closest representable value (default). Correct when the error is
                      symmetric, i.e. everywhere the approved value is a TARGET.
-      "no_greater" — never store a value ABOVE the one approved. Required for ignition
+      "no_greater", never store a value ABOVE the one approved. Required for ignition
                      timing: `Base Timing` is uint8 at 0.3516 deg/step, so rounding to
                      nearest can land up to +0.176 deg ADVANCED of the number the clamps
                      allowed. A clamp ceiling that the storage layer then exceeds is not a
@@ -100,7 +100,7 @@ def encode(values: np.ndarray, scaling: Scaling,
 
     blob = raw.astype(_DTYPES[scaling.storagetype]).tobytes()
 
-    # Round-trip check — decode exactly as reader.read_table would, and prove we stored what
+    # Round-trip check, decode exactly as reader.read_table would, and prove we stored what
     # was approved. `endian` is parsed by defs.py but ignored by _DTYPES (hardcoded big), so
     # assert rather than inherit that inconsistency silently.
     if scaling.endian != "big":
@@ -118,11 +118,11 @@ def encode(values: np.ndarray, scaling: Scaling,
         worst = float(np.max(back - vals))
         raise EncodingError(
             f"round_mode='no_greater' but the stored value exceeds the approved one by "
-            f"{worst:.6g} for scaling {scaling.name!r} — refusing to write a value more "
+            f"{worst:.6g} for scaling {scaling.name!r}, refusing to write a value more "
             "advanced than the clamps allowed")
     if err > tol:
         raise EncodingError(
             f"round-trip error {err:.6g} exceeds tolerance {tol:.6g} for scaling "
-            f"{scaling.name!r} (toexpr={scaling.toexpr!r} frexpr={scaling.frexpr!r}) — "
+            f"{scaling.name!r} (toexpr={scaling.toexpr!r} frexpr={scaling.frexpr!r}), "
             "the def's frexpr is not the inverse of its toexpr; refusing to write")
     return blob, err

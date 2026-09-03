@@ -1,4 +1,4 @@
-"""ROM comparison — table-level diff between two ROM images of the same family.
+"""ROM comparison, table-level diff between two ROM images of the same family.
 
 Purpose (ROADMAP Phase B): the first read of the car's actual ECU gets diffed against the
 harvested stock 3B12504206. Differing cells, mapped to semantic table names, answer "is the
@@ -102,7 +102,7 @@ def byte_only_diff(path_a, path_b) -> RomDiff:
 def format_report(d: RomDiff) -> str:
     lines = [f"ROM diff: {d.ids[0]} vs {d.ids[1]}"]
     if d.is_identical:
-        lines.append("IDENTICAL — every byte matches. The ROM is exactly this reference image.")
+        lines.append("IDENTICAL; every byte matches. The ROM is exactly this reference image.")
         return "\n".join(lines)
     lines.append(f"raw differing bytes: {d.byte_diff_count} "
                  f"in {len(d.byte_diff_ranges)}{'+' if len(d.byte_diff_ranges) >= 64 else ''} runs")
@@ -116,5 +116,5 @@ def format_report(d: RomDiff) -> str:
             lines.append(f"    cell {idx}: {a:g} -> {b:g}")
     if d.byte_diff_count and not d.table_diffs:
         lines.append("NOTE: byte differences exist OUTSIDE the semantic table set "
-                     "(un-mapped regions — code, other tables, or checksums).")
+                     "(un-mapped regions, code, other tables, or checksums).")
     return "\n".join(lines)

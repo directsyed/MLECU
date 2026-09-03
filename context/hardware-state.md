@@ -1,96 +1,96 @@
-# MLECU — HARDWARE STATE
-**Authoritative current state as of June 19, 2026; driver/GPU bring-up verified June 22, 2026 (see §5).** This file supersedes all hardware details in older project docs (master-context.md, project-master-plan-v2.md, and all prior handoffs) where they conflict. This is the most frequently-changing context — keep it updated as the build evolves.
+# MLECU: HARDWARE STATE
+**Authoritative current state as of June 19, 2026; driver/GPU bring-up verified June 22, 2026 (see §5).** This file supersedes all hardware details in older project docs (master-context.md, project-master-plan-v2.md, and all prior handoffs) where they conflict. This is the most frequently-changing context, keep it updated as the build evolves.
 
 ---
 
-## 1. The server — Dell PowerEdge T630 (primary compute host)
+## 1. The server: Dell PowerEdge T630 (primary compute host)
 
-- **Service tag:** GLRCBM2. **BIOS: 2.5.4** (ancient — MUST be updated before any CPU generation change; see §4).
+- **Service tag:** GLRCBM2. **BIOS: 2.5.4** (ancient, MUST be updated before any CPU generation change; see §4).
 - **Hostname:** `syedlab`. **Static IP `10.0.0.200`.** **iDRAC8 at `10.0.0.210`.**
-- **OS:** Ubuntu Server 24.04, cloned from the Z800 via Clonezilla, running on a 1TB SATA SSD. Boot mode = **BIOS/legacy** (MBR + legacy GRUB — NOT UEFI).
+- **OS:** Ubuntu Server 24.04, cloned from the Z800 via Clonezilla, running on a 1TB SATA SSD. Boot mode = **BIOS/legacy** (MBR + legacy GRUB, NOT UEFI).
 - **CPU (VERIFIED 2026-07-17 via lscpu): TWO Intel Xeon E5-2660 v4** (14C/28T each = 28C/56T
-  total, 2.0GHz base/3.2 turbo). The dual-CPU plan (§6) is DONE — BIOS was necessarily updated
+  total, 2.0GHz base/3.2 turbo). The dual-CPU plan (§6) is DONE, BIOS was necessarily updated
   first (v4 POSTs). Deduced earlier and confirmed: slot 7 (CPU2-gated) has hosted the 3090
   since the 2026-07-06 slot-swap, so CPU2 was live by then. ALL PCIe slots and ALL 24 DIMM
   slots active. Memory ceiling with v4: DDR4-2400 (2133 DIMMs run native at ≤2 DPC).
 - **RAM:** 32GB ECC DDR4-1866 (stale sticks; retire on upgrade). All 24 slots active (dual
   CPU). **Incoming (Syed sourcing, 2026-07-17): 8×16GB 2Rx4 + 12×8GB 1Rx4 PC4-2133P RDIMM
   (Micron/Samsung mix, x4 uniform) = 224GB.** Recommended fit: 16 DIMMs 2-per-channel
-  (8×16+8×8 = 192GB @ 2133, balanced across both CPUs/NUMA nodes) — bandwidth beats the
+  (8×16+8×8 = 192GB @ 2133, balanced across both CPUs/NUMA nodes), bandwidth beats the
   extra 32GB for CPU-offload LLM work; 3 DPC drops all channels to 1866. 4×8GB = cold spares.
   Burn-in: POST/iDRAC training check + SEL correctable-ECC watch + Dell diags or memtest pass.
   Same-brand within a channel. This fires the standing 'bigger judge/fine-tune model if RAM
-  grows' directive — re-verify model choices post-install.
-- **Chassis:** **16× 2.5" hot-swap backplane** (NOT 8×3.5" — older docs are wrong). 2× PSU bays. iDRAC8.
-- **Cooling / fans (corrected 2026-06-22):** currently **only 2 main fans on the shroud** (single-CPU config — additional/CPU2-zone fans are not populated; Syed is sourcing more). **NOT** the 6-fan layout assumed earlier. Implication: **limited airflow headroom** — under GPU load this is marginal for a 350W card, so manual-mode fan floors must be conservative (higher), the closed-loop curve matters more, and consider power-capping the GPU during stress soaks. Confirm what the iDRAC enumerates with `ipmitool sdr type fan` (and check for missing-fan / redundancy-lost events — a reduced fan count can itself drive the auto-mode 100% ramp, independent of the unrecognized GPU). Ties to the §6 "verify CPU2-zone cooling fan(s)" note.
-- **Storage controller:** **PERC H730 in slot 8** — supports HBA/passthrough. Plan: flip to **HBA mode for ZFS** (Configuration Management → Clear foreign config first → switch mode → reboot). Defer buying an LSI IT-mode card unless the H730 misbehaves.
+  grows' directive, re-verify model choices post-install.
+- **Chassis:** **16× 2.5" hot-swap backplane** (NOT 8×3.5", older docs are wrong). 2× PSU bays. iDRAC8.
+- **Cooling / fans (corrected 2026-06-22):** currently **only 2 main fans on the shroud** (single-CPU config, additional/CPU2-zone fans are not populated; Syed is sourcing more). **NOT** the 6-fan layout assumed earlier. Implication: **limited airflow headroom**: under GPU load this is marginal for a 350W card, so manual-mode fan floors must be conservative (higher), the closed-loop curve matters more, and consider power-capping the GPU during stress soaks. Confirm what the iDRAC enumerates with `ipmitool sdr type fan` (and check for missing-fan / redundancy-lost events, a reduced fan count can itself drive the auto-mode 100% ramp, independent of the unrecognized GPU). Ties to the §6 "verify CPU2-zone cooling fan(s)" note.
+- **Storage controller:** **PERC H730 in slot 8**: supports HBA/passthrough. Plan: flip to **HBA mode for ZFS** (Configuration Management → Clear foreign config first → switch mode → reboot). Defer buying an LSI IT-mode card unless the H730 misbehaves.
 - **NICs:** 2× Intel I350 GbE onboard + quad-port Broadcom BCM5719. Plenty.
 - **Network:** `10.0.0.x` subnet, gateway `10.0.0.1`.
 
-### T630 PCIe slot map (CRITICAL — verified against Dell docs)
+### T630 PCIe slot map (CRITICAL, verified against Dell docs)
 - **Slots 1, 2, 3, 8 → CPU1 (ALIVE with one CPU).** Slots 1 & 3 = x16 Gen3; slot 2 = x8 Gen2 via PCH; slot 8 = internal PERC.
 - **Slots 4, 5, 6, 7 → CPU2 (DEAD until a second CPU is installed).**
-- Dell officially supports **one double-width 300W GPU on slot 3** in single-CPU config. A second GPU goes in **slot 6** — which requires CPU2.
+- Dell officially supports **one double-width 300W GPU on slot 3** in single-CPU config. A second GPU goes in **slot 6**: which requires CPU2.
 
 ## 2. GPUs (THREE cards in the picture)
 
-### (a) HP OEM RTX 3090 — NEWLY ACQUIRED, INSTALLED IN T630, BOOTING
+### (a) HP OEM RTX 3090: NEWLY ACQUIRED, INSTALLED IN T630, BOOTING
 - Bought June 2026 inside a whole **HP Omen 45L PC for $1,100 cash**, local pickup. (Full acquisition/validation story below + in principles.md.)
 - **GPU-Z confirmed:** NVIDIA GeForce RTX 3090, GA102, **24576 MB GDDR6X (Micron)**, 384-bit, 10496 shaders, Device ID 10DE 2204, BIOS 94.02.42.80.FE, **subvendor HP** (confirms OEM origin), stock reference clocks (1395/1695).
-- **Provenance clean — NOT a mining card.** Bought new Jan 2026, ~2–3 weeks of use.
+- **Provenance clean, NOT a mining card.** Bought new Jan 2026, ~2–3 weeks of use.
 - **Fully validated:** OCCT VRAM (2 clean hrs), memtest_vulkan (clean past 4,325+ iterations), FurMark, GPU-Z all passed.
-- **THERMAL FINDING: memory junction hit 106°C under memtest_vulkan** — this is a **thermal/pad-quality characteristic, NOT a defect** (zero errors at temp). Cause = OEM HP thermal pads + cramped Omen chassis. **REPAD DECISION DEFERRED until measured in the T630** (different thermal environment). Re-measure mem-junction in-server under load; repad (~$15–20 quality pads, mind the multi-thickness zone map) ONLY if still 105°C+ there.
-- **Current position (since 2026-07-06 slot-swap test): SLOT 7 (CPU2)** — where SEL convicted
+- **THERMAL FINDING: memory junction hit 106°C under memtest_vulkan**, this is a **thermal/pad-quality characteristic, NOT a defect** (zero errors at temp). Cause = OEM HP thermal pads + cramped Omen chassis. **REPAD DECISION DEFERRED until measured in the T630** (different thermal environment). Re-measure mem-junction in-server under load; repad (~$15–20 quality pads, mind the multi-thickness zone map) ONLY if still 105°C+ there.
+- **Current position (since 2026-07-06 slot-swap test): SLOT 7 (CPU2)**, where SEL convicted
   it (crashes #9-11 'Slot 7'). Runs derated: 810MHz lock, ~15 layers, ~152W decode; stable
   since 2026-07-08. Ti now in slot 3 (RAID pins cleared).
 
-### (b) Zotac RTX 3090 Ti AMP Extreme Holo — INSTALLED + VALIDATED (2026-07-04)
-- Purchased $500; 16-pin adapter (3× 8-pin → 16-pin) in hand. **Now installed and LIVE:** enumerates as **GPU1 (PCI 83:00.0), 450W cap, driver reads it**; both cards run (GPU0 = 3090 @ 04:00.0). The prior blockers (3× 8-pin power + slot-3 SW-RAID-header clearance) are RESOLVED — **confirm the exact mount used (PCIe riser vs a CPU2 slot) and record it here.**
-- **Thermal validation — 30-min memtest_vulkan soak (full 446W, SM+mem 100%, cover on, fans auto-ramping ~4300 RPM):** VRAM **92–94 °C**, junction **88–89 °C**, core 76–77 °C, **no throttle** (held ~1950 MHz boost — power-limited, not thermal). Inlet 20 → 21 °C; ~12% fan headroom left. **No repad needed for the Ti** — aftermarket cooler holds 94 °C @ 446W vs the OEM 3090's 100 °C @ 335W.
-- **Still to test: BOTH cards loaded (~780W) — the real 2-GPU chassis soak,** where inlet climbs and the 3090's marginal pads get hotter (this is where the 3090 repad decision gets made).
-- **Tooling made multi-GPU (2026-07-04):** the fan controller now drives off MAX core across both cards; the soak-logger logs per-GPU columns + aborts on the hottest card. NOTE: the running fan script is `/usr/local/sbin/gpu-fan-control.sh` (a deployed copy) — repo edits must be `cp`'d there + service restarted.
-- *(History — the now-resolved blockers: needed 3× 8-pin (~450W); slot 3 fouled by the on-board SW-RAID standup header — NEVER force a backplate against those pins, short risk; slots 6/7 fit but were CPU2-gated.)*
+### (b) Zotac RTX 3090 Ti AMP Extreme Holo: INSTALLED + VALIDATED (2026-07-04)
+- Purchased $500; 16-pin adapter (3× 8-pin → 16-pin) in hand. **Now installed and LIVE:** enumerates as **GPU1 (PCI 83:00.0), 450W cap, driver reads it**; both cards run (GPU0 = 3090 @ 04:00.0). The prior blockers (3× 8-pin power + slot-3 SW-RAID-header clearance) are RESOLVED, **confirm the exact mount used (PCIe riser vs a CPU2 slot) and record it here.**
+- **Thermal validation, 30-min memtest_vulkan soak (full 446W, SM+mem 100%, cover on, fans auto-ramping ~4300 RPM):** VRAM **92–94 °C**, junction **88–89 °C**, core 76–77 °C, **no throttle** (held ~1950 MHz boost, power-limited, not thermal). Inlet 20 → 21 °C; ~12% fan headroom left. **No repad needed for the Ti**: aftermarket cooler holds 94 °C @ 446W vs the OEM 3090's 100 °C @ 335W.
+- **Still to test: BOTH cards loaded (~780W), the real 2-GPU chassis soak,** where inlet climbs and the 3090's marginal pads get hotter (this is where the 3090 repad decision gets made).
+- **Tooling made multi-GPU (2026-07-04):** the fan controller now drives off MAX core across both cards; the soak-logger logs per-GPU columns + aborts on the hottest card. NOTE: the running fan script is `/usr/local/sbin/gpu-fan-control.sh` (a deployed copy), repo edits must be `cp`'d there + service restarted.
+- *(History, the now-resolved blockers: needed 3× 8-pin (~450W); slot 3 fouled by the on-board SW-RAID standup header, NEVER force a backplate against those pins, short risk; slots 6/7 fit but were CPU2-gated.)*
 
 ### (c) The earlier validated 3090 (from prior sessions)
-- Prior sessions reference a validated 3090. NOTE: the "$1,100 HP OEM 3090" in standing memory and the card acquired THIS session (§a) are **almost certainly the same card** — this session is its acquisition/validation/install story. If they turn out distinct, the GPU count and dual-GPU planning change — flag to Syed.
+- Prior sessions reference a validated 3090. NOTE: the "$1,100 HP OEM 3090" in standing memory and the card acquired THIS session (§a) are **almost certainly the same card**: this session is its acquisition/validation/install story. If they turn out distinct, the GPU count and dual-GPU planning change, flag to Syed.
 
 ### Long-term GPU goal
-4× RTX 3090 (~96GB pooled VRAM) for 70B+ QLoRA and 100B+ inference — gated behind addressing the T630 power ceiling (~1400W GPU draw vs PSU ceiling) and cooling. Far future.
+4× RTX 3090 (~96GB pooled VRAM) for 70B+ QLoRA and 100B+ inference, gated behind addressing the T630 power ceiling (~1400W GPU draw vs PSU ceiling) and cooling. Far future.
 
-## 3. GPU power delivery — the interposer chain (INSTALLED)
+## 3. GPU power delivery: the interposer chain (INSTALLED)
 
-- **X7C1K Power Interposer Board — INSTALLED.** Syed has the interposer but NOT the full enablement kit (missing the **4999G plastic holder**; possibly the PDB feed cable).
-- **CORRECTION (common forum error): the interposer's 40-pin connector is a BLACK PLASTIC HEADER, not a PCIe gold-finger edge connector.** It does NOT seat in a PCIe slot and does NOT mount on the rear of the motherboard. It receives a cable from the system PDB and mounts in the chassis power-distribution area. (A Dell forum post calling it "a female PCI plug" is WRONG/a different revision — disregard.)
+- **X7C1K Power Interposer Board, INSTALLED.** Syed has the interposer but NOT the full enablement kit (missing the **4999G plastic holder**; possibly the PDB feed cable).
+- **CORRECTION (common forum error): the interposer's 40-pin connector is a BLACK PLASTIC HEADER, not a PCIe gold-finger edge connector.** It does NOT seat in a PCIe slot and does NOT mount on the rear of the motherboard. It receives a cable from the system PDB and mounts in the chassis power-distribution area. (A Dell forum post calling it "a female PCI plug" is WRONG/a different revision, disregard.)
 - **Power chain:** PSU → PDB → 40-pin cable → X7C1K interposer → DRXPD cables → GPU power inputs.
 - **DRXPD cables:** the official T630 GPU power cable (PCIe-pinout outputs, NOT the Tesla/EPS trap). Each DRXPD = one 6+2 (assembles to 8-pin) + one plain 6-pin. **2× ordered previously; 1 more in the current cart.** For the Ti's 3 inputs: 2× 8-pin from DRXPD + one **PCIe 6-pin→8-pin adapter (~$7)** to make the third. The 3090 (2×8-pin) needs less.
-- **Multimeter ritual before first connection:** probe every 8-pin end for 12V/ground in PCIe positions — rules out clone/mislabel risk.
+- **Multimeter ritual before first connection:** probe every 8-pin end for 12V/ground in PCIe positions, rules out clone/mislabel risk.
 
 ## 4. PSUs
 
-- **Target/installed: 2× Dell 1100W (matching pair).** The old **2× 495W pair CANNOT run a 3090 Ti** — and critically, **redundant PSUs do NOT add** (either unit must carry the whole system alone, so 2× 495W = 495W capacity, not 990W).
+- **Target/installed: 2× Dell 1100W (matching pair).** The old **2× 495W pair CANNOT run a 3090 Ti**: and critically, **redundant PSUs do NOT add** (either unit must carry the whole system alone, so 2× 495W = 495W capacity, not 990W).
 - **1100W is the CORRECT target, not the budget choice:** Dell 1600W PSUs derate to ~800W on 120V household power; 1100W is the effective max on 120V. A 1100W pair also covers a future 2× power-capped-3090 config (~800–870W peak).
 - **VERIFY:** confirm the PSUs currently in the T630 are the 1100W units, not the old 495W pair (since a GPU was just powered through the system).
 
-## 5. Driver/boot state — DRIVER UP / GPU ENUMERATES (verified June 22, 2026)
+## 5. Driver/boot state: DRIVER UP / GPU ENUMERATES (verified June 22, 2026)
 
 **VERIFIED June 22, 2026 (`nvidia-smi` + `lspci`):** the OEM 3090 enumerates and the driver is up.
 - `lspci`: `04:00.0 VGA … NVIDIA GA102 [GeForce RTX 3090]` (+ `04:00.1` HD audio).
 - `nvidia-smi`: **RTX 3090, 24576 MiB, driver 580.159.03, CUDA 13.0**, idle **37 °C**, **75 W / 350 W** cap, 0 MiB used. The planned `nvidia-driver-580-server` install + reboot is **DONE**.
 - `ipmitool` is **installed** on the host.
 
-**Still open (next thread — run collaboratively as a teaching thread, see root CLAUDE.md learning mode):**
-- **Fan curve / quieting.** 100% fans on an unrecognized PCIe card is expected T630 behavior; tame with `ipmitool raw` manual control: `0x30 0x30 0x01 0x00` → manual; `0x30 0x30 0x02 0xff 0x1e` ≈ 30%; revert `...0x01 0x01`. **CAUTION: manual mode disables auto-ramp — raise fan % before any GPU stress load or watch temps.** May need `sudo modprobe ipmi_devintf ipmi_si` first. Current fan %/mode not yet captured.
+**Still open (next thread, run collaboratively as a teaching thread, see root CLAUDE.md learning mode):**
+- **Fan curve / quieting.** 100% fans on an unrecognized PCIe card is expected T630 behavior; tame with `ipmitool raw` manual control: `0x30 0x30 0x01 0x00` → manual; `0x30 0x30 0x02 0xff 0x1e` ≈ 30%; revert `...0x01 0x01`. **CAUTION: manual mode disables auto-ramp, raise fan % before any GPU stress load or watch temps.** May need `sudo modprobe ipmi_devintf ipmi_si` first. Current fan %/mode not yet captured.
 - **In-chassis thermal soak DONE (2026-06-22).** 5-min memtest_vulkan, ~335 W / 99% util, 22 °C inlet, 2 shroud fans: **VRAM (GDDR6X) peaked 100 °C**, GPU hotspot 94 °C, core 79 °C. Plateaued ~2.5 min in; no thermal throttle (clock sag was power-limit), no errors. **vs 106 °C in the Omen → in-chassis airflow ~6 °C better.** Read via the `gputemps` BAR0 register reader (nvidia-smi reports memory N/A); logged to `infrastructure/monitoring/memtest-soak.csv`.
   - **Repad decision: DEFERRED (not urgent).** 100 °C memory is under the 110 °C GDDR6X ceiling and within spec. Fans were already at ~94% (near the 2-fan airflow ceiling), so the preferred next lever is **adding chassis fans (being sourced) + re-soak**; repad is the fallback if that doesn't get VRAM under ~95 °C, or for a hotter room / 24-7 load.
   - **Fan controller validated** in the same soak (core-driven curve ramped 30% → ~94%, held core below throttle).
-- **Confirm the installed PSUs are the 1100W pair** (not the old 495W units) — a GPU has been powered through the system; verify physically/iDRAC when convenient.
+- **Confirm the installed PSUs are the 1100W pair** (not the old 495W units), a GPU has been powered through the system; verify physically/iDRAC when convenient.
 - **Power-limit consideration:** older plan was `nvidia-smi -pl 300` for the Ti in-chassis (Dell 300W/slot spec). Revisit per-card once cards are stable.
 
 ## 6. Dual-CPU upgrade plan (REVISED this session)
 
-Trigger has effectively fired (multiple GPUs exist; dual-GPU needs CPU2 to wake slots 6/7 — and slot 6 is also the Ti clearance fix).
+Trigger has effectively fired (multiple GPUs exist; dual-GPU needs CPU2 to wake slots 6/7, and slot 6 is also the Ti clearance fix).
 
-- **REVISED PICK: 2× E5-2660 v4** (14C/28T each, **105W**) — same core count as the previously-planned 2680 v4 but 105W fits the **cheaper STANDARD heatsink** (120W is the heatsink-tier cutoff; the 2680 v4 needs the expensive high-performance heatsink). Trades only a little base clock (2.0 vs 2.4GHz), irrelevant for GPU-fed + always-on CPU work. Same 28C/56T total, lower heatsink cost.
+- **REVISED PICK: 2× E5-2660 v4** (14C/28T each, **105W**), same core count as the previously-planned 2680 v4 but 105W fits the **cheaper STANDARD heatsink** (120W is the heatsink-tier cutoff; the 2680 v4 needs the expensive high-performance heatsink). Trades only a little base clock (2.0 vs 2.4GHz), irrelevant for GPU-fed + always-on CPU work. Same 28C/56T total, lower heatsink cost.
   - ≤105W alternatives (standard heatsink): E5-2650 v4 (12C, 105W), E5-2640 v4 (10C, 90W).
 - **Both CPUs must match** (model/stepping). **Need TWO heatsinks** (both can be standard now) + **thermal paste for both.**
 - **BIOS-FIRST IS MANDATORY:** the v4 (Broadwell) chips need a BIOS newer than 2.5.4. **Update the BIOS while the known-good E5-2630 v3 is installed, THEN swap to the v4 pair.** v4 on old BIOS may = no-POST.
@@ -106,16 +106,16 @@ Trigger has effectively fired (multiple GPUs exist; dual-GPU needs CPU2 to wake 
 
 ## 8. Storage roadmap
 
-- 16× 2.5" bays suit **used enterprise SATA/SAS SSDs** (Intel S3610/S4510, Samsung PM863/883: ~$40–55/TB, high endurance, SMART-verifiable — demand wear screenshot before buying).
+- 16× 2.5" bays suit **used enterprise SATA/SAS SSDs** (Intel S3610/S4510, Samsung PM863/883: ~$40–55/TB, high endurance, SMART-verifiable, demand wear screenshot before buying).
 - **ZFS planned** (via H730 HBA mode). Start mirrored pair → grow to RAIDZ2.
 - The **~7TB backup = personal photos/videos, slowly growing** → bulk-media tier; long-term lean is the Dell-documented 8×3.5" cage-swap (~$120–250 parts) for archive while SSD pool stays project-only. DEFERRED.
 
 ## 9. Remote access
 
-- WireGuard VPN (`10.10.0.0/24` — must NOT overlap LAN `10.0.0.0/24`), Tailscale (Pi relay planned), DuckDNS (`syedslab.duckdns.org`).
-- **WireGuard currently non-functional** (DuckDNS still points to old apartment IP, port-forward was on apartment router). Fall task — no urgency while LAN-local. At the house: WG comes in the clone; update DuckDNS to house IP; forward UDP 51820 on home router.
+- WireGuard VPN (`10.10.0.0/24`: must NOT overlap LAN `10.0.0.0/24`), Tailscale (Pi relay planned), DuckDNS (`syedslab.duckdns.org`).
+- **WireGuard currently non-functional** (DuckDNS still points to old apartment IP, port-forward was on apartment router). Fall task; no urgency while LAN-local. At the house: WG comes in the clone; update DuckDNS to house IP; forward UDP 51820 on home router.
 - Samba share at `/home/syed/Shared/`. Drive map `S:` → `\\10.0.0.200\SharedDrive`.
 
 ## 10. Endgame
 
-Custom **4U EPYC watercooled build** (ROMED8-2T/H12SSL, EPYC 7402-class, external rad) when 3+ GPUs are truly needed AND the pilot-fine-tune-beats-RAG eval passes. The T630 is the interim bridge — GPUs and drives migrate out, T630 sells at ~purchase price (stable PowerEdge resale). Nothing stranded. Spend nothing on EPYC/watercooling at market price now.
+Custom **4U EPYC watercooled build** (ROMED8-2T/H12SSL, EPYC 7402-class, external rad) when 3+ GPUs are truly needed AND the pilot-fine-tune-beats-RAG eval passes. The T630 is the interim bridge, GPUs and drives migrate out, T630 sells at ~purchase price (stable PowerEdge resale). Nothing stranded. Spend nothing on EPYC/watercooling at market price now.

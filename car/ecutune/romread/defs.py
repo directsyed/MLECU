@@ -1,4 +1,4 @@
-"""ECUFlash definition parser — revision XML + its include chain, merged into flat TableDefs.
+"""ECUFlash definition parser, revision XML + its include chain, merged into flat TableDefs.
 
 ECUFlash splits a definition across files: the *base* (e.g. 32BITBASE) carries table metadata
 (type, scaling, axis sizes/scalings); the *revision* file (e.g. A2WC410D) carries only the

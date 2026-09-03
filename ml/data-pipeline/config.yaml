@@ -1,4 +1,4 @@
-# MLECU corpus pipeline — source registry + pipeline config.
+# MLECU corpus pipeline: source registry + pipeline config.
 # All tunables live here; domain logic stays out of code (Hardware Parser convention).
 
 pipeline:
@@ -15,7 +15,7 @@ gates:
   min_chars: 40
   require_alpha: true
 
-notify:                           # Discord run summary — set DISCORD_WEBHOOK_URL in secrets.env
+notify:                           # Discord run summary, set DISCORD_WEBHOOK_URL in secrets.env
   enabled: true
   discord_webhook_env: DISCORD_WEBHOOK_URL
   only_when_new: false            # false = ping every run (liveness heartbeat); true = only when new
@@ -34,7 +34,7 @@ rom_harvest:
       cookie_file: data/raw/.cookies/romraider.txt
       threads:
         - https://www.romraider.com/forum/viewtopic.php?f=15&t=15258   # 05 FXT 4EAT stock ROM (3B12504206)
-      subforums: [15, 32]        # Subaru Tuning; Tuning Utilities & Spreadsheets — scan for ROM threads
+      subforums: [15, 32]        # Subaru Tuning; Tuning Utilities & Spreadsheets, scan for ROM threads
       discover_max_pages: 3
       discover_max_new: 40
       title_keywords: [rom, stock, base map, basemap, fxt, wrx, sti, forester, legacy, impreza,
@@ -73,7 +73,7 @@ sources:
       - https://www.legacygt.com/topic/142813-ej20x-swap/
       - https://www.legacygt.com/topic/105666-ej20x-swap/
       - https://www.legacygt.com/topic/131744-legacy-gt-ej20xy-swap/
-    # discovery — bounded crawl of subforum listings for NEW matching threads (passive accumulation)
+    # discovery, bounded crawl of subforum listings for NEW matching threads (passive accumulation)
     discover_forums:
       - https://www.legacygt.com/forum/65-tuning/                              # tuning-specific (high yield)
       - https://www.legacygt.com/forum/8-fourth-generation-legacy-2005-2009/   # general 4th-gen (swap threads)
@@ -132,14 +132,14 @@ sources:
     discover_reject_keywords: ["for sale", "fs:", "f/s", "wtb", "group buy", "gb:", "raffle", "for trade", "ft:", "meet", "gtg", "sold"]
     # discover_keywords: [...]    # defaults to ej20x/swap/tune/boost/knock/... (see the source)
 
-  local_pdf:                      # owner-supplied PDFs — drop files under data/raw/pdfs/{fsm,books}/
+  local_pdf:                      # owner-supplied PDFs, drop files under data/raw/pdfs/{fsm,books}/
     enabled: true
     base_dir: data/raw/pdfs
     collections:
       fsm:   { kind: fsm_spec, domain: subaru }
       books: { kind: theory,   domain: general }
 
-  ecu_docs:                       # EFI-reference manuals (reference tier) — PRIVATE corpus use only
+  ecu_docs:                       # EFI-reference manuals (reference tier), PRIVATE corpus use only
     enabled: true
     rate_limit_per_min: 30
     doc_sets:
@@ -149,7 +149,7 @@ sources:
         domain: general
         min_chars: 600
         pages: [ mfuel.htm, vetable.htm, mtune.htm, minj.htm ]
-      - name: obd_pids            # SAE J1979 OBD-II PIDs — the UNIVERSAL channel vocabulary anchor
+      - name: obd_pids            # SAE J1979 OBD-II PIDs, the UNIVERSAL channel vocabulary anchor
         base_url: https://en.wikipedia.org/wiki/
         kind: efi_reference
         domain: general
@@ -161,7 +161,7 @@ sources:
   # One generic phpBB engine serves three boards. Universal keyword set for the general
   # boards; Subaru set for romraider. Bounded discovery, conservative rates.
 
-  forum_speeduino:                # speeduino.com — universal open-EFI reasoning (phpBB)
+  forum_speeduino:                # speeduino.com, universal open-EFI reasoning (phpBB)
     enabled: true
     rate_limit_per_min: 15
     base_url: https://speeduino.com/forum
@@ -210,7 +210,7 @@ sources:
       - datalog
       - fuel map
 
-  forum_msextra:                  # msextra.com — MegaSquirt tuning theory (phpBB)
+  forum_msextra:                  # msextra.com. MegaSquirt tuning theory (phpBB)
     enabled: true
     rate_limit_per_min: 15
     base_url: https://www.msextra.com/forums
@@ -221,7 +221,7 @@ sources:
     max_thread_pages: 8
     discover_keywords: *universal_tuning_kws
 
-  forum_romraider:                # romraider.com — Subaru tuning/logging/defs + stock-ROM threads (phpBB)
+  forum_romraider:                # romraider.com. Subaru tuning/logging/defs + stock-ROM threads (phpBB)
     enabled: true
     rate_limit_per_min: 15
     base_url: https://www.romraider.com/forum
@@ -257,15 +257,15 @@ sources:
       - datalog
       - avcs
       - tgv
-    # ROM *attachments* need a logged-in account — Syed downloads binaries manually into
+    # ROM *attachments* need a logged-in account. Syed downloads binaries manually into
     # data/raw/roms/ (gitignored); this source captures the thread text/metadata.
 
-  forum_nasioc:                   # forums.nasioc.com — vBulletin behind HARD Cloudflare
+  forum_nasioc:                   # forums.nasioc.com, vBulletin behind HARD Cloudflare
     # CONFIRMED (2026-07-03): the managed challenge does NOT clear headless even with persistent
     # stealth context + interaction + reload (identical block response every retry). The one working
     # path: drop a cf_clearance cookie into data/raw/.cf-cookies/nasioc.json exported from a browser
     # on the T630's home network (cf_clearance is IP+UA bound; same public IP = valid) with a matching
-    # UA. `enabled: true` but `require_cf_cookies` makes it skip cleanly until that file exists — so the
+    # UA. `enabled: true` but `require_cf_cookies` makes it skip cleanly until that file exists, so the
     # daily timer auto-activates NASIOC the moment the cookie is present. LIVE 2026-07-04: cookie in
     # place, UA pinned in pipeline.user_agent_pool (must stay matched), forum ids probed for real.
     enabled: true
@@ -278,7 +278,7 @@ sources:
     discover_forums:                # forumdisplay ids, probed 2026-07-04 with the working cookie
       - 80    # Engine Management & Tuning
       - 177   # Open Source Reflashes (RomRaider)
-      - 37    # Factory 2.0L Turbo (EJ — EJ20X family)
+      - 37    # Factory 2.0L Turbo (EJ, EJ20X family)
       - 91    # Factory 2.5L Turbo (FXT chassis)
       - 87    # Subaru Conversions (JDM swaps)
     discover_max_pages: 2
@@ -286,7 +286,7 @@ sources:
     max_thread_pages: 8
     discover_keywords: *universal_tuning_kws
 
-  tunerstudio_ini:                # speeduino.ini — CROSS-PLATFORM table vocabulary (reference tier)
+  tunerstudio_ini:                # speeduino.ini, CROSS-PLATFORM table vocabulary (reference tier)
     enabled: true
     repo_url: https://github.com/speeduino/speeduino.git
     local_path: data/raw/speeduino
@@ -294,17 +294,17 @@ sources:
     auto_update: true
 
   # ---- XenForo boards (VerticalScope 202 JS stub -> BrowserFetcher) ------------------
-  forum_subaruforester:           # subaruforester.org — Syed's exact chassis (SG Forester)
+  forum_subaruforester:           # subaruforester.org. Syed's exact chassis (SG Forester)
     enabled: true
     rate_limit_per_min: 12
     base_url: https://www.subaruforester.org
     domain: subaru
     discover_forums:              # node slugs from the live probe (2026-07-03)
       - engine-management-tuning-and-datalogging.95   # the tuning/datalogging goldmine
-      - ej25-2-5l-turbocharged-2004-2013.87           # EJ255 FXT era — his platform
+      - ej25-2-5l-turbocharged-2004-2013.87           # EJ255 FXT era, his platform
       - ej20-2-0l-turbocharged.159                    # EJ20 turbo family
     # VerticalScope's JS challenge makes each page ~20-25s (ad-polling never idles), so keep the
-    # per-run crawl SMALL — the daily timer accumulates over many nights via skip-known dedup.
+    # per-run crawl SMALL, the daily timer accumulates over many nights via skip-known dedup.
     discover_max_pages: 1
     discover_max_new: 3
     max_thread_pages: 3
@@ -341,7 +341,7 @@ sources:
       - dam
       - fkl
 
-  forum_iwsti:                    # iwsti.com — STI tuning knowledge (32-bit era overlaps FXT ECU)
+  forum_iwsti:                    # iwsti.com, STI tuning knowledge (32-bit era overlaps FXT ECU)
     enabled: true
     rate_limit_per_min: 12
     base_url: https://www.iwsti.com

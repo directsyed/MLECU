@@ -1,4 +1,4 @@
-"""Offline CLI for the deterministic tuning layer — mirrors corpus_pipeline/cli.py ergonomics.
+"""Offline CLI for the deterministic tuning layer, mirrors corpus_pipeline/cli.py ergonomics.
 
   python -m ecutune.cli --status                      # config + active clamp pipeline / stages
   python -m ecutune.cli --run-convergence [--seed N]  # the one-command offline proof
@@ -58,7 +58,7 @@ def _rom_diff(path_a: str, path_b: str) -> int:
         d = diff_roms(path_a, path_b, defs, list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
     except ValueError as e:
         # Reconciliation can refuse on a heavily modified image ("refusing to guess").
-        # The byte-level diff needs no defs and is always available — degrade to it.
+        # The byte-level diff needs no defs and is always available, degrade to it.
         print(f"semantic decode failed ({e}); falling back to byte-level diff only")
         d = byte_only_diff(path_a, path_b)
     print(format_report(d))
@@ -73,7 +73,7 @@ def _rom_report(rom: str | None) -> int:
     image = RomImage.load(path)
     defs = EcuFlashDefs(DEFAULT_DEFS)
     tables, report = read_semantic_tables(image, defs, list(SIBLING_DEFS), TO_PLATFORM, VARIANTS)
-    print(f"ROM {Path(path).name} — internal id {report['internal_id']}")
+    print(f"ROM {Path(path).name}, internal id {report['internal_id']}")
     print(f"read via sibling defs {report['def_ids']} (411D has no community def)")
     for sid, t in tables.items():
         v = t.values
@@ -85,7 +85,7 @@ def _rom_report(rom: str | None) -> int:
 
 def _status() -> int:
     cfg = load_config()
-    print("ecutune — offline deterministic ECU-tuning layer")
+    print("ecutune, offline deterministic ECU-tuning layer")
     print(f"  safety.max_ve_step : {cfg.safety.max_ve_step}  (+/-{cfg.safety.max_ve_step * 100:.0f}% per iteration)")
     print(f"  safety.afr_floor   : {cfg.safety.afr_floor}")
     print(f"  clamp pipeline     : {[c.__name__ for c in CLAMP_PIPELINE]}")
@@ -132,7 +132,7 @@ def _split_for_fault(fault_id: str):
 def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> int:
     """The log->layer bridge as a command: real CSV holds -> the deterministic layer's OWN diagnosis
     (and, only if it finds an actionable out-of-tolerance fault, the clamped proposal it would make).
-    Claude does not read the logs here — `identify()` does."""
+    Claude does not read the logs here, `identify()` does."""
     import numpy as np
 
     from .algorithms import AlgoState, propose_idle_correction
@@ -151,11 +151,11 @@ def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> 
     est = identify(believed, obs, EngineParams())
 
     print("=" * 74)
-    print(f"DIAGNOSE — {len(holds)} holds, baseline {'INDEPENDENT' if independent_baseline else 'SELF-REFERENTIAL'} "
-          f"({'; MAF-vs-flow resolvable' if independent_baseline else 'MAF term OFF — see caveat'})")
+    print(f"DIAGNOSE, {len(holds)} holds, baseline {'INDEPENDENT' if independent_baseline else 'SELF-REFERENTIAL'} "
+          f"({'; MAF-vs-flow resolvable' if independent_baseline else 'MAF term OFF, see caveat'})")
     print(f"{'hold':>18} {'air_scale':>10} {'volts':>7} {'trim%':>8} {'maf g/s':>8} {'nominal':>8}")
     for h, o in zip(holds, obs):
-        nom = "—" if np.isnan(o.nominal_maf) else f"{o.nominal_maf:.2f}"
+        nom = " - " if np.isnan(o.nominal_maf) else f"{o.nominal_maf:.2f}"
         print(f"{Path(h).stem:>18} {o.air_scale:>10.3f} {o.voltage:>7.2f} {o.trim*100:>8.2f} "
               f"{o.maf_reading:>8.2f} {nom:>8}")
     ranked = sorted(est.residuals.items(), key=lambda kv: kv[1])[:4]
@@ -187,12 +187,12 @@ def _diagnose(holds: list[str], rom: str | None, independent_baseline: bool) -> 
                                           metadata={"fault": est.fault_id})
         ctx = ClampContext(believed, cfg.safety, fault_estimate=est)
         new_tables, res = apply_proposal(believed, prop, ctx)
-        print("\nPIPELINE PROPOSAL (clamped; nothing written — for Syed's review):")
-        print(f"  ok={res.ok}  aborted_by={res.aborted_by or '—'}")
+        print("\nPIPELINE PROPOSAL (clamped; nothing written, for Syed's review):")
+        print(f"  ok={res.ok}  aborted_by={res.aborted_by or ' - '}")
         for e in prop.edits:
             print(f"    {e.table_id}: → {e.new_value:.4f}   ({e.reason})")
     else:
-        print("\nPIPELINE PROPOSAL: none — " + (
+        print("\nPIPELINE PROPOSAL: none, " + (
             "idle within the Stage-2 gate; no change warranted" if max_trim <= _STAGE2_TRIM_TOL
             else "verdict is not an actionable single-table fault (leak/healthy/not-identifiable)"))
     print("=" * 74)
@@ -233,7 +233,7 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     tables = TableSet(raw)
     maf = tables.get(SENSOR_MAF_TRANSFER)
     if maf is None:
-        print("ROM has no MAF transfer table — cannot proceed")
+        print("ROM has no MAF transfer table, cannot proceed")
         return 1
 
     logs = [parse_romraider_csv(c) for c in drive_csvs]
@@ -287,7 +287,7 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     res = apply_clamps(prop, ctx)
     after, _ = apply_proposal(tables, prop, ctx)
 
-    print(f"ROM {Path(rom_path).name} — {len(drive_csvs)} log(s), {len(pooled)} rows")
+    print(f"ROM {Path(rom_path).name}, {len(drive_csvs)} log(s), {len(pooled)} rows")
     print(f"  {int(grid.count.sum())} closed-loop steady samples over "
           f"{prop.metadata['n_confident_bins']} confident breakpoints")
     print(f"  proposal: {prop.metadata['n_corrected']}/{prop.metadata['n_breakpoints']} cells, "
@@ -296,7 +296,7 @@ def _tune_maf(drive_csvs: list[str], rom: str | None, out: str | None,
     print(f"  clamps: ok={res.ok} violations={len(res.violations)} "
           f"{sorted({v.action for v in res.violations})}")
     if not res.ok:
-        print(f"  ABORTED BY {res.aborted_by} — nothing written")
+        print(f"  ABORTED BY {res.aborted_by}, nothing written")
         return 2
 
     w = patch(stock, res, raw, rep["resolved"])
@@ -386,7 +386,7 @@ def _tune_timing(drive_csvs: list[str], rom: str | None, out: str | None,
     tables = TableSet(raw)
     timing = tables.tables.get(IGNITION_BASE_TIMING)
     if timing is None:
-        print("ROM has no Base Timing map — cannot proceed")
+        print("ROM has no Base Timing map, cannot proceed")
         return 1
 
     logs, pooled, collisions = _pool_logs(drive_csvs)
@@ -408,7 +408,7 @@ def _tune_timing(drive_csvs: list[str], rom: str | None, out: str | None,
     sig = replace(sig, fuel_trims_converged=fuel_sig.fuel_trims_converged,
                   max_trim_abs=fuel_sig.max_trim_abs)
 
-    print(f"ROM {Path(rom_path).name} — {len(drive_csvs)} log(s), {len(pooled)} rows")
+    print(f"ROM {Path(rom_path).name}, {len(drive_csvs)} log(s), {len(pooled)} rows")
     if collisions:
         print(f"  schema collisions resolved by schema.prefer(): "
               f"{ {k: len(v) for k, v in collisions.items()} }")
@@ -437,7 +437,7 @@ def _tune_timing(drive_csvs: list[str], rom: str | None, out: str | None,
     else:
         # REFUSED, not warned. For --tune-maf an inert cumulative envelope still leaves the
         # per-iteration displacement cap doing real work. Here it would leave the cumulative
-        # retard floor as the ONLY bound below, and the ceiling only bounds above — so the
+        # retard floor as the ONLY bound below, and the ceiling only bounds above, so the
         # stage's own safety story would rest on `min_timing_advance` alone.
         print("  REFUSED: --tune-timing requires --baseline-rom (the archived stock ROM).")
         print("           Without it the cumulative retard floor is inert and the only bound")
@@ -457,10 +457,10 @@ def _tune_timing(drive_csvs: list[str], rom: str | None, out: str | None,
     print(f"  clamps: ok={res.ok} surviving={len(res.clamped_edits)} "
           f"violations={len(res.violations)} {sorted({v.action for v in res.violations})}")
     if not res.ok:
-        print(f"  ABORTED BY {res.aborted_by} — nothing written")
+        print(f"  ABORTED BY {res.aborted_by}, nothing written")
         return 2
     if not res.clamped_edits:
-        print("  no edit survived the clamps — nothing to write")
+        print("  no edit survived the clamps; nothing to write")
         return 2
 
     w = patch(current, res, raw, rep["resolved"],
@@ -547,7 +547,7 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
     fatal: list[str] = []
 
     def check(ok: bool, label: str, detail: str = "", is_fatal: bool = False) -> None:
-        print(f"  [{'PASS' if ok else 'FAIL'}] {label}{('  — ' + detail) if detail else ''}")
+        print(f"  [{'PASS' if ok else 'FAIL'}] {label}{(', ' + detail) if detail else ''}")
         if not ok:
             fails.append(label)
             if is_fatal:
@@ -567,7 +567,7 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
         check(digest in sums.read_text(), "current image matches the archived SHA256SUMS",
               digest[:16] + ("" if digest in sums.read_text() else
                              "  (expected for a CHAINED build: the base is a candidate, "
-                             "not a ROM read off the car — record it in SHA256SUMS.txt)"))
+                             "not a ROM read off the car, record it in SHA256SUMS.txt)"))
     else:
         print("  [ -- ] no SHA256SUMS.txt beside the current ROM (skipped)")
 
@@ -589,7 +589,7 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
     # This is the last automated gate before a human touches an ECU; it owes a verdict, not an
     # exception.
     if fatal:
-        print(f"\nNO-GO — {len(fatal)} check(s) failed before the image could even be decoded: "
+        print(f"\nNO-GO, {len(fatal)} check(s) failed before the image could even be decoded: "
               f"{fatal}")
         print("       This does not look like a calibration for THIS ECU. Refusing to go "
               "further.")
@@ -613,12 +613,12 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
         # romread refuses rather than guessing when sibling defs disagree and plausibility
         # cannot pick a winner. That refusal is correct; surfacing it as a crash is not.
         check(False, "the image decodes through our definition set", str(e)[:160])
-        print(f"\nNO-GO — {len(fails)} check(s) failed: {fails}")
+        print(f"\nNO-GO, {len(fails)} check(s) failed: {fails}")
         return 2
     moved = [k for k in s_tab if not np.array_equal(s_tab[k].values, c_tab[k].values)]
     check(len(moved) == 1, "exactly one semantic table changed", str(moved) if moved else "none")
     if len(moved) != 1:
-        print(f"\nNO-GO — {len(fails)} check(s) failed: {fails}")
+        print(f"\nNO-GO, {len(fails)} check(s) failed: {fails}")
         return 2
     target = moved[0]
     check(target in _FLASH_PROFILES.values(), "the changed table is one this layer tunes", target)
@@ -680,7 +680,7 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
         # excess can only ever be extra retard -- the advance check above is exact.
         step_tol = quantisation_step(sc, float(old.max())) + 1e-9
         moved_deg = float(np.max(np.abs(cur - old)))
-        # A cell may exceed the step ONLY by landing on its own ceiling — that is the undriven-
+        # A cell may exceed the step ONLY by landing on its own ceiling; that is the undriven-
         # cell exemption (Syed, 2026-08-30), and it is checkable from the image alone: the clamp
         # verified "never driven" against the log, and the bytes must show "arrived at the
         # ceiling". Anything that moved further than a step and did NOT land on its ceiling is
@@ -711,7 +711,7 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
         if above.any():
             remaining = float(np.max((cur - ceil)[above]))
             print(f"  [ .. ] {int(above.sum())} cell(s) remain above their ceiling, worst by "
-                  f"{remaining:.2f} deg — "
+                  f"{remaining:.2f} deg, "
                   f"{int(np.ceil(remaining / cfg.safety.max_timing_step))} more iteration(s) "
                   f"at {cfg.safety.max_timing_step} deg/pass")
 
@@ -726,9 +726,9 @@ def _verify_flash(candidate: str, rom: str | None, baseline: str | None = None,
 
     print()
     if fails:
-        print(f"NO-GO — {len(fails)} check(s) failed: {fails}")
+        print(f"NO-GO, {len(fails)} check(s) failed: {fails}")
         return 2
-    print("GO — every check passed. The image is internally consistent and changes only what")
+    print("GO; every check passed. The image is internally consistent and changes only what")
     print("     was approved. This says nothing about whether the CALIBRATION is right, only")
     print("     that the file is what we intended to build.")
     return 0

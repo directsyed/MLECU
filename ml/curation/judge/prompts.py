@@ -1,4 +1,4 @@
-"""Prompt pack loader — a rubric version is a DIRECTORY of editable files, never code.
+"""Prompt pack loader, a rubric version is a DIRECTORY of editable files, never code.
 
 prompts/rubric-r1/
   system.md              judge role + output contract
@@ -8,7 +8,7 @@ prompts/rubric-r1/
   extraction_schema.json JSON Schema for the verdict (also the response_format grammar)
 
 The rubric_version recorded on every judgment is the directory name, so a rubric edit means
-making rubric-r2/ — old verdicts stay attributable to the exact wording that produced them.
+making rubric-r2/, old verdicts stay attributable to the exact wording that produced them.
 """
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class PromptPack:
         rubric = self.rubric_community if tier == "community" else self.rubric_reference
         parts = [rubric]
         if doc_synopsis:
-            parts.append("# Document synopsis (context for this chunk — score ONLY the "
+            parts.append("# Document synopsis (context for this chunk, score ONLY the "
                          "chunk's own content)\n" + doc_synopsis)
         if refs:
             lines = [f"[REF {s.ref_doc_id}] {s.title}\n{s.snippet}" for s in refs]

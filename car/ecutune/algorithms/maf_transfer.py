@@ -1,4 +1,4 @@
-"""MAF transfer-curve correction — the first stage that tunes a real CURVE, not a scalar.
+"""MAF transfer-curve correction, the first stage that tunes a real CURVE, not a scalar.
 
 WHY THIS EXISTS (2026-08-27). Six vacuum drives showed the car's fuel trim tracks *measured
 airflow* far better than it tracks load or rpm (corr +0.85 vs +0.71 / +0.75), and the decisive
@@ -51,7 +51,7 @@ from . import fueling
 
 @dataclass
 class MafState:
-    """Per-stage state. Deliberately just a counter — see the module docstring on why there is
+    """Per-stage state. Deliberately just a counter, see the module docstring on why there is
     no integrator here (48 independent bins, no degeneracy, integral would only overshoot)."""
     iterations: int = 0
 
@@ -127,7 +127,7 @@ def _interpolated_correction(frac: np.ndarray) -> np.ndarray:
 
     Confident bins anchor a piecewise-linear correction curve; gaps BETWEEN anchors are
     interpolated (the physical error is smooth in airflow, so a gap between two measured points
-    is genuinely known). Breakpoints outside the measured span get 0.0 — untouched, never
+    is genuinely known). Breakpoints outside the measured span get 0.0, untouched, never
     extrapolated (rule 1 in the module docstring).
     """
     out = np.zeros_like(frac, dtype=float)
@@ -159,7 +159,7 @@ def propose_maf_correction(grid: BinnedGrid, tables: TableSet, state: MafState,
 
     frac, count = _measured_correction(grid)
     if frac.size != stock.size:
-        raise ValueError(f"grid has {frac.size} breakpoints, table has {stock.size} — "
+        raise ValueError(f"grid has {frac.size} breakpoints, table has {stock.size}, "
                          "the GridSpec was not built from this table (use grid_spec_for)")
     # Keep the PRE-deadband measurement: the deadband exists to stop the stage chasing noise in
     # the correction it applies, but zeroing a real +1.8% before averaging would bias the

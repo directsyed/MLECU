@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MLECU benchmark cockpit — 4-pane tmux viewer for the multi-day pipeline.
+# MLECU benchmark cockpit: 4-pane tmux viewer for the multi-day pipeline.
 # PURE VIEWER: closing it, or Ctrl-C in any pane, affects nothing. The driver is a systemd
 # user service; only `systemctl --user stop mlecu-bench` actually stops work.
 #   top-left     = ledger progress (per-phase counts + the unit running right now)

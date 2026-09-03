@@ -1,7 +1,7 @@
-"""recalibrate.py — the candidate-judge calibration harness.
+"""recalibrate.py, the candidate-judge calibration harness.
 
 These exist because the first revision (2026-08-16) instantiated `Config()` instead of
-`load_config()`, which silently ran rubric r1 at 1500 tokens — an invalid comparison that would
+`load_config()`, which silently ran rubric r1 at 1500 tokens, an invalid comparison that would
 have gated the corpus. Nothing here talks to a real LLM."""
 from __future__ import annotations
 

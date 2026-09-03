@@ -1,10 +1,10 @@
-"""The convergence harness — the whole offline loop, with the three guarantees asserted.
+"""The convergence harness, the whole offline loop, with the three guarantees asserted.
 
 Each iteration: MVEM steady state -> synthetic RomRaider log -> bin -> propose -> CLAMP -> apply
 -> re-sim. We start from the seeded EJ20X-vs-EJ255 mismatch and prove, with no car and no GPU:
-  (1) zero clamp violations  — the controller stays inside the +/-3% bound; the clamp never fires.
-  (2) convergence            — steady-state trim reaches within +/-5%.
-  (3) determinism            — same seed => identical table trajectory.
+  (1) zero clamp violations, the controller stays inside the +/-3% bound; the clamp never fires.
+  (2) convergence, steady-state trim reaches within +/-5%.
+  (3) determinism, same seed => identical table trajectory.
 This is the offline proof that the algorithm + clamps actually fix the bad idle before the car moves.
 """
 from __future__ import annotations
@@ -31,7 +31,7 @@ def idle_grid_spec(op: OperatingPoint) -> GridSpec:
 
 
 def probe_grid_spec(op: OperatingPoint) -> GridSpec:
-    """A grid covering BOTH airflow probe points. `bin_log` already supported multi-cell grids —
+    """A grid covering BOTH airflow probe points. `bin_log` already supported multi-cell grids -
     x_breaks/y_breaks are tuples and idle_grid_spec simply passed single-element ones, so this
     needed no change to the binning machinery at all."""
     return GridSpec(x_role="maf_gs",
@@ -44,7 +44,7 @@ def collect_observations(tables, params, op: OperatingPoint, rng,
     """Run the three-point probe protocol and bin each point into an Observation.
 
     Voltage is not a grid axis, so each probe point is logged and binned separately and the
-    results assembled here — which is also exactly how the real car will capture them (three
+    results assembled here, which is also exactly how the real car will capture them (three
     separate steady-state pulls, see car/logging/CAPTURE-PROTOCOL.md).
 
     This is the data the deterministic layer has always been entitled to and never received:
@@ -67,7 +67,7 @@ def collect_observations(tables, params, op: OperatingPoint, rng,
                                maf_reading=maf,
                                nominal_maf=NOMINAL_MAF_IDLE * air_scale,
                                # inside the SIM the seeded baseline IS the truth by construction
-                               # (synth_log builds maf_gs from it) — so it is validated *for
+                               # (synth_log builds maf_gs from it), so it is validated *for
                                # this world*. A real-log loader must NOT copy this line; it
                                # takes `MafBaseline.validated` from the capture instead.
                                nominal_validated=True))
@@ -89,7 +89,7 @@ def run_convergence(seed: int = 0, max_iters: int | None = None,
                     cfg: Config | None = None,
                     seeded: tuple[TableSet, "EngineParams", OperatingPoint] | None = None,
                     ) -> ConvergenceResult:
-    """`seeded` overrides the synthetic mismatch — e.g. rom_seed.fxt_rom_into_ej20x() grounds
+    """`seeded` overrides the synthetic mismatch, e.g. rom_seed.fxt_rom_into_ej20x() grounds
     the believed tables + idle operating point in the real A2WC411D calibration."""
     cfg = cfg or load_config()
     max_iters = max_iters or cfg.algo.max_iters

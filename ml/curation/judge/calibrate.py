@@ -19,9 +19,9 @@ _SET_KEY = "label_set:{name}"
 
 
 def freeze_sample(state: State, cfg: Config) -> list[int]:
-    """Freeze the calibration doc-id list in meta (idempotent — returns the existing set).
+    """Freeze the calibration doc-id list in meta (idempotent, returns the existing set).
 
-    Composition: ALL kept community docs (there are ~96 today — labeling the full tier is a
+    Composition: ALL kept community docs (there are ~96 today, labeling the full tier is a
     feature) + a few reference anchors for scale grounding, capped at calibration.n.
     """
     key = _SET_KEY.format(name=cfg.calibration.set_name)

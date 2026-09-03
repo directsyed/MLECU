@@ -119,7 +119,7 @@ class ResolvedDef:
     """WHICH def actually won reconciliation for a semantic table, and where it lives.
 
     The write path cannot re-derive this. Our MAF curve sits at 0xCB75C under def A2WC410D but
-    at 0xCB77C — +0x20 — under A2WC412D, and reconciliation only picks 410D because the 412D
+    at 0xCB77C, +0x20, under A2WC412D, and reconciliation only picks 410D because the 412D
     read yields a non-monotonic voltage axis that plausible() rejects. A writer that assumed a
     fixed def id would silently corrupt 192 bytes of a neighbouring table. So the winning
     (def_id, TableDef, Scaling) is carried out of the read rather than reconstructed.
@@ -137,9 +137,9 @@ def read_semantic_tables(rom: RomImage, defs: EcuFlashDefs, def_ids: list[str],
 
     Per table: defs that read bit-identically corroborate each other; where they disagree
     (address drift between revisions), only a read that passes plausible() survives, and it
-    must be UNIQUE — zero or multiple surviving candidates is a hard error, never a guess.
+    must be UNIQUE, zero or multiple surviving candidates is a hard error, never a guess.
     Returns ({semantic_id: Table}, report). `report["resolved"][sem_id]` carries the
-    ResolvedDef that WON reconciliation — the write path needs the address, and
+    ResolvedDef that WON reconciliation, the write path needs the address, and
     re-deriving it from a fixed def id would be wrong (see ResolvedDef).
     """
     variants = variants or {}
@@ -180,7 +180,7 @@ def read_semantic_tables(rom: RomImage, defs: EcuFlashDefs, def_ids: list[str],
         if len(survivors) != 1:
             raise ValueError(
                 f"{sem_id}: defs disagree ({[d for *_, d in groups]}) and plausibility "
-                f"leaves {len(survivors)} candidates — refusing to guess")
+                f"leaves {len(survivors)} candidates, refusing to guess")
         t, dids, td, sc = survivors[0]
         out[sem_id] = t
         report["provenance"][sem_id] = f"plausible-only({','.join(dids)})"

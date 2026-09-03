@@ -1,7 +1,7 @@
-# rom write/ — CANDIDATE images. Nothing here has been flashed.
+# rom write/: CANDIDATE images. Nothing here has been flashed.
 
-Only the candidate currently awaiting review lives at this level. Everything superseded — and
-every intermediate of a chained build — moves to `superseded/`.
+Only the candidate currently awaiting review lives at this level. Everything superseded, and
+every intermediate of a chained build, moves to `superseded/`.
 
 | file | what it is |
 |---|---|
@@ -9,7 +9,7 @@ every intermediate of a chained build — moves to `superseded/`.
 
 ## The chained-build convention
 
-The ECU holds ONE calibration image, so "two changes" never means two files to flash — it means
+The ECU holds ONE calibration image, so "two changes" never means two files to flash; it means
 one image containing both. Each stage runs under its own clamps (`targets_kind` routes a
 `"sensor"` proposal and a `"timing"` proposal down deliberately disjoint paths), so they are
 applied as two proposals stacked onto one image, never merged into one.

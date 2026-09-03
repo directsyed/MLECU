@@ -86,7 +86,7 @@ _RULES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"final\s*fuel\w*\s*base", re.I), "final_fueling_base"),
     (re.compile(r"wideband|uego|\baem\b|\bwb\b|lambda", re.I), "wideband_afr"),
     # MUST precede the a/f-learn rule. "A/F Learning Airflow Range (Current)*" is an INDEX
-    # (1,2,3 = which airflow range is being learned), NOT a percentage — and it matched
+    # (1,2,3 = which airflow range is being learned), NOT a percentage, and it matched
     # `a/?f\s*learn`. It only ever lost to the real learning channel because it happened to sit
     # one column later; a reordered log would have put an integer index into af_learning and
     # silently corrupted every trim calculation downstream. Found 2026-08-28.

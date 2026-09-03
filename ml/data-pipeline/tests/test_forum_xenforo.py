@@ -1,4 +1,4 @@
-"""forum_xenforo generic engine — parse-level tests on synthetic XenForo 2.x markup."""
+"""forum_xenforo generic engine, parse-level tests on synthetic XenForo 2.x markup."""
 from __future__ import annotations
 
 from bs4 import BeautifulSoup
@@ -14,20 +14,20 @@ from corpus_pipeline.sources.forum_xenforo import (
 _LISTING = """
 <html><body>
 <div class="structItem structItem--thread">
-  <div class="structItem-title"><a href="/threads/ej20x-swap-idle-tuning.123456/">EJ20X swap idle tuning — trims high</a></div>
+  <div class="structItem-title"><a href="/threads/ej20x-swap-idle-tuning.123456/">EJ20X swap idle tuning, trims high</a></div>
 </div>
 <div class="structItem structItem--thread">
   <div class="structItem-title"><a href="/threads/fs-vf48-turbo.999/">FS: VF48 turbo cheap</a></div>
 </div>
 <div class="structItem structItem--thread">
-  <div class="structItem-title"><a href="/threads/ej20x-swap-idle-tuning.123456/page-3/">EJ20X swap idle tuning — trims high</a></div>
+  <div class="structItem-title"><a href="/threads/ej20x-swap-idle-tuning.123456/page-3/">EJ20X swap idle tuning, trims high</a></div>
 </div>
 </body></html>
 """
 
 _THREAD = """
 <html><body>
-<h1 class="p-title-value">EJ20X swap idle tuning — trims high</h1>
+<h1 class="p-title-value">EJ20X swap idle tuning, trims high</h1>
 <article class="message message--post" data-author="subie_dan">
   <div class="message-attribution"><time datetime="2023-08-01T12:00:00Z">Aug 1, 2023</time></div>
   <div class="message-body"><div class="bbWrapper">Idle AF learning is +13%. MAF reads low vs speed density.
@@ -71,5 +71,5 @@ def test_max_page():
 def test_title_ok():
     kws = ["tune", "idle", "ej20"]
     rej = ["fs:", "for sale"]
-    assert _title_ok("EJ20X swap idle tuning — trims high", kws, rej)
+    assert _title_ok("EJ20X swap idle tuning, trims high", kws, rej)
     assert not _title_ok("FS: VF48 turbo cheap", kws, rej)

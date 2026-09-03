@@ -1,4 +1,4 @@
-"""Local book/PDF ingester — for owner-supplied copyrighted material (FSMs, tuning books).
+"""Local book/PDF ingester, for owner-supplied copyrighted material (FSMs, tuning books).
 
 Reads PDFs AND EPUBs from drop folders under `base_dir` (one subfolder per "collection", each
 mapped to a kind/domain in config). Emits one Document per PDF page / per EPUB chapter (granular +
@@ -20,7 +20,7 @@ from typing import Iterator
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 from pypdf import PdfReader
 
-# EPUB content docs are XHTML; parsing them with the lxml HTML parser works fine and is standard —
+# EPUB content docs are XHTML; parsing them with the lxml HTML parser works fine and is standard -
 # silence bs4's "you used an HTML parser on XML" notice so it doesn't spam the ingest log per chapter.
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
@@ -121,12 +121,12 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
                 kept_pages += 1
                 yield Document(
                     source=name, source_id=f"{rel}#p{i}",
-                    title=f"{pdf.stem} — p{i}/{n_pages}", text=txt,
+                    title=f"{pdf.stem}, p{i}/{n_pages}", text=txt,
                     kind=kind, domain=domain, tier="reference", url=f"file://{pdf}",
                     meta={"file": rel, "page": i, "n_pages": n_pages, "collection": coll},
                 )
-            log.info("local_pdf: %s — %d/%d pages with text (%s)", pdf.name, kept_pages, n_pages,
-                     "OK" if kept_pages else "NO TEXT LAYER — needs OCR?")
+            log.info("local_pdf: %s, %d/%d pages with text (%s)", pdf.name, kept_pages, n_pages,
+                     "OK" if kept_pages else "NO TEXT LAYER, needs OCR?")
 
         # --- EPUBs (one Document per chapter) ---
         for epub in sorted(cdir.rglob("*.epub")):
@@ -144,9 +144,9 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
                 kept += 1
                 yield Document(
                     source=name, source_id=f"{rel}#c{idx}",
-                    title=f"{epub.stem} — ch{idx}/{n}", text=txt,
+                    title=f"{epub.stem}, ch{idx}/{n}", text=txt,
                     kind=kind, domain=domain, tier="reference", url=f"file://{epub}",
                     meta={"file": rel, "chapter": idx, "n_chapters": n, "collection": coll},
                 )
-            log.info("local_pdf: %s — %d/%d chapters with text (%s)", epub.name, kept, n,
+            log.info("local_pdf: %s, %d/%d chapters with text (%s)", epub.name, kept, n,
                      "OK" if kept else "empty/DRM?")

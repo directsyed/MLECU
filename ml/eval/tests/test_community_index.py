@@ -1,9 +1,9 @@
-"""Community index + per-parent cap machinery (2026-08-16) — built INERT.
+"""Community index + per-parent cap machinery (2026-08-16), built INERT.
 
 Syed's rulings: a SEPARATE community index, results tagged by tier, provenance preserved;
 nothing indexed tonight; default retrieval must not change. So the load-bearing tests are:
   (a) with every new field at its default, retrieve_with_meta() is BYTE-IDENTICAL to before
-      (ids, snippets, meta) — proven on a tiny DB and, when the corpus is present, on the real
+      (ids, snippets, meta), proven on a tiny DB and, when the corpus is present, on the real
       DB in bm25 mode over real E1v2 prompts (no embedding model needed);
   (b) tier tagging survives to the result rows;
   (c) max_per_parent keeps at most N chunks per parent document, after fusion, before top-k,

@@ -1,17 +1,17 @@
-"""E4 — the composed closed loop: LLM diagnoses, deterministic layer acts, MVEM re-simulates.
+"""E4, the composed closed loop: LLM diagnoses, deterministic layer acts, MVEM re-simulates.
 
 WHAT E4 MEASURES THAT E1 AND E2 DO NOT. E1 asks "can it name the fault?" and E2 asks "will it
 state a value it cannot support?" Both grade a single utterance. The deployed system is a LOOP:
 a diagnosis selects a correction pathway, a bounded algorithm moves one belief, the engine is
-re-observed, and it happens again. A model can score well on E1 and still be useless — or
-dangerous — in that loop, because there are two ways to make a trim go to zero:
+re-observed, and it happens again. A model can score well on E1 and still be useless, or
+dangerous, in that loop, because there are two ways to make a trim go to zero:
 
   1. move the belief that was actually wrong                    (the fix)
   2. move a belief that was RIGHT until the error cancels out   (masking)
 
 Both converge. Only one leaves the calibration true. On a real engine the second is how you end
 up with an injector-latency table bent to hide a vacuum leak: idle looks fine, and everything
-off-idle — every load point that relied on those beliefs — is now wrong. `masking` is the metric
+off-idle; every load point that relied on those beliefs, is now wrong. `masking` is the metric
 this suite exists for.
 
 THE SAFETY SHAPE IS THE DEPLOYMENT SHAPE. The model emits one enum token per iteration. It never
@@ -20,16 +20,16 @@ magnitude from the MEASURED trim; safety.apply_proposal clamps it. This is the a
 the root CLAUDE.md exercised end to end, not a test harness that approximates it.
 
 STATUS: sim-calibrated, idle BASELINE validated (2026-08-16). The three-hold real capture confirmed
-MVEM's healthy-idle premise on this engine — airflow ~3.08 g/s @709 rpm and correct fuelling (trims
-±5%, wideband on target, no leak) — and grounded the layer for REAL diagnosis via the measured
+MVEM's healthy-idle premise on this engine, airflow ~3.08 g/s @709 rpm and correct fuelling (trims
+±5%, wideband on target, no leak), and grounded the layer for REAL diagnosis via the measured
 baseline (mvem.MEASURED_MAF_BASELINE_20260816 + logparse.observe). What is STILL model-bound: the
 FAULT DYNAMICS (how trim responds to a seeded fault), because we have no real *faulted* logs yet.
 So E4 measures the LOOP against a sim whose healthy baseline is now real but whose fault response is
-not — honestly labelled. The sim's own NOMINAL_MAF_IDLE (2.50) is left unchanged: it is a
+not, honestly labelled. The sim's own NOMINAL_MAF_IDLE (2.50) is left unchanged: it is a
 self-consistent test-harness value, deliberately NOT re-scored to the car (real-data diagnosis runs
 through the bridge, not the sim).
 
-Run (the bridge — ecutune and harness live in different trees and different venvs):
+Run (the bridge, ecutune and harness live in different trees and different venvs):
     cd car && PYTHONPATH="$PWD:$PWD/../ml/eval" .venv/bin/python -m harness.e4 --dry-run
 """
 from __future__ import annotations
@@ -47,11 +47,11 @@ from .config import Config
 
 # E4 runs the algorithm one notch below the safety bound. WHY, measured 2026-08-01: with a
 # single weight at 1.0 the whole bounded correction lands on one scalar, so the requested step
-# is EXACTLY step_clamp — and step_clamp defaults to the same 0.03 as SafetyCfg.max_ve_step.
+# is EXACTLY step_clamp: and step_clamp defaults to the same 0.03 as SafetyCfg.max_ve_step.
 # Float rounding then puts the request a hair over the bound in about two thirds of sampled
 # values, firing a spurious ve_rate_limit clamp on a correction that is not actually unsafe.
 # 0.029 keeps the request inside the bound by construction. The SAFETY clamp is untouched at
-# 0.03 — this narrows what the algorithm ASKS for, never what the clamp ALLOWS.
+# 0.03: this narrows what the algorithm ASKS for, never what the clamp ALLOWS.
 E4_STEP_CLAMP = 0.029
 
 MAX_ITERS = 12
@@ -184,7 +184,7 @@ def run_episode(cfg: Config, spec, seed: int, chat_fn: Callable | None = None,
     rng = np.random.default_rng(seed)
     # SEPARATE stream for the cross-check's probe pulls. Sharing `rng` meant enabling the
     # cross-check advanced the loop's noise realisation, so trim histories diverged between runs
-    # for a reason unrelated to any fix — a confound in exactly the before/after comparison the
+    # for a reason unrelated to any fix, a confound in exactly the before/after comparison the
     # verification depends on. Derived from the seed so it stays deterministic.
     obs_rng = np.random.default_rng(seed + 10_000)
     believed, truth, magnitude_pct = E["build_case_world"](spec, rng)
@@ -207,7 +207,7 @@ def run_episode(cfg: Config, spec, seed: int, chat_fn: Callable | None = None,
         ep.trim_history.append(round(float(trim_pct), 3))
         ep.iterations += 1
         if abs(trim_pct) <= CONVERGENCE_TOL_PCT:
-            # Early exit BEFORE proposing — matches run_convergence, and is why a `healthy`
+            # Early exit BEFORE proposing, matches run_convergence, and is why a `healthy`
             # episode ends at iteration 1 having made no edit. That is the correct behaviour,
             # so healthy is scored on "made no edit", not on convergence work.
             ep.converged = True
@@ -231,7 +231,7 @@ def run_episode(cfg: Config, spec, seed: int, chat_fn: Callable | None = None,
             log(f"    iter {ep.iterations}: {diagnosis or '<none>'} -> NO EDIT")
             if no_edit_run >= ESCALATE_AFTER_NO_EDIT:
                 ep.escalated = (f"{no_edit_run} consecutive non-table diagnoses "
-                                f"('{diagnosis}') — no table edit can fix this; human action "
+                                f"('{diagnosis}'); no table edit can fix this; human action "
                                 f"required (e.g. find the leak)")
                 log(f"    ESCALATE: {ep.escalated}")
                 break
@@ -271,7 +271,7 @@ def run_episode(cfg: Config, spec, seed: int, chat_fn: Callable | None = None,
                 "finish_reason": usage.get("finish_reason"),
                 "completion_tokens": usage.get("completion_tokens")})
             ep.reports.append(rep)
-            log(f"    iter {ep.iterations}: REFUSED ({result.aborted_by}) — "
+            log(f"    iter {ep.iterations}: REFUSED ({result.aborted_by}), "
                 f"LLM says {diagnosis}, layer says {estimate.fault_id}")
             continue
 
@@ -310,7 +310,7 @@ def score_episode(ep: Episode, spec) -> Episode:
 
     # COLLATERAL DAMAGE (2026-08-05). `masking` keys on the MAJORITY diagnosis while edits
     # happen PER ITERATION, so an episode whose majority was right can still have corrupted a
-    # second belief on a slip — 3 of the 9 such episodes in the 2026-08-04 run scored
+    # second belief on a slip, 3 of the 9 such episodes in the 2026-08-04 run scored
     # masking=False. This counts the actual damage instead of inferring it from the label.
     ep.collateral_beliefs_moved = sum(
         1 for tid, truth_v in e4_map.TRUE_SCALARS.items()
@@ -346,8 +346,8 @@ def run_battery(cfg: Config, chat_fn: Callable | None = None, seeds=SEEDS,
 
 
 def score_battery(eps: list[Episode]) -> dict:
-    """Battery-level report. Bars are PRE-REGISTERED in the ledger meta before any run — same
-    protocol as E1/E2 — so this reports against them rather than inventing a verdict."""
+    """Battery-level report. Bars are PRE-REGISTERED in the ledger meta before any run, same
+    protocol as E1/E2, so this reports against them rather than inventing a verdict."""
     n = len(eps)
     leak_or_healthy = [e for e in eps if e.fault_id in ("vacuum_leak", "healthy")]
     faulty = [e for e in eps if e.fault_id not in ("vacuum_leak", "healthy")]
@@ -404,7 +404,7 @@ def scripted_chat(fault: str) -> Callable:
 
 
 def dry_run(cfg: Config | None = None, log=print) -> dict:
-    """Prove the SCORING before spending a real model on it — and prove the GATE separately.
+    """Prove the SCORING before spending a real model on it, and prove the GATE separately.
 
     Structure matters here. Once the cross-check is live, a deliberately wrong model can no
     longer mask, so the old "masking fires" check would pass for the wrong reason (the metric

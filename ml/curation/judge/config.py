@@ -1,4 +1,4 @@
-"""Config loader — mirrors corpus_pipeline/core/config.py (pydantic + lru_cache + resolve)."""
+"""Config loader, mirrors corpus_pipeline/core/config.py (pydantic + lru_cache + resolve)."""
 from __future__ import annotations
 
 from functools import lru_cache

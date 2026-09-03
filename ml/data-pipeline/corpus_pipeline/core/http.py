@@ -1,6 +1,6 @@
 """Shared HTTP client: pooled session, UA rotation, retries, per-host rate limit.
 
-Adapted (copied, not imported) from the Hardware Parser's core/http.py — it's generic
+Adapted (copied, not imported) from the Hardware Parser's core/http.py; it's generic
 plumbing. Used by the scraping sources (forums); the git/file sources don't need it.
 Politeness default + tenacity backoff on 429/5xx matches Syed's "hit normally, back off
 if blocked."

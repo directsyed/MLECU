@@ -1,18 +1,18 @@
 """Seed the convergence sim from the REAL 2005 FXT calibration (A2WC411D / CID 3B12504206).
 
 Replaces mismatch.ej20x_into_ej255()'s invented "believed" numbers with what Syed's ECU
-actually believes — the values read out of the harvested stock ROM (RomRaider attachment,
+actually believes, the values read out of the harvested stock ROM (RomRaider attachment,
 SHA1 in the roms manifest; same CID revision family as the car's 4EAT ECU):
 
-  believed injector flow  = the ROM's Injector Flow Scaling scalar (503.93 cc/min — the
+  believed injector flow  = the ROM's Injector Flow Scaling scalar (503.93 cc/min, the
                             "~500cc matched injectors" prior, now a measured fact)
   believed latency        = the ROM's Injector Latency curve interpolated at idle charging
                             voltage (~14.1 V with the alternator loaded)
   believed MAF scale      = 1.0 by definition: the stock transfer curve IS the reference
   idle operating point    = the ROM's own hot-idle target (Idle Speed Target A @ 90 degC)
 
-The TRUTH side keeps the same neutral physical-error priors as ej20x_into_ej255 — every fuel
-lever a little off, no pre-decided culprit (the data sets priorities) — but expressed relative
+The TRUTH side keeps the same neutral physical-error priors as ej20x_into_ej255; every fuel
+lever a little off, no pre-decided culprit (the data sets priorities), but expressed relative
 to the real believed values, so believed/true ratios (what the trim actually sees) match the
 documented swap uncertainty: MAF reads ~7% low (intake mods), believed flow ~2% high, believed
 latency ~4% low.
@@ -40,7 +40,7 @@ SIBLING_DEFS = ("A2WC410D", "A2WC412D")   # 411D itself has no community def; se
 IDLE_CHARGING_V = 14.1
 HOT_COOLANT_C = 90.0
 
-# Neutral swap-uncertainty priors — SAME ratios as mismatch.ej20x_into_ej255 (believed/true):
+# Neutral swap-uncertainty priors: SAME ratios as mismatch.ej20x_into_ej255 (believed/true):
 _RATIO_FLOW = 510.0 / 500.0     # believed flow ~2% high
 _RATIO_LATENCY = 0.96 / 1.0     # believed latency ~4% low
 _RATIO_MAF = 0.93 / 1.0         # ECU's airflow estimate ~7% low (intake mods)

@@ -47,7 +47,7 @@ def _server_alive(cfg: Config) -> bool:
 def _doc_synopsis(cfg: Config, pack: PromptPack, doc, first_chunk_text: str) -> str:
     """Per-doc synopsis pre-pass for multi-chunk docs (context decision 2026-07-05).
 
-    Built from the doc HEAD (title + first ~10k chars) — thread subject and setup are
+    Built from the doc HEAD (title + first ~10k chars), thread subject and setup are
     established early; a full-doc synopsis wouldn't fit the context. Factual-only prompt so
     it can't bias chunk scores."""
     if not pack.synopsis:
@@ -74,7 +74,7 @@ def _judge_chunk(cfg: Config, pack: PromptPack, state: State, doc, ch: chunker.C
                                                   "reasoning": reasoning}
         except verdict_mod.VerdictError as e:
             last_err = e
-            # re-ask with the validation error appended — the model sees WHY it failed
+            # re-ask with the validation error appended, the model sees WHY it failed
             user = f"{user}\n\n---\nYour previous reply was invalid: {e}. " \
                    f"Reply again with ONLY the JSON object."
             log.warning("doc %s chunk %d: invalid verdict (attempt %d): %s",
@@ -171,10 +171,10 @@ def run(cfg: Config, state: State, *, limit: int | None = None,
                 # A DEAD SERVER IS NOT A BAD DOCUMENT (2026-08-16). llm.chat retries transport
                 # errors 3x then raises LlmError; marking that doc 'failed' and moving on would
                 # burn the whole pending pool into 'failed' at ~35 s/doc. Re-check the server:
-                # if it is gone, STOP — the doc stays 'pending' and the next run re-picks it.
+                # if it is gone, STOP, the doc stays 'pending' and the next run re-picks it.
                 if isinstance(e, llm.LlmError) and not _server_alive(cfg):
                     stats.stopped = f"llama-server unreachable while judging doc {doc['id']}: {e}"
-                    log.error("STOPPING RUN — %s (doc left pending)", stats.stopped)
+                    log.error("STOPPING RUN, %s (doc left pending)", stats.stopped)
                     break
                 log.error("doc %s failed: %s", doc["id"], e)
                 if not dry_run:

@@ -1,10 +1,10 @@
 # FastECU: SH7058 K-Line kernel upload rejected on MY2005 Subaru (ECU `3B12504206`)
 
-> ## ✅ RESOLVED 2026-08-16 — it was NOT a FastECU/format bug.
+> ## ✅ RESOLVED 2026-08-16; it was NOT a FastECU/format bug.
 >
 > The read succeeded once the **Subaru green test-mode connectors** were joined (they enable the
 > ECU's read/write mode). The `dataFormatIdentifier` sweep (0x00–0x04) had confirmed the byte was
-> irrelevant — the ECU understood every request and refused with a bare `generalReject`, a
+> irrelevant, the ECU understood every request and refused with a bare `generalReject`, a
 > **permission** refusal, not a format one. In FastECU's flow, `RequestDownload` (SID 0x34) is the
 > kernel-upload-to-RAM step (`flash_ecu_subaru_denso_sh705x_kline.cpp::send_sid_34_request_upload`);
 > comms were clean (a well-formed request, a well-formed NRC), so the block was semantic. Full story
@@ -14,7 +14,7 @@
 > requires the diagnostic/test-mode connectors joined to enter read/write mode; with them joined the
 > stock `sub_ecu_denso_sh7058` request works unchanged." Kept below as the investigation record.
 
-**Status:** RESOLVED (see banner) — the format-mismatch hypothesis was falsified. Investigation record
+**Status:** RESOLVED (see banner), the format-mismatch hypothesis was falsified. Investigation record
 follows; originally drafted to file upstream at <https://github.com/miikasyvanen/FastECU/issues>.
 
 ## Summary
@@ -35,7 +35,7 @@ neither tool can complete a read.
 | FastECU | `0.1.0-beta.5`, profile `sub_ecu_denso_sh7058` |
 | Capture | Custom transparent J2534 pass-through shim (`car/ecu/j2534-shim/`) |
 
-## Byte-level trace (via J2534 shim — every byte on the wire)
+## Byte-level trace (via J2534 shim, every byte on the wire)
 
 ```
 TX  80 10 F0 01 BF 40                          SSM2 init
@@ -55,15 +55,15 @@ RX  80 F0 10 03 7F 34 10 46                    *** 7F 34 10 = generalReject ***
 ```
 
 **Security access and programming session both succeed.** The ECU is not locked, and the interface
-is demonstrably healthy — it delivers a well-formed, checksummed request and receives a well-formed
+is demonstrably healthy; it delivers a well-formed, checksummed request and receives a well-formed
 negative response naming the rejected service.
 
 ## What has been ruled out
 
-**The kernel load address is CORRECT — this is not a config typo.** `config/protocols.cfg` sets
+**The kernel load address is CORRECT; this is not a config typo.** `config/protocols.cfg` sets
 `sub_ecu_denso_sh7058` → `kernel_addr = 0xFFFF3000`. Disassembly-free verification: scanning
 `kernels/ssmk_kline_sh7058.bin` (6056 B) for big-endian words in `0xFFFFxxxx` shows references
-clustered at **`0xFFFF3000` (x32), `0xFFFF4000` (x45), `0xFFFF5000` (x15)** — exactly the span a
+clustered at **`0xFFFF3000` (x32), `0xFFFF4000` (x45), `0xFFFF5000` (x15)**: exactly the span a
 6056-byte image loaded at `0xFFFF3000` would occupy plus its working area. The same test on
 `ssmk_kline_sh7055.bin` (6660 B, `kernel_addr = 0xFFFF6004`) clusters at `0xFFFF6000/7000/8000`,
 confirming the method. **Both kernels are built for their configured addresses.**
@@ -85,7 +85,7 @@ all tried.
    `RequestDownload` form than MY06-07.
 2. **`dataFormatIdentifier` mismatch.** `send_sid_34_request_upload()` hardcodes `0x04` as the 5th
    byte. If the MY05 bootloader expects a different value (e.g. `0x00`), generalReject is a
-   plausible response. **Untested — needs a source rebuild.**
+   plausible response. **Untested, needs a source rebuild.**
 3. **An additional precondition** (erase, tester-present, or a different session sub-mode) required
    by MY05 before download is accepted.
 
@@ -97,6 +97,6 @@ that byte as a config field would make it testable without recompiling.
 
 ## Reproduction assets in this repo
 
-- `car/logging/j2534_shim.log` — the full capture above
-- `car/ecu/j2534-shim/` — the pass-through shim used to obtain it (Rust, GPL-compatible, read-only)
-- `car/ecu/defs/README.md` — derivation of the ECU ID → `A2WC411D` / SH7058 / `sti05` identification
+- `car/logging/j2534_shim.log`: the full capture above
+- `car/ecu/j2534-shim/`: the pass-through shim used to obtain it (Rust, GPL-compatible, read-only)
+- `car/ecu/defs/README.md`: derivation of the ECU ID → `A2WC411D` / SH7058 / `sti05` identification

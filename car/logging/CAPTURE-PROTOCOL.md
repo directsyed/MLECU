@@ -1,4 +1,4 @@
-# Multi-point capture protocol — what the deterministic layer needs from a real log
+# Multi-point capture protocol: what the deterministic layer needs from a real log
 
 **Status: written 2026-08-05, ahead of the wideband. Not yet executed on the car.**
 
@@ -11,7 +11,7 @@ trim = f( injector_latency , injector_flow , maf_transfer )     # 1 equation, 3 
 ```
 
 Any one of the three can be moved to null the trim, so **one steady-state hold cannot tell you
-which belief is wrong** — it can only tell you that *something* is. That is not a modelling
+which belief is wrong**, it can only tell you that *something* is. That is not a modelling
 limitation, it is arithmetic, and it is why the closed loop was able to bend the wrong table in
 the 2026-08-04 E4 run while the trim went obediently to zero.
 
@@ -23,23 +23,23 @@ conditions:
 | **injector flow** belief wrong | flat | flat |
 | **injector latency** belief wrong | shrinks | **grows** |
 | **vacuum leak** | **halves** | flat |
-| **MAF transfer** belief wrong | flat — *and the logged MAF itself is off vs nominal* |
+| **MAF transfer** belief wrong | flat, *and the logged MAF itself is off vs nominal* |
 
-Latency and leak both shrink with airflow. **Voltage is the only thing that separates them** —
+Latency and leak both shrink with airflow. **Voltage is the only thing that separates them** -
 dead time is voltage-dependent, unmetered air is not. Drop the low-voltage hold and those two
 collapse into each other; there is a test asserting exactly that
 (`car/tests/test_identify.py::test_leak_and_latency_are_degenerate_WITHOUT_the_voltage_probe`).
 
-## Before any of this — Stage 0
+## Before any of this: Stage 0
 
 **Smoke/leak test first. Non-negotiable, and already project doctrine.** A leak poisons every
 log, and no tune fixes a leak. The estimator can *detect* one (and will refuse to edit anything
-when it does), but detecting it after a logging session is wasted effort — find it first.
+when it does), but detecting it after a logging session is wasted effort, find it first.
 
 Also settle before logging: engine at full operating temperature, closed-loop confirmed (not in
 open-loop warmup enrichment), no active knock, no pending codes that force a limp strategy.
 
-## Hardware prerequisite — the ground loop (learned the hard way, 2026-08-11)
+## Hardware prerequisite: the ground loop (learned the hard way, 2026-08-11)
 
 **Running the Openport and the wideband serial link into the same laptop creates a ground loop that
 silently kills ECU communication.** Diagnosed on the car: with both connected, RomRaider hangs
@@ -48,7 +48,7 @@ adapter and ECU logging works perfectly.
 
 **Mechanism.** The Openport references chassis through OBD pins 4/5; the AEM black wire references
 chassis at the gauge's own ground point. Plugging both into the laptop bridges those two chassis
-points through the USB grounds, and any potential between them circulates current around the loop —
+points through the USB grounds, and any potential between them circulates current around the loop -
 with the wideband heater's 1–2 A contributing to the offset. The resulting drop across the
 Openport's ground shifts the reference its K-line transceiver compares against. **K-line is a
 single-wire bus that discriminates high/low against ground, so a shifted reference fails init while
@@ -57,14 +57,14 @@ everything still looks connected.**
 **Do not "move the ground to a better point."** That changes the magnitude of the offset but leaves
 the loop intact. Break the loop instead:
 
-1. **Free:** omit the AEM ground from DB9 pin 5 — run the **signal wire only**. The return path goes
+1. **Free:** omit the AEM ground from DB9 pin 5, run the **signal wire only**. The return path goes
    through the chassis and back via the Openport's OBD ground, so the receiver keeps a reference,
    but no second parallel path exists for loop current. RS-232's margin here (~1.4 V threshold
    against a 0–5 V swing) absorbs the residual chassis offset easily. *Caveat: the wideband then
    depends on the Openport being plugged in for its ground reference.*
 2. **Robust:** a **USB isolator** (ADuM3160-class, ~$20–40) between laptop and serial adapter, or an
    opto-isolated RS-232 adapter. Galvanic separation means no shared ground and no possible loop.
-   **Preferred for real capture sessions** — a dropout mid-hold costs the whole run.
+   **Preferred for real capture sessions**: a dropout mid-hold costs the whole run.
 
 **Acceptance test before any hold: ECU parameters AND `wideband_afr` updating SIMULTANEOUSLY.**
 Either stream working alone proves nothing.
@@ -73,7 +73,7 @@ Either stream working alone proves nothing.
 
 Each is a **steady-state hold**, not a sweep. Target ≥20 usable samples per condition
 (`GridSpec.min_samples = 20`), which at RomRaider's typical rate is a few seconds of genuinely
-steady data — budget 30–60 s per hold to have margin after the transient filter discards
+steady data, budget 30–60 s per hold to have margin after the transient filter discards
 samples.
 
 | # | condition | how | separates |
@@ -84,15 +84,15 @@ samples.
 
 ### Holding ~1500 rpm on a drive-by-wire car
 
-The FXT is DBW (factory, from 2004 — cable-throttle notes elsewhere are wrong), so there is no
+The FXT is DBW (factory, from 2004, cable-throttle notes elsewhere are wrong), so there is no
 throttle cable to prop. In park/neutral, hold the pedal lightly for a stable ~1500 rpm. It does
-not need to be exactly 1500 — it needs to be **steady** and **logged**, because the estimator
+not need to be exactly 1500; it needs to be **steady** and **logged**, because the estimator
 uses the *measured* airflow ratio, not an assumed one. A rock-steady 1400 is far more useful
 than a wandering 1500.
 
 ### Getting the electrical load down to ~12 V
 
-Headlights on high beam, blower on max, rear defroster, heated seats — everything at once, engine
+Headlights on high beam, blower on max, rear defroster, heated seats; everything at once, engine
 idling. The point is to sag the charging system enough to move injector dead time measurably.
 **Log `battery_v`** and use what it actually reads; 12.4 V that is *recorded* is fine, 12.0 V
 that is *assumed* is useless. Do not disconnect the alternator or the battery to force this.
@@ -105,7 +105,7 @@ mapper will pick them up from a normal RomRaider export:
 **Required:** `rpm`, `maf_gs`, `af_correction`, `af_learning`, `wideband_afr`, **`battery_v`**,
 `tps`, `coolant`, `knock_retard`
 
-`battery_v` is the one most likely to be left out of a logger profile by habit — **without it
+`battery_v` is the one most likely to be left out of a logger profile by habit, **without it
 hold 3 is worthless**, because it is the only channel that distinguishes a latency error from a
 vacuum leak.
 
@@ -116,11 +116,11 @@ vacuum leak.
 The binner drops transient samples automatically (wall-wetting and accel enrichment poison fuel
 readings). Defaults in `GridSpec`:
 
-- `steady_rpm_tol = 100.0` — |Δrpm/sample| above this is transient
-- `steady_tps_tol = 2.0` — |Δtps/sample| above this is transient
+- `steady_rpm_tol = 100.0`: |Δrpm/sample| above this is transient
+- `steady_tps_tol = 2.0`: |Δtps/sample| above this is transient
 - `min_samples = 20` per cell before the cell is trusted at all
 
-If a hold comes back low-confidence, the fix is a longer, calmer hold — not lowering the
+If a hold comes back low-confidence, the fix is a longer, calmer hold, not lowering the
 threshold.
 
 ## One caveat specific to THIS engine
@@ -131,8 +131,8 @@ deleted**, both of which change idle airflow and stability in ways the stock cal
 expect. The baseline must be **established empirically on this engine** once it is known-healthy,
 not inherited from the stock calibration or from the simulation.
 
-Until that is done, the estimator's MAF-vs-nominal term — the one that separates a MAF error from
-an injector-flow error — is calibrated against a number that has never been measured on this
+Until that is done, the estimator's MAF-vs-nominal term, the one that separates a MAF error from
+an injector-flow error, is calibrated against a number that has never been measured on this
 car. Treat MAF verdicts as provisional until it is.
 
 ## What the layer does with these
@@ -140,7 +140,7 @@ car. Treat MAF verdicts as provisional until it is.
 `ecutune.simulation.harness.collect_observations` runs exactly this protocol in simulation and
 produces the `Observation` list that `ecutune.algorithms.identify.identify()` consumes. The
 real-car path is the same function fed by `logparse.parse_romraider_csv` instead of the synthetic
-generator — that equivalence is the whole point of the log-replay design.
+generator; that equivalence is the whole point of the log-replay design.
 
 The layer then reaches its **own** verdict and `clamp_diagnosis_agreement` requires the model's
 diagnosis to agree with it before anything is written. Disagreement produces a disagreement
@@ -151,5 +151,5 @@ report showing both sides, and **nothing is written**.
 - MVEM is `sim-calibrated-pending`. Until these logs exist and are compared against it, the
   estimator is exactly as right as the model, and both sides of the cross-check are sim-bound.
 - The protocol assumes a **single** fault. Two simultaneous faults are *detected* (no single
-  hypothesis fits) and escalated rather than diagnosed — which is the correct behaviour, but it
+  hypothesis fits) and escalated rather than diagnosed, which is the correct behaviour, but it
   means a car with a leak *and* a bad injector will get "escalate", not an answer.

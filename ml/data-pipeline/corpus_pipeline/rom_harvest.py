@@ -1,14 +1,14 @@
-"""ROM-attachment harvester — pull ROM binaries the same way we pull posts, but targeting the
+"""ROM-attachment harvester, pull ROM binaries the same way we pull posts, but targeting the
 phpBB `download/file.php` attachments instead of the post text.
 
 Reality (probed 2026-07-03): the thread *text* is public, but the attachment *download* needs a
-logged-in session — RomRaider returns 403 to guests. So this is gated on a session cookie the user
+logged-in session. RomRaider returns 403 to guests. So this is gated on a session cookie the user
 exports ONCE from their own free account into data/raw/.cookies/<board>.txt (raw `Cookie:` header
-value) or .json ({name: value}) — the same one-time-cookie pattern as the NASIOC cf_clearance path.
+value) or .json ({name: value}), the same one-time-cookie pattern as the NASIOC cf_clearance path.
 It's not a wall we can't pass, it's a cookie: with it, we download exactly like the user's browser.
 
 ROMs feed the CAR side (the car/ecu ROM-value reader + a reference library of stock/tuned ROMs), not
-the LLM text corpus, so they land as FILES under data/raw/roms/<board>/ with a JSON manifest — never
+the LLM text corpus, so they land as FILES under data/raw/roms/<board>/ with a JSON manifest, never
 as corpus Documents. Everything here is gitignored (data/raw/).
 """
 from __future__ import annotations
@@ -112,7 +112,7 @@ def harvest(cfg: Config, http: HttpClient) -> dict:
         host = _host(base)
         cookie = load_cookie(cfg, board.get("cookie_file", f"data/raw/.cookies/{bname}.txt"))
         if not cookie:
-            log.warning("rom_harvest[%s]: no session cookie — SKIP. Log in on %s, export the "
+            log.warning("rom_harvest[%s]: no session cookie, SKIP. Log in on %s, export the "
                         "phpBB cookie to data/raw/.cookies/%s.txt (attachments 403 for guests).",
                         bname, base, bname)
             continue

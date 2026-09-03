@@ -1,4 +1,4 @@
-"""Per-chunk JSONL audit trail — the forensic record independent of the DB.
+"""Per-chunk JSONL audit trail, the forensic record independent of the DB.
 
 One line per judged chunk with the RAW model output, token counts, ids and latency. If a
 judgment ever looks wrong, this answers "what exactly did the model see and say" without

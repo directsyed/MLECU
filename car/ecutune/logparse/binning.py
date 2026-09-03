@@ -1,4 +1,4 @@
-"""Bin a LogTable into (x = airflow|load) x (y = rpm) cells — the input the tuning algorithm
+"""Bin a LogTable into (x = airflow|load) x (y = rpm) cells, the input the tuning algorithm
 consumes.
 
 Two ideas do the real work:
@@ -6,7 +6,7 @@ Two ideas do the real work:
     is exactly the signal the bounded-integral controller drives to zero: a +6% trim means the
     ECU is adding 6% fuel to hold stoich because the base map is 6% lean there.
   * confidence: a cell is only trustworthy once it has >= min_samples STEADY samples. Transient
-    samples (rpm/throttle moving) are dropped — they poison fuel readings (wall-wetting, accel
+    samples (rpm/throttle moving) are dropped; they poison fuel readings (wall-wetting, accel
     enrichment). This is the data-side of the safety layer's steady-state-before-transients rule.
 
 Samples are assigned to the nearest axis breakpoint (the cell whose calibration they inform).
@@ -42,7 +42,7 @@ class GridSpec:
 class BinnedGrid:
     grid_spec: GridSpec
     count: np.ndarray       # (ny, nx) steady-sample count per cell
-    mean_trim: np.ndarray   # (ny, nx) mean (af_correction + af_learning) — the error signal
+    mean_trim: np.ndarray   # (ny, nx) mean (af_correction + af_learning), the error signal
     mean_afr: np.ndarray    # (ny, nx) mean wideband AFR (NaN where no wideband)
     mean_knock: np.ndarray  # (ny, nx) mean knock retard
     confidence: np.ndarray  # (ny, nx) bool: count >= min_samples
@@ -140,7 +140,7 @@ def bin_log(log: LogTable, spec: GridSpec) -> BinnedGrid:
 
 
 def weighted_mean_trim(grid: BinnedGrid) -> float:
-    """Count-weighted mean trim over confident cells — the global steady-state fuel error the
+    """Count-weighted mean trim over confident cells, the global steady-state fuel error the
     idle global-scalar algorithm corrects. Falls back to any sampled cell if none are confident
     (idle visits ~one cell, which may be below min_samples on a short log)."""
     conf = grid.confidence

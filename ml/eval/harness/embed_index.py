@@ -1,21 +1,21 @@
-"""Dense retrieval index builder — retrieval-v2 (2026-07-22 overnight, Syed-ratified P2).
+"""Dense retrieval index builder, retrieval-v2 (2026-07-22 overnight, Syed-ratified P2).
 
 WHAT THIS IS (morning-read version): BM25 (retrieval-v1) matches exact words, so a datalog
 phrase and a forum phrase meaning the same thing can score zero ("trims climbing at idle"
 vs "additive fuel correction rising at closed throttle"). This builder runs every ref_fts
-row through BGE-M3 — a 568M-parameter embedding model trained contrastively so that
-same-meaning texts land near each other — and stores one L2-normalized 1024-dim float32
+row through BGE-M3, a 568M-parameter embedding model trained contrastively so that
+same-meaning texts land near each other, and stores one L2-normalized 1024-dim float32
 vector per row. At query time retrieval.py embeds the question the same way and ranks
 chunks by cosine similarity (a normalized dot product), then FUSES that ranking with BM25's
 via Reciprocal Rank Fusion. Same text units as BM25 (identical rowids), so the two rankers
 vote on the same candidates and RefSnippet provenance is unchanged.
 
-DEVICE: defaults to CPU — zero VRAM, safe to run alongside training or serving, which is why
+DEVICE: defaults to CPU, zero VRAM, safe to run alongside training or serving, which is why
 it was written that way. The "~15-25 min" figure that used to sit here was never measured: the
 corpus is 5,638 chunks averaging ~2,700 chars, i.e. ~3.8M tokens through a 568M-parameter
 model, which is ~4 HOURS on this box's 28 Broadwell cores (verified 2026-08-02 the slow way).
 Pass --device cuda to run it on an idle GPU in ~4 minutes instead. Only do that when no model
-is being served — the default stays CPU precisely so the safe choice is the automatic one.
+is being served, the default stays CPU precisely so the safe choice is the automatic one.
 
 Run: car/.venv/bin/python -m harness.embed_index                    (cwd: ml/eval)
      CUDA_VISIBLE_DEVICES=0 car/.venv/bin/python -m harness.embed_index --device cuda
@@ -37,7 +37,7 @@ MAX_CHARS = 6000             # BGE-M3 handles 8K tokens; chunks are <= ~1.5K tok
 
 
 def source_rows(db_path, table: str = "ref_fts") -> list[tuple]:
-    """(rowid, title, text) rows of an FTS table, rowid order — the embedding job's input.
+    """(rowid, title, text) rows of an FTS table, rowid order, the embedding job's input.
     Split out (2026-08-16) so the community index uses the identical selection logic."""
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
@@ -52,7 +52,7 @@ def build(cfg: RetrievalCfg | None = None, log=print, device: str = "cpu",
 
     2026-08-16: `table`/`out` let the same builder produce a SEPARATE community index
     (e.g. table="community_fts", out=EVAL_DIR/"data/community_dense_v2.npz") carrying the same
-    n_rows freshness stamp. Defaults are unchanged. NOT invoked on the real corpus tonight —
+    n_rows freshness stamp. Defaults are unchanged. NOT invoked on the real corpus tonight -
     nothing enters a retrieval index without Syed's sign-off.
     """
     cfg = cfg or RetrievalCfg()

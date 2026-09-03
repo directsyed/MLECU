@@ -1,5 +1,5 @@
 [Unit]
-Description=MLECU corpus pipeline — daily ingestion pass
+Description=MLECU corpus pipeline, daily ingestion pass
 
 [Timer]
 # DAILY at 04:30 (+ up to 15 min jitter). Rationale: the git sources (defs/theory) change
@@ -8,7 +8,7 @@ Description=MLECU corpus pipeline — daily ingestion pass
 OnCalendar=*-*-* 04:30:00
 RandomizedDelaySec=900
 # run a missed pass if the box was off at the scheduled time (comment must be on its own
-# line: systemd does NOT support inline comments — an inline one voids the whole setting)
+# line: systemd does NOT support inline comments - an inline one voids the whole setting)
 Persistent=true
 Unit=mlecu-corpus.service
 

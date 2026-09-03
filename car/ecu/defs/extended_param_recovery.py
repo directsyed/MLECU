@@ -1,12 +1,12 @@
 """Recover this ECU's extended-parameter RAM addresses by sibling reconciliation.
 
-WHY. ECU `3B12504206` (A2WC411D, 05 FXT AT rev 42) is absent from the RomRaider logger def — that
-one AT calibration revision was never contributed — so RomRaider offers it ZERO extended params
+WHY. ECU `3B12504206` (A2WC411D, 05 FXT AT rev 42) is absent from the RomRaider logger def; that
+one AT calibration revision was never contributed, so RomRaider offers it ZERO extended params
 (Feedback Knock, Target Boost, IAM, CL/OL Fueling Target, injector PW/latency, Turbo Dynamics, …).
 Extended params are RAM addresses that vary per calibration. `IDLE-LOG-PROFILE.md` refused to graft
 sibling addresses ("'often' is not 'provably'"; "do not before the ROM read is solved"). BOTH
 conditions are now lifted (2026-08-16): the ROM is read, and the `3B125` family demonstrably shares
-one RAM layout — so we reconcile addresses across the family the same way `romread` reconciles table
+one RAM layout, so we reconcile addresses across the family the same way `romread` reconciles table
 addresses across sibling revision defs, then Syed validates each channel live before it is trusted.
 
 METHOD. For every `<ecuparam>`, read the address each family member declares. Our ECU's address =
@@ -16,9 +16,9 @@ corroborate; a divergent/uncorroborated param is emitted as NEEDS-VALIDATION, no
 
 OUTPUT (read-only; writes only under this script's own dir):
   - a human report to stdout (per-param: proposed address, votes, confidence)
-  - `recovered-3B12504206.logger-fragment.xml`  — the `<ecu id="3B12504206">` lines to splice into
+  - `recovered-3B12504206.logger-fragment.xml`: the `<ecu id="3B12504206">` lines to splice into
     each ecuparam of the RomRaider logger def (conversions are shared, so only the address is added)
-  - `recovered-3B12504206.report.json`          — machine-readable, for the live-validation step
+  - `recovered-3B12504206.report.json`: machine-readable, for the live-validation step
 
 Nothing here is trusted until Syed's validation log confirms each channel reads sane
 (IAM ≈ 1.00 healthy, CL/OL flips OL→CL, logged injector PW ≈ standard P21, Feedback Knock ~0).
@@ -30,14 +30,14 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
 
-TARGET = "3B12504206"                       # our ECU (A2WC411D, 05 FXT AT rev 42) — absent
+TARGET = "3B12504206"                       # our ECU (A2WC411D, 05 FXT AT rev 42), absent
 # The 3B125 family: same platform/MCU, adjacent calibration revisions. Ordered by proximity to the
 # target (its AT neighbours first, then the same-rev MT twin, then the rest). The rev-40 members
 # (…04006 / …84006) are the known RAM outlier and get least weight.
-FAMILY = ("3B12504106", "3B12504306",        # AT rev 41, 43 — nearest (same transmission)
-          "3B12584206",                       # MT twin, SAME rev 42 — best for shared RAM
+FAMILY = ("3B12504106", "3B12504306",        # AT rev 41, 43, nearest (same transmission)
+          "3B12584206",                       # MT twin, SAME rev 42, best for shared RAM
           "3B12584106", "3B12584306",         # MT rev 41, 43
-          "3B12504006", "3B12584006")         # rev 40 — outlier, lowest weight
+          "3B12504006", "3B12584006")         # rev 40, outlier, lowest weight
 _OUTLIERS = {"3B12504006", "3B12584006"}
 
 REPO = Path(__file__).resolve().parents[3]
@@ -102,7 +102,7 @@ def reconcile(logger_xml: Path = LOGGER_XML) -> list[dict]:
     return out
 
 
-# High-value channels for the VE/timing/knock build — surfaced first in the report.
+# High-value channels for the VE/timing/knock build: surfaced first in the report.
 _PRIORITY = ("Feedback Knock", "Fine Knock", "IAM", "Knock Sum", "CL/OL Fueling",
              "Closed Loop Fueling Target", "Target Boost", "Boost Error", "Engine Load",
              "Injector", "Turbo Dynamics", "Requested Torque")
@@ -117,7 +117,7 @@ def main() -> int:
     recs.sort(key=lambda r: (not _is_priority(r["name"]), r["id"]))
     hi = [r for r in recs if r["confidence"] == "high"]
     nv = [r for r in recs if r["confidence"] == "NEEDS-VALIDATION"]
-    print(f"Extended-param recovery for {TARGET} — {len(recs)} params found across the family")
+    print(f"Extended-param recovery for {TARGET}, {len(recs)} params found across the family")
     print(f"  high-confidence (>=3 non-outlier siblings agree, no divergence): {len(hi)}")
     print(f"  needs careful live validation (divergent / thin): {len(nv)}\n")
     print(f"{'id':>5} {'conf':>16} {'addr':>10} {'len':>3}  votes  name")
@@ -127,7 +127,7 @@ def main() -> int:
         star = "★" if _is_priority(r["name"]) else " "
         print(f"{r['id']:>5} {r['confidence']:>16} {r['address']:>10} {r['length']:>3}  {vs:22} {star}{r['name']}")
 
-    frag = ['<!-- Recovered ecuparam addresses for %s (A2WC411D) — splice each <ecu> line into the'
+    frag = ['<!-- Recovered ecuparam addresses for %s (A2WC411D), splice each <ecu> line into the'
             % TARGET,
             '     matching <ecuparam> of the RomRaider logger def. Conversions are shared, so only',
             '     the address is added. VALIDATE LIVE before trusting (see extended_param_recovery.py). -->']

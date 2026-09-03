@@ -1,13 +1,13 @@
 //! Transparent J2534 pass-through logging shim for the Tactrix Openport 2.0 (`op20pt32.dll`).
 //!
 //! Purpose: capture the EXACT bytes exchanged between EcuFlash and the ECU during a read
-//! attempt — specifically the reflash-mode security handshake (Requesting Seed / Sending Key) —
+//! attempt, specifically the reflash-mode security handshake (Requesting Seed / Sending Key) -
 //! to decide whether the clone cable is delivering a valid seed (=> ECU-side fault) or garbage
 //! (=> cable-side fault). See car/ecu/ROM-READ-BLOCKER.md.
 //!
 //! It exports the J2534 v04.04 C API under the standard undecorated names, forwards every call
 //! unchanged to the REAL Tactrix DLL, and logs message traffic. It NEVER modifies traffic and
-//! NEVER writes to the ECU itself — the real DLL does exactly what it always did. Read-only,
+//! NEVER writes to the ECU itself, the real DLL does exactly what it always did. Read-only,
 //! brick-safe. Removing the EcuFlash registration reverts everything; no vendor file is touched.
 //!
 //! Build (32-bit, because EcuFlash is a 32-bit app; GNU toolchain needs no Visual Studio):
@@ -34,8 +34,8 @@ extern "system" {
 }
 
 /// J2534 message. Layout is fixed by the J2534 spec; `#[repr(C)]` matches the DLL's expectation.
-/// We only ever READ this (bounded by `data_size`) for logging — never hand a self-built one to
-/// the real DLL — so even a harmless layout slip cannot corrupt a transfer.
+/// We only ever READ this (bounded by `data_size`) for logging, never hand a self-built one to
+/// the real DLL, so even a harmless layout slip cannot corrupt a transfer.
 #[repr(C)]
 pub struct PassThruMsg {
     protocol_id: u32,
@@ -73,7 +73,7 @@ static SEQ: AtomicU32 = AtomicU32::new(0);
 static SEED: Mutex<Option<[u8; 4]>> = Mutex::new(None);
 
 /// Key substitution is OPT-IN. Unset (the default) means this DLL is a pure passive logger and
-/// behaves exactly as it did before this feature existed — nothing on the wire is altered.
+/// behaves exactly as it did before this feature existed; nothing on the wire is altered.
 /// Set `TACTRIX_SHIM_FIXKEY=1` to enable.
 fn fixkey_enabled() -> bool {
     static ON: OnceLock<bool> = OnceLock::new();
@@ -229,14 +229,14 @@ unsafe fn capture_seed(msgs: *const PassThruMsg, count: u32) {
 ///
 /// Deliberately conservative: it only touches a frame that matches this exact shape AND only
 /// when a seed has actually been observed AND only when opt-in is set. Every other byte of every
-/// other message is forwarded untouched — this must never become a general traffic rewriter.
+/// other message is forwarded untouched; this must never become a general traffic rewriter.
 unsafe fn fix_key(msgs: *mut PassThruMsg, count: u32) {
     if !fixkey_enabled() {
         return;
     }
     let seed = match *SEED.lock().unwrap() {
         Some(s) => s,
-        None => return, // no seed seen yet — never invent one
+        None => return, // no seed seen yet, never invent one
     };
 
     for i in 0..count.min(64) {

@@ -1,4 +1,4 @@
-"""Platform adapters — semantic ID <-> platform-name mapping, incl. def-name variants and gaps."""
+"""Platform adapters, semantic ID <-> platform-name mapping, incl. def-name variants and gaps."""
 from __future__ import annotations
 
 from ecutune.core import tables as T
@@ -21,7 +21,7 @@ def test_subaru_reverse_and_variants():
 
 
 def test_tunerstudio_gaps_are_none():
-    # speed-density platform: no MAF transfer — absence is "lever not available", not an error
+    # speed-density platform: no MAF transfer, absence is "lever not available", not an error
     assert platform_name("tunerstudio", T.SENSOR_MAF_TRANSFER) is None
     assert platform_name("tunerstudio", T.FUEL_INJECTOR_LATENCY) == "injOpen"
     assert semantic_id("tunerstudio", "advTable1Tbl") == T.IGNITION_BASE_TIMING

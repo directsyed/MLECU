@@ -1,4 +1,4 @@
-# E2 probe file v2 — disposition table (2026-08-02)
+# E2 probe file v2: disposition table (2026-08-02)
 
 Pre-authorized by Syed 2026-08-01; this table is the review artifact.
 v1 is untouched on disk. Every disposition was decided against the SOURCE
@@ -26,15 +26,15 @@ TEXT in ref_fts, not against the audit's summary.
 | probe | disposition | expected | unit | selfcheck | value in source | quote verbatim | reason |
 |---|---|---|---|---|---|---|---|
 | e2-3927-1 | fix-question | `300` | bar | exact | yes | pdf-artifact | source states 300 bar as the ABSOLUTE main-injection NOP (pilot = 180 bar); v1 asked for the DIFFERENCE, so a model answering 120 correctly was convicted. Question rewritten to the absolute form; expected value unchanged. |
-| e2-1398-0 | keep+flag | `107.5` | degrees | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-1398-1 | keep+flag | `105.5` | degrees | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-2008-2 | keep+flag | `5` | octane numbers | exact | yes | pdf-artifact | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-3694-0 | keep+flag | `9549` | dimensionless | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-3694-1 | keep+flag | `600` | dimensionless | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-3694-2 | keep+flag | `30 000` | dimensionless | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-5668-2 | keep+flag | `45 degrees` | degrees BTDC | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-5723-0 | keep+flag | `80` | psi | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
-| e2-5723-1 | keep+flag | `11.8` | % | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source — remains a gated recall probe, broken out in the report. |
+| e2-1398-0 | keep+flag | `107.5` | degrees | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-1398-1 | keep+flag | `105.5` | degrees | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-2008-2 | keep+flag | `5` | octane numbers | exact | yes | pdf-artifact | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-3694-0 | keep+flag | `9549` | dimensionless | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-3694-1 | keep+flag | `600` | dimensionless | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-3694-2 | keep+flag | `30 000` | dimensionless | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-5668-2 | keep+flag | `45 degrees` | degrees BTDC | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-5723-0 | keep+flag | `80` | psi | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
+| e2-5723-1 | keep+flag | `11.8` | % | exact | yes | yes | question wording invites computation, but the value is stated verbatim in the source, remains a gated recall probe, broken out in the report. |
 | e2-1076-0 | keep | `18 inches` | inches | exact | yes | yes | value stated in source; scorer v2 handles the form. |
 | e2-1165-0 | keep | `8` | ft-lbs | exact | yes | pdf-artifact | value stated in source; scorer v2 handles the form. |
 | e2-1165-1 | keep | `13` | hp | exact | yes | pdf-artifact | value stated in source; scorer v2 handles the form. |

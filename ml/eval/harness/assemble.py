@@ -1,4 +1,4 @@
-"""Pilot training-mix assembly — the last machine step before Syed's final C3 review.
+"""Pilot training-mix assembly, the last machine step before Syed's final C3 review.
 
 Deterministic (no LLM): consumes drafts + classifications + organic harvest, applies the
 agreed policy, emits the mix plus a composition report written to the hardened review
@@ -106,7 +106,7 @@ def assemble(cap: int = CAP, log=print) -> Path:
     from collections import Counter
     topics = Counter(cls[p["pair_id"]]["topic"] for p in chosen)
     log(f"MIX: {len(mix)} total = {len(organic)} organic + {len(chosen)} synthetic")
-    log(f"  synthetic subaru: {n_sub} ({100*n_sub/max(1,len(chosen)):.0f}%) — doctrine target 70% incl. organic")
+    log(f"  synthetic subaru: {n_sub} ({100*n_sub/max(1,len(chosen)):.0f}%), doctrine target 70% incl. organic")
     log(f"  synthetic topics: {topics.most_common()}")
     log(f"-> {OUT}")
     return OUT

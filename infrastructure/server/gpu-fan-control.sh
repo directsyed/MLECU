@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #
-# gpu-fan-control.sh — closed-loop chassis-fan control for the T630 (MLECU)
+# gpu-fan-control.sh: closed-loop chassis-fan control for the T630 (MLECU)
 #
 # WHY THIS EXISTS
-#   The iDRAC's automatic fan control is blind to the third-party RTX 3090 — in
+#   The iDRAC's automatic fan control is blind to the third-party RTX 3090: in
 #   auto mode it can't read the card, assumes worst-case, and slams the chassis
 #   fans to 100% (jet engine). Manual mode quiets them but is STATIC: it won't
-#   ramp when the GPU heats under load. This daemon closes that loop — poll GPU
+#   ramp when the GPU heats under load. This daemon closes that loop: poll GPU
 #   (and CPU) temps, map them through a fan curve, and drive the chassis fans via
 #   ipmitool. It re-asserts manual mode continuously so a BMC hiccup can't strand
 #   the fans low.
 #
 # FAIL-SAFE PHILOSOPHY: every failure path ramps fans UP, never down. If we can't
-#   read the GPU we assume it's hot. On exit we hand control back to iDRAC auto —
+#   read the GPU we assume it's hot. On exit we hand control back to iDRAC auto -
 #   which (because of the GPU) means MAX fans: loud, but guaranteed cooling. That
 #   is the correct dead-man's switch.
 #
@@ -25,7 +25,7 @@ set -uo pipefail
 INTERVAL=10      # seconds between polls
 REFRESH=60       # re-assert the fan command at least this often, even if unchanged (BMC self-heal)
 STEP=3           # only change fan % when the target moves at least this many points (anti-flap)
-FLOOR=30         # minimum fan % — your proven-quiet idle; keeps minimum chassis airflow
+FLOOR=30         # minimum fan %, your proven-quiet idle; keeps minimum chassis airflow
 FAILSAFE=80      # fan % forced when a sensor read fails (fans UP on the unknown)
 
 # Curve anchors "tempC:pct", piecewise-linear between them; flat outside the ends.
@@ -53,7 +53,7 @@ curve_pct() {
 }
 
 read_gpu_temp() {
-  # MAX core temp across ALL GPUs — the hottest card drives the chassis fans. (Was head -n1 =
+  # MAX core temp across ALL GPUs, the hottest card drives the chassis fans. (Was head -n1 =
   # GPU0 only; with both a 3090 and a 3090 Ti installed, a hot Ti must still ramp the fans even
   # if the 3090 is idle. Fail-safe direction: we always respond to the worst card.)
   local t

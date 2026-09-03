@@ -1,8 +1,8 @@
-"""RomRaider SubaruDefs ingester — the vertical slice.
+"""RomRaider SubaruDefs ingester, the vertical slice.
 
 Clones/updates github.com/RomRaider/SubaruDefs (open, GPL-2.0) and parses the ECUFlash
 per-ROM XML definitions. Each ROM file (`<romid>` + a list of `<table name=… address=…>`
-maps) becomes one Document: the ECU's identity + its tunable parameter list — structured
+maps) becomes one Document: the ECU's identity + its tunable parameter list, structured
 "facts" for the retrieval store.
 
 NOTE: the per-ROM files carry table NAMES + addresses; the numeric scaling/units live in the
@@ -79,7 +79,7 @@ def _parse_rom(xml_path: Path, base: Path, parser: etree.XMLParser) -> Document 
         return None
     romid = root.find("romid")
     if romid is None:
-        return None  # a base/scaling def (no romid) — skip in this slice
+        return None  # a base/scaling def (no romid), skip in this slice
 
     def g(tag: str) -> str | None:
         el = romid.find(tag)
@@ -95,7 +95,7 @@ def _parse_rom(xml_path: Path, base: Path, parser: etree.XMLParser) -> Document 
 
     title_bits = [meta.get("make") or "Subaru", meta.get("model") or "", meta.get("submodel") or "",
                   meta.get("year") or "", f"({xmlid})"]
-    title = " ".join(b for b in title_bits if b).strip() + " — ECUFlash definition"
+    title = " ".join(b for b in title_bits if b).strip() + ", ECUFlash definition"
 
     lines = [title, "", "ROM identity:"]
     for k in ["ecuid", "year", "market", "transmission", "memmodel", "flashmethod"]:

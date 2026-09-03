@@ -1,4 +1,4 @@
-# car/ecutune — safety limits + engine constants. Syed reviews these NUMBERS (they are
+# car/ecutune: safety limits + engine constants. Syed reviews these NUMBERS (they are
 # safety-critical ceilings). Code reads them via ecutune.core.config.load_config().
 
 safety:
@@ -16,7 +16,7 @@ safety:
   fuel_trim_converged_tol: 0.05  # |trim| under this counts as converged (fuel-before-timing gate)
   steady_tol: 0.05
 
-  # --- sensor recalibration (2026-08-27) — SYED REVIEWS THESE NUMBERS ---------------
+  # --- sensor recalibration (2026-08-27), SYED REVIEWS THESE NUMBERS ---------------
   # A sensor calibration is bounded by evidence and displacement, NOT by the +/-3%/iteration
   # velocity limit above (that one is for chasing a moving fuel target; a MAF curve is a
   # measurement that is simply wrong by a fixed amount). Measured worst point on the car is
@@ -37,7 +37,7 @@ safety:
   sensor_require_monotonic: true # corrected curve must stay strictly ascending
   default_timing_ceiling: 25.0   # deg BTDC; used when no per-rpm override matches
 
-  # --- ignition timing stage (2026-08-30) — SYED REVIEWS THESE NUMBERS ----------------
+  # --- ignition timing stage (2026-08-30), SYED REVIEWS THESE NUMBERS ----------------
   # Syed's ruling, 2026-08-30: 6 deg per iteration, re-log between passes. This is the
   # ONLY thing bounding how fast timing moves -- ve_rate_limit is fuel-only. Note it takes
   # 4 iterations to reach the ratified ceiling at the worst cell (18.12 deg at 2400 rpm /
@@ -86,7 +86,7 @@ safety:
   # global, so a per-cell mean encodes only WHEN in the drive each cell was visited.
   iam_advance_authority_deg: 2.0   # fallback deg of advance authority when the ROM has no map
   iam_reference: 1.0               # fallback healthy IAM when the ROM has no initial value
-  # Per-row timing ceilings — PLACEHOLDER values, tighten under load. REVIEW before any
+  # Per-row timing ceilings, PLACEHOLDER values, tighten under load. REVIEW before any
   # timing work (EJ20X on 93 oct wants less than the EJ255 base assumes). Not exercised by
   # the idle (fuel-only) convergence loop.
   # RPM-keyed ceiling. Set generously on purpose: this car legitimately runs 40-45 deg at
@@ -97,7 +97,7 @@ safety:
     - {rpm: 4500, max_advance: 40.0}
     - {rpm: 6000, max_advance: 32.0}
 
-  # LOAD x RPM ceiling — the primary timing limit. REPLACES the 3-band load-keyed list
+  # LOAD x RPM ceiling, the primary timing limit. REPLACES the 3-band load-keyed list
   # (45 / 30 / 22) ratified 2026-08-30, which a reference tune proved wrong in BOTH directions.
   #
   # WHY IT IS NOW 2-D. The old limit was separable: min(rpm limit, load limit). The real
@@ -106,7 +106,7 @@ safety:
   # two independent 1-D functions cannot say that, so the ceiling became a coarse map.
   #
   # WHERE THE NUMBERS COME FROM. A tuned ROM from another EJ20X-into-EJ255-ECU swap, same VF48,
-  # same catless exhaust (AZ1E401A, an 08 WRX — see car/ecu/reference-roms-DO-NOT-FLASH/). The
+  # same catless exhaust (AZ1E401A, an 08 WRX, see car/ecu/reference-roms-DO-NOT-FLASH/). The
   # rule is mechanical and reproducible, not hand-drawn:
   #
   #     ceiling = min(reference "Base Timing Primary Non-Cruise" over this rpm band) - 3 deg
@@ -116,7 +116,7 @@ safety:
   # car cruises, and nothing in our data or the reference argues against it.
   #
   # NOTE THIS IS NOT A PURE TIGHTENING. Between 0.55 and 1.00 g/rev it is LOOSER than the 30/22
-  # it replaces — the old flat ceiling would have pulled 8-16 deg out of a region where a working
+  # it replaces, the old flat ceiling would have pulled 8-16 deg out of a region where a working
   # reference tune runs 38-44 and our own measured knock is 0.4-1.5 deg. Above ~1.15 g/rev it is
   # far TIGHTER: the old 22 would have permitted ~20 deg more advance than the reference at
   # 2.05+ g/rev, in cells this car has never visited and with no EGT instrumentation.
@@ -127,7 +127,7 @@ safety:
     rpm_breaks:  [0, 1200, 1600, 2400, 3200, 4400]
     ceilings:    # one row per rpm break, one column per load break; deg BTDC
       - [45, 20, 15, 11,  5,  5,  5,  5,  5]   #    0+ rpm  (idle / just off idle)
-      - [45, 26, 23, 18,  6,  5,  5,  5,  5]   # 1200+      (lugging — worst knock condition)
+      - [45, 26, 23, 18,  6,  5,  5,  5,  5]   # 1200+      (lugging, worst knock condition)
       - [45, 40, 33, 25, 11,  5,  5,  5,  5]   # 1600+
       - [45, 41, 35, 31, 22, 10,  5,  5,  5]   # 2400+
       - [45, 41, 34, 31, 27, 18, 14,  9,  6]   # 3200+

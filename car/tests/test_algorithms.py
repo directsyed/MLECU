@@ -39,7 +39,7 @@ def test_controller_output_never_exceeds_clamp():
 
 def test_controller_converges_well_damped():
     """Drive a unit-sensitivity plant with the controller; trim must decay to ~0 and stay
-    well-damped — a small bounded overshoot, not the large ringing of an unclamped integral."""
+    well-damped, a small bounded overshoot, not the large ringing of an unclamped integral."""
     st = BoundedIntegralState()
     cfg = PIConfig(kp=CFG.algo.kp, ki=CFG.algo.ki, step_clamp=CFG.algo.step_clamp,
                    damping=CFG.algo.damping)
@@ -69,7 +69,7 @@ def test_idle_proposal_shape_and_signs():
 
 def test_idle_proposal_passes_clamps_clean():
     """The controller self-limits below +/-3%, so a well-formed idle proposal trips NO clamp
-    violation — the clamp is the backstop, not the primary limiter."""
+    violation; the clamp is the backstop, not the primary limiter."""
     grid = _grid_with_trim(11.0)
     tables = _tables()
     prop, _ = propose_idle_correction(grid, tables, AlgoState(), CFG.algo)
@@ -80,7 +80,7 @@ def test_idle_proposal_passes_clamps_clean():
 
 def test_integrator_is_PER_KNOB_not_shared():
     """One shared BoundedIntegralState meant a correction to injector LATENCY inherited the
-    integral accumulated while correcting injector FLOW — a multiplexed controller sharing one
+    integral accumulated while correcting injector FLOW, a multiplexed controller sharing one
     accumulator. State is now keyed by table id."""
     import numpy as np
     from ecutune.algorithms import AlgoState, propose_idle_correction

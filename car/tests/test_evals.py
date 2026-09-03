@@ -1,4 +1,4 @@
-"""Sim-generated eval — generation determinism, fault signatures, scoring, baseline bracketing."""
+"""Sim-generated eval, generation determinism, fault signatures, scoring, baseline bracketing."""
 from __future__ import annotations
 
 import json

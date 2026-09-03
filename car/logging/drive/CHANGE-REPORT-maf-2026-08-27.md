@@ -1,4 +1,4 @@
-# CHANGE REPORT — maf_transfer
+# CHANGE REPORT: maf_transfer
 
 - ROM: `3B12504206_2026-08-16_16h51m01s.bin`
 - proposal: `maf-0`  provenance: **algorithm:maf_transfer**

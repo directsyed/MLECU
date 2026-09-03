@@ -9,7 +9,7 @@ Non-negotiables:
   data outranks it.
 - When torn between two scores, take the lower one.
 - The rationale must cite SPECIFICS from the document (values, claims, what's missing for the
-  next score up) — one paragraph, no filler.
+  next score up); one paragraph, no filler.
 - Extract pairs only from statements actually present in the text. Never complete an arc the
   author didn't.
 - If reference snippets are provided, verify the document's checkable claims against them and

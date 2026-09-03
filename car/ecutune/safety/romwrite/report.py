@@ -1,4 +1,4 @@
-"""The human CHANGE REPORT — what Syed reads before deciding to flash.
+"""The human CHANGE REPORT, what Syed reads before deciding to flash.
 
 ROADMAP Phase E.4 requires it to carry "table, cell, old->new, which log evidence, which clamps
 fired". The clamps' own docstring calls auditability a safety property: an edit made on a
@@ -19,7 +19,7 @@ def change_report(prop: Proposal, result: ClampResult, write: WriteResult,
                   before: dict[str, Table], after: dict[str, Table],
                   rom_name: str = "") -> str:
     L: list[str] = []
-    L.append(f"# CHANGE REPORT — {prop.stage}")
+    L.append(f"# CHANGE REPORT, {prop.stage}")
     L.append("")
     L.append(f"- ROM: `{rom_name or 'unnamed'}`")
     L.append(f"- proposal: `{prop.proposal_id}`  provenance: **{prop.provenance}**")
@@ -91,14 +91,14 @@ def change_report(prop: Proposal, result: ClampResult, write: WriteResult,
              "human act, against the checklist:")
     L.append("")
     L.append("- battery **maintainer on the car** (prevents a voltage sag mid-write)")
-    L.append("- **laptop on its OWN BATTERY, fully charged — NOT on mains.** Revised "
+    L.append("- **laptop on its OWN BATTERY, fully charged, NOT on mains.** Revised "
              "2026-08-31: the old checklist said \"AC power\", and a mains-powered laptop plus a "
              "mains-powered charger are two earthed devices bonded through the OBD ground pin. "
              "A J2534 clone has no galvanic isolation, so any potential difference between them "
              "flows through the interface. See `ecu/INTERFACE-FAILURE-2026-08-31.md`.")
     L.append("- green test-mode connectors joined")
     L.append("- stock ROM archived in three places")
-    L.append("- **the interface's LEDs confirmed lit before starting** — no lights means no "
+    L.append("- **the interface's LEDs confirmed lit before starting**: no lights means no "
              "power section, and starting anyway is how you brick an ECU mid-write")
     L.append("")
     L.append("Tool: **FastECU** (stock upstream build, profile `sub_ecu_denso_sh7058`). EcuFlash "

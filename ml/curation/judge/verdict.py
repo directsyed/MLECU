@@ -1,4 +1,4 @@
-"""Verdict parsing/validation — the judge's output contract, checked in code.
+"""Verdict parsing/validation, the judge's output contract, checked in code.
 
 The extraction JSON Schema (prompts/*/extraction_schema.json) is the single source of truth:
 it is sent to llama-server as the response_format grammar AND used here to validate what came

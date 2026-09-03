@@ -6,7 +6,7 @@ state is three-dimensional:
     trim = f( injector_latency , injector_flow , maf_transfer )    # 1 equation, 3 unknowns
 
 Any one of the three beliefs can be moved to null the trim. So the LLM's diagnosis was not
-advice — it was THE MISSING CONSTRAINT that made the problem solvable at all, and the
+advice; it was THE MISSING CONSTRAINT that made the problem solvable at all, and the
 deterministic layer had no basis on which to disagree with it. A wrong diagnosis therefore did
 not merely delay convergence; it converged the loop to a different, wrong-but-self-consistent
 fixed point. Measured across 42 episodes: masked episodes ended at 6.7-7.7% residual belief
@@ -15,7 +15,7 @@ corrupted that was never faulty, and one single-iteration slip in twelve permane
 table with no way to undo it.
 
 The fix is not a better model. Three probe points make the system IDENTIFIABLE, and mvem.py
-already documents exactly why — read the comments on `leak_air_g` ("its trim contribution
+already documents exactly why, read the comments on `leak_air_g` ("its trim contribution
 SHRINKS as metered airflow rises ... what multi-point logging exploits") and `latency_slope`
 ("a latency-belief error changes with battery voltage while a leak's trim is voltage-invariant").
 The forward model already exists. This module inverts it.
@@ -28,7 +28,7 @@ The forward model already exists. This module inverts it.
 
 THE CONTRACT (Syed, 2026-08-05): the LLM POINTS, it does not COMMAND. This module lets the
 deterministic layer reach its own conclusion from its own data, so that
-`safety.clamps.clamp_diagnosis_agreement` can refuse to write when the two disagree — and hand
+`safety.clamps.clamp_diagnosis_agreement` can refuse to write when the two disagree, and hand
 the human both sides of the argument instead of a silent edit.
 
 Dependencies are numpy + stdlib only, matching the rest of ecutune (no scipy): a bounded
@@ -53,7 +53,7 @@ FAULT_KNOB: dict[str, str | None] = {
     "injector_flow_lean": FUEL_INJECTOR_FLOW,
     "injector_flow_rich": FUEL_INJECTOR_FLOW,
     "injector_latency_lean": FUEL_INJECTOR_LATENCY,
-    "vacuum_leak": None,        # not a table error — unmetered air
+    "vacuum_leak": None,        # not a table error, unmetered air
     "healthy": None,
 }
 
@@ -85,8 +85,8 @@ class Observation:
     maf_reading: float = float("nan")   # ECU-reported g/s at this point
     nominal_maf: float = float("nan")   # healthy-baseline g/s at this air_scale
     # PROVENANCE of `nominal_maf` (2026-08-16). True only when the baseline was measured on a
-    # known-healthy engine (`mvem.MafBaseline.validated`). Defaults to False — "unvalidated unless
-    # stated" — because the sim seed 2.50 g/s was 40% off the real car and the estimator turned
+    # known-healthy engine (`mvem.MafBaseline.validated`). Defaults to False, "unvalidated unless
+    # stated", because the sim seed 2.50 g/s was 40% off the real car and the estimator turned
     # that into a confident MAF-fault verdict on a healthy engine. The sim harness sets True
     # (inside the sim the baseline is the truth by construction).
     nominal_validated: bool = False
@@ -96,7 +96,7 @@ class Observation:
 class FaultEstimate:
     """What the deterministic layer concluded, and how strongly.
 
-    `residuals` is the whole per-hypothesis table, not just the winner — the disagreement report
+    `residuals` is the whole per-hypothesis table, not just the winner, the disagreement report
     shows it to the human so they can see how close the runner-up was rather than being handed a
     bare verdict.
     """
@@ -108,7 +108,7 @@ class FaultEstimate:
     reason: str = ""                       # why not, when identifiable is False
     n_observations: int = 0
     # The exact probe points this verdict was fitted to. Carried so the disagreement report can
-    # show the human the layer's INPUT as well as its conclusion — a verdict without its
+    # show the human the layer's INPUT as well as its conclusion, a verdict without its
     # evidence is the thing this whole exercise exists to stop producing.
     observations: tuple = ()
 
@@ -121,7 +121,7 @@ def _scalar_of(tables: TableSet, table_id: str) -> float:
 
 
 def _believed_with(base: TableSet, table_id: str, value: float) -> TableSet:
-    """A copy of `base` with one believed scalar replaced. Never mutates the input — the same
+    """A copy of `base` with one believed scalar replaced. Never mutates the input, the same
     copy-semantics the write path enforces."""
     t = base.get(table_id)
     return TableSet({**base.tables,
@@ -145,7 +145,7 @@ def _sse(believed: TableSet, params: EngineParams, obs: list[Observation],
     AND the airflow the ECU would report.
 
     THE MAF READING TERM IS LOAD-BEARING, not a refinement. A MAF-scaling error and an
-    injector-flow error are EXACTLY degenerate in trim space — scaling `maf_b` by r and dividing
+    injector-flow error are EXACTLY degenerate in trim space, scaling `maf_b` by r and dividing
     `flow_b` by r produce an identical pulse width, so no combination of airflow and voltage
     probes can separate them. What separates them is that a wrong MAF transfer also corrupts the
     airflow the ECU REPORTS, while a wrong injector-flow belief does not.
@@ -157,7 +157,7 @@ def _sse(believed: TableSet, params: EngineParams, obs: list[Observation],
     `use_maf_term=False` drops the reading term for EVERY hypothesis. Used when the baseline is
     unvalidated: a term measured against a number that was never verified on this engine is not
     evidence, and leaving it in would poison `healthy` and every other hypothesis alike (the
-    2026-08-16 finding — sim seed 2.50 vs 3.49 measured).
+    2026-08-16 finding, sim seed 2.50 vs 3.49 measured).
     """
     total = 0.0
     for o in obs:
@@ -174,7 +174,7 @@ def _golden_min(f, lo: float, hi: float, tol: float = 1e-5, max_iter: int = 60) 
     """Golden-section minimisation of a unimodal 1-D function on [lo, hi] -> (x, f(x)).
 
     Deliberately simple and dependency-free. Each hypothesis has exactly one free parameter and
-    its SSE is smooth and unimodal in that parameter, so this is sufficient — and it keeps
+    its SSE is smooth and unimodal in that parameter, so this is sufficient, and it keeps
     ecutune importable in any venv that has numpy, which the cross-venv scoring pattern relies on.
     """
     phi = (math.sqrt(5.0) - 1.0) / 2.0
@@ -201,7 +201,7 @@ def matched_params(believed: TableSet, params: EngineParams) -> EngineParams:
 
     THIS IS THE REFERENCE EVERY HYPOTHESIS PERTURBS, and getting it wrong was the estimator's
     first bug. Passing a default EngineParams() instead means its OEM constants (flow 500,
-    latency 1.0, maf 1.0) act as "truth" even when the believed tables differ from them — so
+    latency 1.0, maf 1.0) act as "truth" even when the believed tables differ from them, so
     every hypothesis was implicitly fitting a TWO-fault world (the belief/OEM gap, plus the
     perturbation under test) and the leak hypothesis could absorb an injector-flow error.
 
@@ -221,7 +221,7 @@ def _fit_hypothesis(fault_id: str, believed: TableSet, base: EngineParams,
     """(best_parameter, residual) for one single-fault hypothesis.
 
     `base` must be the matched world from `matched_params`. The hypothesis is always "my BELIEF
-    about X is wrong by this factor" — the believed values are known (they are the current ROM),
+    about X is wrong by this factor", the believed values are known (they are the current ROM),
     so what we solve for is the truth that would explain the observed trims.
     """
     from dataclasses import replace
@@ -258,7 +258,7 @@ def maf_belief_ratio(obs: list[Observation]) -> float | None:
     """believed/true MAF scaling read DIRECTLY off the reported airflow, no trim inference.
 
     If the ECU's MAF transfer is wrong by a factor, the airflow it REPORTS is wrong by that same
-    factor — an observation the deterministic layer already receives (maf_gs is the grid's
+    factor, an observation the deterministic layer already receives (maf_gs is the grid's
     x-axis) and has never used. Returns None when the logs carry no nominal baseline.
     """
     ratios = [o.maf_reading / o.nominal_maf for o in obs
@@ -269,7 +269,7 @@ def maf_belief_ratio(obs: list[Observation]) -> float | None:
 
 def identify(believed: TableSet, obs: list[Observation],
              params: EngineParams | None = None) -> FaultEstimate:
-    """Which single belief best explains these observations — the layer's OWN verdict.
+    """Which single belief best explains these observations, the layer's OWN verdict.
 
     `params` supplies the non-fitted engine constants (AFR target, nominal idle air, the
     latency-vs-voltage slope). Its flow/latency/maf "true" fields are placeholders that each
@@ -296,7 +296,7 @@ def identify(believed: TableSet, obs: list[Observation],
 
     # THE BASELINE GUARD (2026-08-16). A refusal is visible; a silent down-weight is not.
     trust_maf = baseline_validated(obs)
-    ratio = maf_belief_ratio(obs)          # computed regardless — reported in the refusal
+    ratio = maf_belief_ratio(obs)          # computed regardless, reported in the refusal
 
     base = matched_params(believed, params)
     residuals: dict[str, float] = {}
@@ -309,7 +309,7 @@ def identify(believed: TableSet, obs: list[Observation],
         fits[fault_id] = best_param
 
     # MAF hypotheses: the reported airflow gives the ratio directly, so we fit nothing and just
-    # score the implied world. Falls back to the generic search when no baseline is logged —
+    # score the implied world. Falls back to the generic search when no baseline is logged -
     # or when the baseline is unvalidated (then the ratio is NOT evidence).
     ratio_in_band = None                   # which MAF band the (untrusted) ratio would have hit
     for fault_id in ("maf_low", "maf_high"):
@@ -340,13 +340,13 @@ def identify(believed: TableSet, obs: list[Observation],
                              f"MAF verdict withheld: the nominal MAF baseline is UNVALIDATED on "
                              f"this engine (sim-derived; see mvem.MafBaseline) and the MAF "
                              f"reading is {ratio:.3f}x nominal"
-                             + (f" — inside the {ratio_in_band} band" if ratio_in_band else "")
+                             + (f", inside the {ratio_in_band} band" if ratio_in_band else "")
                              + f". Trims-only ranking: {ranking}. Populate the baseline from the "
                              f"three-hold capture (car/logging/CAPTURE-PROTOCOL.md) before "
                              f"trusting any MAF-vs-nominal verdict.", len(obs), tuple(obs))
 
     # The margin is measured against the best competitor that would take a DIFFERENT ACTION.
-    # Two hypotheses routing to the same knob are operationally identical — `maf_low` vs
+    # Two hypotheses routing to the same knob are operationally identical, `maf_low` vs
     # `maf_high` move the same table (direction comes from the measured trim, not the label),
     # and `healthy` vs `vacuum_leak` both mean "do not edit". Ranking them against each other
     # produced spurious "not identifiable" verdicts on healthy engines where BOTH candidates
@@ -359,11 +359,11 @@ def identify(believed: TableSet, obs: list[Observation],
     if r_best > MAX_ACCEPTABLE_RESIDUAL:
         return FaultEstimate(best, fits[best], residuals, margin, False,
                              f"no single-fault hypothesis fits (best SSE {r_best:.2e} > "
-                             f"{MAX_ACCEPTABLE_RESIDUAL:.2e}) — multiple faults or unmodelled "
+                             f"{MAX_ACCEPTABLE_RESIDUAL:.2e}), multiple faults or unmodelled "
                              f"behaviour; escalate", len(obs), tuple(obs))
     if best == "healthy":
         # A healthy engine has trims at ~0, so any rival is fitting sensor NOISE with a
-        # negligible magnitude — it is not a competing action, it is "do nothing" wearing a
+        # negligible magnitude; it is not a competing action, it is "do nothing" wearing a
         # different label. Were a real fault present, `healthy` could not have won on residual
         # in the first place. Reporting this as "not identifiable" was technically true and
         # operationally useless.
@@ -373,6 +373,6 @@ def identify(believed: TableSet, obs: list[Observation],
         return FaultEstimate(best, fits[best], residuals, margin, False,
                              f"not identifiable: {best} and {rival} imply DIFFERENT actions and "
                              f"explain the data comparably (margin {margin:.2f} < "
-                             f"{MIN_MARGIN_RATIO}) — more probe points needed", len(obs), tuple(obs))
+                             f"{MIN_MARGIN_RATIO}), more probe points needed", len(obs), tuple(obs))
     return FaultEstimate(best, fits[best], residuals, margin, True, "", len(obs),
                          tuple(obs))

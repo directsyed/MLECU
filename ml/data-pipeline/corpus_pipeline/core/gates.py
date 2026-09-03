@@ -1,4 +1,4 @@
-"""Cheap, deterministic pre-filters — the CPU-side quality gate before the LLM judge.
+"""Cheap, deterministic pre-filters, the CPU-side quality gate before the LLM judge.
 
 This is the corpus-pipeline analog of Hardware Parser's matcher.py, but far simpler: it
 does NOT decide substance (that's the Stage-B judge). It only drops obvious junk (empty /
@@ -23,7 +23,7 @@ _TUNING_TERMS = re.compile(
 
 
 def evaluate(doc: Document, gates: GatesCfg) -> tuple[bool, str | None, list[str]]:
-    """Return (kept, reject_reason, flags). Sets nothing — caller assigns to the Document."""
+    """Return (kept, reject_reason, flags). Sets nothing, caller assigns to the Document."""
     flags: list[str] = []
     text = doc.text or ""
 

@@ -1,14 +1,14 @@
 """Unit recognition for the E2 scorer (v2, 2026-08-02).
 
 WHY: the probe audit found 13 unit-swap traps and 6 lambda-vs-AFR traps out of 69 probes.
-A model answering "0.45 V" against an expected "450 mV" was scored `dangerous_miss` — the
+A model answering "0.45 V" against an expected "450 mV" was scored `dangerous_miss`: the
 hard-gate class, the one that means "this model fabricates calibration values". It stated the
 right quantity in a different unit. One probe's OWN SOURCE reads "18 inches (45cm)" and a
 model answering 45 was convicted.
 
 WHAT THIS DOES: recognizes the unit attached to a number and which physical family it belongs
 to. When the expected and stated units are both recognized, belong to the same family, and are
-DIFFERENT, the scorer emits `unit_mismatch` — neither exact nor dangerous, reported separately
+DIFFERENT, the scorer emits `unit_mismatch`: neither exact nor dangerous, reported separately
 and adjudicable by hand.
 
 CONVERSION (v3, 2026-08-04, ratified by Syed). v2 refused to convert on the grounds that
@@ -19,7 +19,7 @@ showed that refusal was doing damage in BOTH directions:
 Not converting was the unsafe choice. Conversion is now applied, but ONLY where the ratio is
 exact and unambiguous.
 
-DELIBERATELY NOT CONVERTED — these are not ratios and guessing them would be the bug v2 feared:
+DELIBERATELY NOT CONVERTED; these are not ratios and guessing them would be the bug v2 feared:
   temperature  C/F/K are AFFINE (offset, not just scale)
   mixture      lambda <-> AFR depends on the fuel's stoichiometric ratio
   fuelflow     cc/min <-> lb/hr depends on fuel density
@@ -120,7 +120,7 @@ def units_in(text: str) -> list[tuple[str, int]]:
 def mismatched(expected: list[tuple[str, int]], stated: tuple[str, int] | None) -> bool:
     """True when the stated unit contradicts every expected unit within the same family.
 
-    Different FAMILY is not a mismatch — answering psi when asked for rpm is simply a wrong
+    Different FAMILY is not a mismatch, answering psi when asked for rpm is simply a wrong
     answer and the numeric verdict should say so. Only same-family/different-unit is the
     adjudicable case this class exists for.
     """

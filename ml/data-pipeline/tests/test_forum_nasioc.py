@@ -1,4 +1,4 @@
-"""forum_nasioc — parse-level tests on synthetic vBulletin 3.x markup."""
+"""forum_nasioc, parse-level tests on synthetic vBulletin 3.x markup."""
 from __future__ import annotations
 
 from bs4 import BeautifulSoup
@@ -9,7 +9,7 @@ _FORUMDISPLAY = """
 <html><body>
 <a id="thread_title_2882357" href="showthread.php?t=2882357">05 Forester XT build help</a>
 <a id="thread_title_111" href="showthread.php?t=111">FS: cobb accessport v3</a>
-<a id="thread_title_222" href="https://forums.nasioc.com/forums/showthread.php?t=222">Knock correction on 93 octane — datalog inside</a>
+<a id="thread_title_222" href="https://forums.nasioc.com/forums/showthread.php?t=222">Knock correction on 93 octane, datalog inside</a>
 </body></html>
 """
 
@@ -22,7 +22,7 @@ _SHOWTHREAD = """
 </table>
 <table class="tborder" id="post101">
   <tr><td><a class="bigusername" href="#">fxt_mike</a></td></tr>
-  <tr><td><div id="post_message_101">Smoke test the intake first — TGV delete gaskets leak.</div></td></tr>
+  <tr><td><div id="post_message_101">Smoke test the intake first, TGV delete gaskets leak.</div></td></tr>
 </table>
 <div class="pagenav"><a href="showthread.php?t=2882357&page=2">2</a><a href="showthread.php?t=2882357&page=5">5</a></div>
 </body></html>

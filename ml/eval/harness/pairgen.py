@@ -1,9 +1,9 @@
-"""Synthetic training-pair generator — the Phase-D pair-synthesis bridge (DRAFT-gated).
+"""Synthetic training-pair generator, the Phase-D pair-synthesis bridge (DRAFT-gated).
 
 Drafts (symptoms -> diagnosis -> change -> outcome) pairs FROM judge-kept reference chunks:
 the knowledge is real and judge-certified; the LLM only manufactures the packaging into
 training-arc form, grounded in the excerpt it was shown. Every pair carries provenance
-(`synthetic:<doc_id>`) and `spot_checked: false` — NOTHING here enters a training mix until
+(`synthetic:<doc_id>`) and `spot_checked: false`: NOTHING here enters a training mix until
 Syed signs knobs C1-C4 (DECISIONS-PENDING.md) and reviews his sample. The 80% synthetic-cap
 and organic-displacement policy (C2) are applied at corpus-assembly time, not here.
 
@@ -25,7 +25,7 @@ SYSTEM = (
     "You write training examples for an automotive ECU-tuning assistant, grounded STRICTLY "
     "in a reference excerpt. Each example is a realistic tuning scenario: symptoms a tuner "
     "observes, the diagnosis, the concrete change made, and the outcome. Every number, table "
-    "name, and causal claim must come from the excerpt — if the excerpt supports none, "
+    "name, and causal claim must come from the excerpt, if the excerpt supports none, "
     "return an empty list. Never invent values."
 )
 
@@ -36,7 +36,7 @@ _USER_TMPL = """Reference excerpt (title: {title}):
 ---
 Write 0 to 2 training pairs grounded ONLY in this excerpt. Prefer Subaru-specific framing
 when the excerpt supports it; otherwise stay platform-neutral. A pair without a concrete,
-excerpt-supported outcome is worthless — omit it. The outcome must state what CHANGED as a
+excerpt-supported outcome is worthless, omit it. The outcome must state what CHANGED as a
 result of the change (a measurement, a behavior), never merely restate the action taken."""
 
 PAIR_SCHEMA = {
@@ -64,7 +64,7 @@ def candidate_docs(cfg: Config, limit: int, topic_like: list[str] | None = None,
     conn = sqlite3.connect(f"file:{cfg.retrieval.db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     if community:
-        # community keep-threads: real tuning conversations. Gone-marked docs INCLUDED —
+        # community keep-threads: real tuning conversations. Gone-marked docs INCLUDED -
         # the thread died on the live site; its judged text is still ours. Any keep chunk
         # qualifies the doc (monster threads are multi-chunk; text is capped at generation).
         return conn.execute(
@@ -84,7 +84,7 @@ def candidate_docs(cfg: Config, limit: int, topic_like: list[str] | None = None,
                topic_clause=("AND (" + " OR ".join(["lower(d.text) LIKE ?"] * len(topic_like)) + ")")
                if topic_like else ""),
         (*[f"%{t.lower()}%" for t in (topic_like or [])], limit)).fetchall()
-    # hash-scattered (same fix as e2gen — plain id order sampled only the earliest docs;
+    # hash-scattered (same fix as e2gen, plain id order sampled only the earliest docs;
     # batch-1 review 2026-07-10)
 
 
@@ -92,7 +92,7 @@ def generate(cfg: Config, limit: int = 400, out: Path = OUT_DEFAULT,
              exclude_from: Path | tuple | list | None = None,
              topic_like: list[str] | None = None, community: bool = False,
              steer: str = "", chat_fn: Callable | None = None, log=print) -> Path:
-    """exclude_from: an earlier draft JSONL — its source docs are skipped (batch increments)."""
+    """exclude_from: an earlier draft JSONL, its source docs are skipped (batch increments)."""
     chat_fn = chat_fn or llm.chat
     out.parent.mkdir(parents=True, exist_ok=True)
     used: set[int] = set()
@@ -111,7 +111,7 @@ def generate(cfg: Config, limit: int = 400, out: Path = OUT_DEFAULT,
                     json_schema=PAIR_SCHEMA)
                 pairs = json.loads(content)["pairs"] if content else []
             except (llm.LlmError, json.JSONDecodeError, KeyError) as e:
-                log(f"  [{i+1}/{len(docs)}] doc {d['id']}: FAILED ({e}) — skipping")
+                log(f"  [{i+1}/{len(docs)}] doc {d['id']}: FAILED ({e}), skipping")
                 continue
             for k, pair in enumerate(pairs):
                 n_pairs += 1

@@ -1,8 +1,8 @@
-"""Pair harvest — turn certified judge verdicts into the training-pair corpus.
+"""Pair harvest, turn certified judge verdicts into the training-pair corpus.
 
 Selection rule (Syed's blind metric ruling, 2026-07-05): pairs are harvested PER CHUNK from
 chunks scoring >= keep_threshold under the current rubric, regardless of the doc's headline
-score — and a pair must have a NON-EMPTY outcome (the safety signal; incomplete arcs are
+score, and a pair must have a NON-EMPTY outcome (the safety signal; incomplete arcs are
 honest but don't train outcome-grounded reasoning). Doc noise chunks never ride along.
 
 Output: JSONL, one pair per line with full provenance (doc, chunk, scores, relevance, url)

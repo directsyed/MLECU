@@ -1,4 +1,4 @@
-# CHANGE REPORT — timing_retard
+# CHANGE REPORT: timing_retard
 
 - ROM: `CANDIDATE_A_maf-extrapolated_2026-08-30.bin`
 - proposal: `timing-0`  provenance: **algorithm:timing_retard**

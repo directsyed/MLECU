@@ -53,7 +53,7 @@ def state(cfg):
 
 
 class FakeLlm:
-    """Stands in for llm.chat — returns canned verdict JSON, records prompts."""
+    """Stands in for llm.chat, returns canned verdict JSON, records prompts."""
     def __init__(self, score: int = 4, fail_first: bool = False):
         self.score = score
         self.fail_first = fail_first

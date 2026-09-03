@@ -1,4 +1,4 @@
-"""Citation guard unit tests — the clamp must be boringly correct (2026-07-25)."""
+"""Citation guard unit tests; the clamp must be boringly correct (2026-07-25)."""
 import pytest
 
 from harness import citation_guard as cg
@@ -47,7 +47,7 @@ def test_pdf_mangled_digits_healed():
 def test_empty_evidence_makes_the_guard_abstain(monkeypatch):
     """CONTRACT CHANGE 2026-08-02 (audit A3). This used to assert the opposite: with an empty
     evidence pool the guard blocked every number. That is not cite-or-decline, it is "the
-    retriever missed, so you are guilty" — a correct parametric answer was converted into a
+    retriever missed, so you are guilty", a correct parametric answer was converted into a
     decline because retrieval returned nothing. The guard now abstains and the answer is
     scored on its merits; the row records verdict='no_evidence' so the abstention is counted,
     not hidden."""
@@ -68,7 +68,7 @@ def test_blocked_answer_preserves_what_the_model_actually_said():
 
 def test_hyphen_ranges_are_not_healed_into_fake_evidence():
     """A9: '10-15 psi' healed to 1015, putting a number in the evidence pool that the source
-    never states. Every healing error runs in the permissive direction — it grounds
+    never states. Every healing error runs in the permissive direction; it grounds
     fabrications. Spaces and soft hyphens are PDF damage; a hyphen between digits is a range."""
     ev = ["recommended boost 10-15 psi on pump fuel"]
     assert cg.verify("1015", ev)["verdict"] == "blocked"
@@ -92,8 +92,8 @@ def test_ref_citation_ids_are_not_values():
 
 def test_typographic_thousands_separator_does_not_block_a_correct_answer():
     """Found 2026-08-03 by scrutinising the ONE cell that passed the gate. gpt-oss answered
-    '100 000 - 130 000 RPM' using U+202F narrow no-break spaces — a typographic thousands
-    separator — the healer did not know that character, so the guard read [100, 0, 130, 0],
+    '100 000 - 130 000 RPM' using U+202F narrow no-break spaces, a typographic thousands
+    separator; the healer did not know that character, so the guard read [100, 0, 130, 0],
     found no support, and converted a CORRECT answer into a decline. Healing had only ever
     been applied to the EVIDENCE side, so a model whose number formatting differed from the
     corpus was punished for typography."""

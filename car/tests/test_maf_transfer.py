@@ -1,4 +1,4 @@
-"""The MAF transfer stage + its clamp — the first CURVE tuner in the layer.
+"""The MAF transfer stage + its clamp, the first CURVE tuner in the layer.
 
 These pin the two rules the stage exists to honour (never extrapolate, only confident bins) and
 the three bounds the clamp exists to enforce (evidence, displacement, monotonicity).
@@ -63,7 +63,7 @@ def test_correction_is_direct_and_proportional_to_trim():
 def test_never_extrapolates_past_the_measured_span():
     """Breakpoints outside the measured airflow range keep their stock value, untouched.
 
-    This is the rule that keeps a vacuum-only dataset from inventing a boost-region correction —
+    This is the rule that keeps a vacuum-only dataset from inventing a boost-region correction -
     the measured curve is non-monotonic at the top, so extrapolating would be actively wrong.
     """
     tables = _tables()
@@ -75,7 +75,7 @@ def test_never_extrapolates_past_the_measured_span():
 
 
 def test_gap_between_measured_points_is_interpolated_not_skipped():
-    """A breakpoint BETWEEN two measured anchors is corrected — the physical error is smooth in
+    """A breakpoint BETWEEN two measured anchors is corrected, the physical error is smooth in
     airflow, so an interior gap is genuinely known even without its own samples."""
     tables = _tables()
     grid = _grid(tables, [2.0, 16.0], [10.0, 30.0])
@@ -162,7 +162,7 @@ def test_clamp_enforces_monotonicity_against_an_untouched_neighbour():
     (romread.plausible rejects non-monotonic axes), so the clamp holds it below.
 
     Uses a TIGHT curve on purpose: on a doubling curve the 40% displacement cap already makes
-    monotonicity unreachable, so only closely-spaced breakpoints exercise this bound — and a
+    monotonicity unreachable, so only closely-spaced breakpoints exercise this bound, and a
     real MAF curve is closely spaced exactly where our correction is largest.
     """
     tight = np.array([10.0, 11.0, 12.0, 13.0, 14.0])
@@ -176,7 +176,7 @@ def test_clamp_enforces_monotonicity_against_an_untouched_neighbour():
 def test_monotonicity_holds_a_cell_boxed_in_by_an_already_broken_curve():
     """If the STOCK curve is already non-monotonic, the boxed-in cell does not move at all.
 
-    We refuse to quietly repair a pre-existing defect in cells we were not asked to touch —
+    We refuse to quietly repair a pre-existing defect in cells we were not asked to touch -
     that would hide a bad ROM read or a bad definition behind our own edit.
     """
     broken = np.array([10.0, 12.0, 11.0, 11.5])      # col 1 already exceeds col 3
@@ -218,7 +218,7 @@ def test_extrapolation_is_off_by_default():
 def test_extrapolation_holds_the_plateau_flat_rather_than_fitting_a_trend():
     """The measured error PLATEAUS at the top (~+32% across 42-59 g/s on the real car), so the
     honest continuation is flat. Fitting a slope through a plateau and projecting it invents a
-    rise the data does not show — the exact mistake the no-extrapolation rule guards against."""
+    rise the data does not show, the exact mistake the no-extrapolation rule guards against."""
     tables = _tables()
     grid = _grid(tables, [4.0, 8.0, 16.0], [20.0, 20.0, 20.0])
     prop, _ = propose_maf_correction(grid, tables, MafState(), CFG.algo,

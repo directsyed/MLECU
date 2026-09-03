@@ -1,4 +1,4 @@
-"""Unit tests for each safety clamp — hand-built tables + proposals, exact expected output."""
+"""Unit tests for each safety clamp, hand-built tables + proposals, exact expected output."""
 from __future__ import annotations
 
 import numpy as np
@@ -79,7 +79,7 @@ def test_knock_aborts_everything():
 def test_afr_floor_floors_lean_at_boost():
     ts = _ts(_afr_map(12.0, load=2.0))  # boost cell (load 2.0 >= 1.5 threshold)
     res = apply_clamps(_fuel_prop([CellEdit("fuel.target_afr_primary_a", 0, 0, 13.5)]), _ctx(ts))
-    assert res.clamped_edits[0].new_value == SAFETY.afr_floor  # 11.5 — hard floor wins
+    assert res.clamped_edits[0].new_value == SAFETY.afr_floor  # 11.5, hard floor wins
     assert any(v.clamp == "afr_floor" for v in res.violations)
 
 
@@ -96,7 +96,7 @@ def _ceiling(rpm, load):
 # These two exercise clamp_timing_row_ceiling DIRECTLY rather than through apply_clamps.
 # Since 2026-08-30 the pipeline also carries clamp_timing_rate_limit, which is retard-only and
 # caps a step at 6 deg, so a request that ADVANCES a cell from 10 deg to the ceiling no longer
-# survives the full fold — correctly, but it would stop these from measuring what they are for.
+# survives the full fold: correctly, but it would stop these from measuring what they are for.
 # The ceiling's own behaviour is isolated here; the composition of the two is pinned in
 # tests/test_timing_retard.py::test_ceiling_then_rate_limit_compose.
 

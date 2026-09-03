@@ -2,7 +2,7 @@
 
 Deliberately emits the SAME LogTable shape that logparse.parse_romraider_csv produces, so a real
 datalog later drops into the identical bin -> propose -> clamp path (the log-replay goal). The
-wideband sits at stoich because the ECU's closed loop holds it there — the signal the algorithm
+wideband sits at stoich because the ECU's closed loop holds it there, the signal the algorithm
 acts on is the TRIM (the work the ECU is doing), not the AFR. Noise is seeded for determinism.
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ def synth_idle_log(tables, params: EngineParams, op: OperatingPoint,
 
     TWO THINGS THE OLD VERSION GOT WRONG for identification purposes:
       * `maf_gs` was the TRUE airflow. On a real car the logged MAF is the ECU's ESTIMATE, so a
-        wrong MAF transfer shows up directly in the logged value — that is a free, trim-free
+        wrong MAF transfer shows up directly in the logged value; that is a free, trim-free
         read on MAF belief error, and the estimator uses it.
       * `battery_v` was never emitted at all, despite being a canonical channel role in
         logparse/schema.py. Without it the voltage probe cannot be reconstructed from a log.

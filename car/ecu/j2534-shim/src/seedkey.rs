@@ -2,12 +2,12 @@
 //!
 //! Ported from FastECU (GPLv3), `modules/ecu/flash_ecu_subaru_denso_sh705x_kline.cpp`,
 //! functions `generate_seed_key()` / `calculate_seed_key()`. Because this file incorporates
-//! GPLv3 code, the shim as a whole is GPLv3 — see README.
+//! GPLv3 code, the shim as a whole is GPLv3, see README.
 //!
 //! WHY THIS EXISTS: on the 2005 Forester XT (ECU 3B12504206), EcuFlash's own key is rejected by
 //! the ECU while FastECU's is accepted. FastECU in turn fails one step later, at the kernel
 //! upload. This module lets the shim supply FastECU's (correct) key to EcuFlash so EcuFlash can
-//! proceed to its own kernel upload — merging the two tools' working halves at the wire level.
+//! proceed to its own kernel upload, merging the two tools' working halves at the wire level.
 //!
 //! VERIFIED against three real captures from the car (see tests): two of these keys were
 //! explicitly ACCEPTED by the ECU (`67 02` positive response), so this is not a guess.
@@ -18,7 +18,7 @@ const KEYGEN: [u16; 16] = [
     0x9D34, 0x3563, 0x6B70, 0x6E74, 0x88F0,
 ];
 
-/// S-box, `indextransformation` in FastECU. 32 entries — indices are masked with 0x1F.
+/// S-box, `indextransformation` in FastECU. 32 entries, indices are masked with 0x1F.
 const IDXT: [u8; 32] = [
     0x5, 0x6, 0x7, 0x1, 0x9, 0xC, 0xD, 0x8, 0xA, 0xD, 0x2, 0xB, 0xF, 0x4, 0x0, 0x3, 0xB, 0x4,
     0x6, 0x0, 0xF, 0x2, 0xD, 0x9, 0x5, 0xC, 0x1, 0xA, 0x3, 0xD, 0xE, 0x8,
@@ -27,7 +27,7 @@ const IDXT: [u8; 32] = [
 /// Compute the 4-byte SecurityAccess key for a 4-byte seed.
 ///
 /// 16 rounds of a Feistel-like construction. All arithmetic is deliberately wrapping to match
-/// the C++ `uint16_t`/`uint32_t` overflow behaviour exactly — using checked arithmetic here
+/// the C++ `uint16_t`/`uint32_t` overflow behaviour exactly, using checked arithmetic here
 /// would produce a different (wrong) key.
 pub fn calculate_key(seed_bytes: [u8; 4]) -> [u8; 4] {
     let mut seed = u32::from_be_bytes(seed_bytes);
@@ -71,11 +71,11 @@ mod tests {
     /// `67 02` positive response, so they are ground truth, not synthetic vectors.
     #[test]
     fn matches_keys_the_ecu_accepted() {
-        // From car/logging/j2534_shim.log — ECU replied 67 02 (accepted).
+        // From car/logging/j2534_shim.log, ECU replied 67 02 (accepted).
         assert_eq!(calculate_key([0xA1, 0x5B, 0xAD, 0x3F]), [0x01, 0xB1, 0x1E, 0xA4]);
-        // From the FastECU sh7058 run — "Seed key ok".
+        // From the FastECU sh7058 run, "Seed key ok".
         assert_eq!(calculate_key([0x51, 0x66, 0xD5, 0x04]), [0x03, 0x43, 0x46, 0x36]);
-        // From the FastECU sh7055_04 run — "Seed key ok".
+        // From the FastECU sh7055_04 run, "Seed key ok".
         assert_eq!(calculate_key([0xC0, 0xA5, 0x76, 0x99]), [0x02, 0x12, 0x2B, 0x02]);
     }
 
@@ -89,7 +89,7 @@ mod tests {
         assert_eq!(checksum(&rx), 0xD6);
     }
 
-    /// A different seed must give a different key — guards against a degenerate port that
+    /// A different seed must give a different key, guards against a degenerate port that
     /// returns a constant and would silently "pass" the vectors above.
     #[test]
     fn distinct_seeds_give_distinct_keys() {

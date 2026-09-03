@@ -98,7 +98,7 @@ def test_reference_helpers(state):
 
 def test_migration_idempotent(tmp_path):
     p = tmp_path / "m.sqlite"
-    for _ in range(2):                     # open twice — second open must be a no-op
+    for _ in range(2):                     # open twice, second open must be a no-op
         s = State(p)
         s.close()
     cols = [r[1] for r in sqlite3.connect(p).execute("PRAGMA table_info(document)")]

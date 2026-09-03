@@ -1,4 +1,4 @@
-"""Real-log → Observation bridge — the piece `car/logging/CAPTURE-PROTOCOL.md` always intended.
+"""Real-log → Observation bridge, the piece `car/logging/CAPTURE-PROTOCOL.md` always intended.
 
 Turns real RomRaider CSV holds into the `list[Observation]` that `algorithms.identify.identify()`
 consumes: the real-car analog of `simulation.harness.collect_observations`, fed by
@@ -7,15 +7,15 @@ the log-replay design" (CAPTURE-PROTOCOL.md). READ-ONLY: it produces Observation
 
 Design notes that matter for correctness:
 - `air_scale` is the MEASURED airflow ratio vs the warm hold, not an assumed 2× (the estimator uses
-  the measured ratio — CAPTURE-PROTOCOL.md).
+  the measured ratio, CAPTURE-PROTOCOL.md).
 - `trim` comes through the same binner + steady-state filter the sim uses (`bin_log` →
   `weighted_mean_trim`, a percentage → fraction here).
 - **The MAF-reading term is only attached to charging-voltage holds.** A low-voltage hold is the
   LATENCY probe (trim vs voltage); under electrical load the idle speed rises and airflow with it,
-  so that hold's airflow sits OFF the no-load baseline curve — comparing it to `baseline.at(rpm)`
+  so that hold's airflow sits OFF the no-load baseline curve, comparing it to `baseline.at(rpm)`
   would manufacture a false MAF fault. Its `nominal_maf` is left NaN so `identify()` drops the MAF
   term for it (see `identify._has_maf_baseline`).
-- `nominal_validated` is taken from the baseline's own flag — NOT hardcoded True (the sim harness
+- `nominal_validated` is taken from the baseline's own flag, NOT hardcoded True (the sim harness
   hardcodes it because inside the sim the baseline is the truth; a real loader must not).
 """
 from __future__ import annotations
@@ -44,7 +44,7 @@ def observations_from_logs(holds, baseline: MafBaseline,
     """Build Observations from real hold logs. `holds[0]` is the warm baseline hold (its airflow
     and voltage are the references). `holds` may be paths or `LogTable`s.
 
-    `maf_term=False` suppresses the MAF-reading term on ALL holds — used when the baseline was
+    `maf_term=False` suppresses the MAF-reading term on ALL holds, used when the baseline was
     derived from THESE SAME holds (self-referential: the ratio is 1.0 by construction and carries
     no information). For a re-log compared against a PRIOR stored baseline, leave it True.
     """

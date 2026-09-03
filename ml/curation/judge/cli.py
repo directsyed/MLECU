@@ -1,4 +1,4 @@
-"""Curation CLI — mirrors corpus_pipeline/cli.py ergonomics.
+"""Curation CLI, mirrors corpus_pipeline/cli.py ergonomics.
 
   python -m judge.cli --status                      # judged/pending/failed + score histogram
   python -m judge.cli --run [--limit N] [--sources a,b] [--dry-run]
@@ -33,7 +33,7 @@ def _status(cfg) -> int:
     rows = s.conn.execute(
         """SELECT judgment_status, COUNT(*) FROM document
            WHERE gate_status='kept' GROUP BY judgment_status""").fetchall()
-    print("judge — corpus curation status")
+    print("judge, corpus curation status")
     for st, n in rows:
         print(f"  {st:10s}: {n}")
     tiers = s.conn.execute(
@@ -63,7 +63,7 @@ def _run(cfg, args) -> int:
     if stats.score_hist:
         print(f"scores: {dict(sorted(stats.score_hist.items()))}")
     if stats.stopped:
-        print(f"RUN STOPPED EARLY: {stats.stopped} — remaining docs left 'pending'; "
+        print(f"RUN STOPPED EARLY: {stats.stopped}, remaining docs left 'pending'; "
               f"re-run to continue")
     s.close()
     if stats.stopped:
@@ -78,7 +78,7 @@ def _label(cfg, args) -> int:
     done = {r["doc_id"] for r in s.labels(args.set or cfg.calibration.set_name,
                                           rater=args.rater)}
     todo = [i for i in ids if i not in done]
-    print(f"labeling as rater={args.rater} set={args.set or cfg.calibration.set_name} — "
+    print(f"labeling as rater={args.rater} set={args.set or cfg.calibration.set_name}, "
           f"{len(todo)} of {len(ids)} remaining (resumable; q quits)")
     for doc_id in todo:
         row = s.conn.execute("SELECT * FROM document WHERE id=?", (doc_id,)).fetchone()
@@ -86,7 +86,7 @@ def _label(cfg, args) -> int:
         print(f"[{doc_id}] {row['source']} | {row['tier']} | {row['title']}")
         print(row["url"] or "")
         print("-" * 78)
-        # FULL text, never truncated — a 6k-char preview already skewed one guard read.
+        # FULL text, never truncated, a 6k-char preview already skewed one guard read.
         # Long docs scroll; use terminal scrollback, or open the URL alongside.
         print(row["text"])
         print("-" * 78)

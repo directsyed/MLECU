@@ -1,4 +1,4 @@
-"""Autonomous benchmark driver — claims ledger units and executes them (2026-07-29).
+"""Autonomous benchmark driver, claims ledger units and executes them (2026-07-29).
 
 Runs unattended for days under `systemd --user`. Everything it does is recoverable: if the
 box dies (the 3090 has done it 11 times), systemd restarts this, `reset_running()` returns
@@ -6,7 +6,7 @@ the interrupted unit to pending, and the loop picks up where it stopped.
 
 SAFETY (the part that matters most): the 3090's proven-safe envelope is ~152W; 230W is
 proven fatal to the WHOLE MACHINE. That envelope was validated for a dense 27B at a 3.5:1
-layer split — with `-ncmoe` expert offload the per-layer cost changes, so the split fraction
+layer split, with `-ncmoe` expert offload the per-layer cost changes, so the split fraction
 no longer implies the wattage. Therefore the guarantee here is a MEASURED one: sample GPU1
 power every 5s, and on a sustained excursion kill the server, re-queue the model on its
 Ti-only profile, and log it. The flag is a proxy; the watt meter is the truth.
@@ -35,7 +35,7 @@ INDEX = EVAL_DIR / "data/ref_dense_v2.npz"
 # --- 3090 duty guard -------------------------------------------------------
 # CALIBRATED against the real envelope, not guessed (smoke test 2026-07-29):
 #   proven SAFE   = the dense-27B 3.5:1 config, 8+ days crash-free. Typical ~152W, but it
-#                   transiently touches 171W — measured during the smoke run. A 170W
+#                   transiently touches 171W: measured during the smoke run. A 170W
 #                   ceiling would therefore false-trip on KNOWN-GOOD operation.
 #   proven FATAL  = ~230W sustained decode (crashes #10/#11).
 # 200W sits above the safe config's transient peaks and well below the fatal level; the
@@ -97,12 +97,12 @@ def gpu_guard() -> bool:
     Learned the hard way 2026-07-29: gpu-powerlimit.service applied the locks correctly at
     boot, but they had silently reverted by the time the driver started (3090 boosting at
     1695MHz, both power limits back to stock). Cause: without persistence mode the driver
-    resets per-GPU settings whenever the last client detaches — i.e. every time a unit's
+    resets per-GPU settings whenever the last client detaches, i.e. every time a unit's
     server exits, which in this pipeline is between EVERY unit. `nvidia-smi -pm 1` at boot
     races nvidia-persistenced and doesn't reliably stick.
 
     The old version re-applied and ignored the result. For a card whose failure mode is
-    killing the whole machine, an unverified lock is not a lock — so this re-reads after
+    killing the whole machine, an unverified lock is not a lock, so this re-reads after
     writing and halts the pipeline if the 3090 cannot be confirmed pinned.
     """
     def read() -> dict:
@@ -130,7 +130,7 @@ def gpu_guard() -> bool:
         bad = wrong(read())
         if not bad:
             return True
-        log(f"GPU lock state WRONG on {bad} — restoring (persistence + clocks + power limits)")
+        log(f"GPU lock state WRONG on {bad}, restoring (persistence + clocks + power limits)")
         subprocess.run(["sudo", "-n", "nvidia-smi", "-pm", "1"], capture_output=True, timeout=60)
         for idx in bad:
             w = LOCKS[idx]
@@ -141,10 +141,10 @@ def gpu_guard() -> bool:
                                capture_output=True, timeout=60)
         still_bad = wrong(read())                       # VERIFY the restore actually took
         if 1 in still_bad:
-            log("FATAL: 3090 lock could NOT be restored — refusing to run it unprotected")
+            log("FATAL: 3090 lock could NOT be restored, refusing to run it unprotected")
             return False
         if still_bad:
-            log(f"WARNING: Ti lock still off ({still_bad}) — continuing (healthy card)")
+            log(f"WARNING: Ti lock still off ({still_bad}), continuing (healthy card)")
         else:
             log("GPU locks restored and verified")
         return True
@@ -164,7 +164,7 @@ def server_stop() -> None:
         except subprocess.TimeoutExpired:
             _server_proc.kill()
     _server_proc, _server_key = None, ""
-    # VRAM-release verification — without this the next (larger) model OOMs at load
+    # VRAM-release verification, without this the next (larger) model OOMs at load
     for _ in range(60):
         if gpu_mem_used(0) < 1500 and gpu_mem_used(1) < 1500:
             break
@@ -222,7 +222,7 @@ def server_start(profile: dict) -> bool:
                                capture_output=True, timeout=10, text=True)
             if r.returncode == 0:
                 if not _serving_expected_model(r.stdout, gguf):
-                    log(f"server[{profile['key']}] SERVING THE WRONG MODEL — refusing")
+                    log(f"server[{profile['key']}] SERVING THE WRONG MODEL, refusing")
                     server_stop()
                     return False
                 log(f"server[{profile['key']}] healthy, serving {gguf.name}")
@@ -235,7 +235,7 @@ def server_start(profile: dict) -> bool:
 
 
 def _serving_expected_model(models_json: str, gguf: Path) -> bool:
-    """C3 — verify the server is actually serving the GGUF this unit asked for.
+    """C3, verify the server is actually serving the GGUF this unit asked for.
 
     Nothing checked this before 2026-08-02, and the showdown paid for it twice: the 80B cells
     ran the non-thinking Instruct variant while the ledger labelled them Thinking, and the
@@ -268,14 +268,14 @@ def preflight() -> tuple[bool, str]:
     if free_gb < MIN_FREE_GB:
         return False, f"disk low: {free_gb:.0f}GB free"
     if not INDEX.exists():
-        return False, "dense index missing — refusing to run hybrid cells on BM25 fallback"
+        return False, "dense index missing, refusing to run hybrid cells on BM25 fallback"
     for mc in sorted(Path("/sys/devices/system/edac/mc").glob("mc*")):
         for kind in ("ce_count", "ue_count"):
             f = mc / kind
             if f.exists() and int(f.read_text().strip() or 0) > 0:
-                return False, f"ECC {kind} nonzero on {mc.name} — halting for Syed"
+                return False, f"ECC {kind} nonzero on {mc.name}, halting for Syed"
     if not gpu_guard():
-        return False, "3090 clock/power lock could not be restored — refusing to run"
+        return False, "3090 clock/power lock could not be restored, refusing to run"
     return True, "ok"
 
 
@@ -305,10 +305,10 @@ def run_unit(unit) -> None:
             ledger.mark_failed(unit["id"], f"exit {rc}: {note}")
         return
 
-    # harness unit — needs a server
+    # harness unit, needs a server
     profile = json.loads(unit["server_profile"]) if unit["server_profile"] else None
     if profile and not Path(profile["gguf"]).exists():
-        # Model still downloading. DEFER (back to pending), don't fail — otherwise a slow
+        # Model still downloading. DEFER (back to pending), don't fail, otherwise a slow
         # download would burn every unit of that model before its file lands.
         ledger.requeue(unit["id"], "deferred: model file not yet present")
         log(f"  deferring {unit['label']}: {Path(profile['gguf']).name} not on disk yet")
@@ -323,7 +323,7 @@ def run_unit(unit) -> None:
     out = _new_result(before)
 
     if watchdog_trip:
-        ledger.mark_failed(unit["id"], "3090 duty excursion — see driver log")
+        ledger.mark_failed(unit["id"], "3090 duty excursion, see driver log")
         log("DUTY TRIP: re-queueing this model on its Ti-only profile")
         _fallback_to_ti_only(unit)
         return
@@ -359,7 +359,7 @@ def _run_harness(argv: list[str]) -> tuple[int, bool]:
     Output goes to a FILE, not to an unread pipe (2026-08-03). The old version piped stdout
     and never read it, so when a unit died the traceback went nowhere: unit 51 failed with
     "harness exit 1" at probe 61 of 69 and left no evidence of why. An unread pipe is also a
-    latent deadlock — a chatty run that fills the 64KB buffer would block forever with the
+    latent deadlock, a chatty run that fills the 64KB buffer would block forever with the
     watchdog happily sampling a hung process.
     """
     cmd = [str(VENV), "-m", "harness.cli"] + argv
@@ -393,7 +393,7 @@ def _run_harness(argv: list[str]) -> tuple[int, bool]:
 
 
 def harness_tail(n: int = 6) -> str:
-    """Last few harness lines — attached to a failure note so the ledger says WHY."""
+    """Last few harness lines, attached to a failure note so the ledger says WHY."""
     try:
         return " | ".join(HARNESS_LOG.read_text().splitlines()[-n:])[:400]
     except Exception:
@@ -436,12 +436,12 @@ def main() -> None:
     log("=== driver start ===")
     while True:
         if ledger.get_meta("paused") == "1":
-            log("paused (meta) — sleeping 300s")
+            log("paused (meta), sleeping 300s")
             time.sleep(300)
             continue
         hits = car_data_present()
         if hits:
-            log(f"CAR DATA DETECTED: {[h.name for h in hits][:4]} — hard preempt")
+            log(f"CAR DATA DETECTED: {[h.name for h in hits][:4]}, hard preempt")
             server_stop()
             ledger.set_meta("paused", "1")
             ledger.set_meta("pause_reason", f"car-data drop: {[str(h) for h in hits][:4]}")
@@ -454,7 +454,7 @@ def main() -> None:
             continue
         unit = ledger.claim_next()
         if unit is None:
-            log("no pending units — all phases drained. Stopping server and exiting.")
+            log("no pending units; all phases drained. Stopping server and exiting.")
             server_stop()
             ledger.set_meta("finished_at", time.strftime("%F %T"))
             return

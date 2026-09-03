@@ -1,7 +1,7 @@
 """Apply clamped CellEdits to a COPY of a ROM image, and prove afterwards that nothing else moved.
 
 THE CONTRACT. `patch()` accepts a `ClampResult`, never a raw `Proposal`. Edits reach bytes only
-after `safety.apply_clamps` has bounded them — this module cannot be used to bypass the clamps,
+after `safety.apply_clamps` has bounded them; this module cannot be used to bypass the clamps,
 because it has no code path that takes unclamped input.
 
 WHY IT LIVES UNDER safety/. `docs/OPEN-CHECKLIST.md` places romwrite here so the source-scan
@@ -10,13 +10,13 @@ calls `TableSet.with_edits` and never mutates `Table.values` in place; it works 
 copy of the image and returns new bytes.
 
 THE VERIFICATION STACK (ROADMAP Phase E.4), in order, all mandatory:
-  (a) BYTE-DIFF WHITELIST — only bytes inside an edited table's own address range, plus the
+  (a) BYTE-DIFF WHITELIST, only bytes inside an edited table's own address range, plus the
       checksum record's `stored` field, may differ. ANY other differing byte aborts. This is
       the check that catches an address resolved from the wrong def revision.
-  (b) READ-BACK — decode the patched image through the ordinary read path and confirm the
+  (b) READ-BACK, decode the patched image through the ordinary read path and confirm the
       intended values actually landed, and that no OTHER semantic table moved.
-  (c) BOUNDS — every written value re-checked against the def's declared min/max.
-  (d) CHECKSUM — repaired, then re-verified.
+  (c) BOUNDS; every written value re-checked against the def's declared min/max.
+  (d) CHECKSUM, repaired, then re-verified.
 
 A failure at any stage raises. There is no partial write and no "written with warnings": the
 function either returns an image that passed every check, or it raises and you still have your
@@ -54,7 +54,7 @@ def _cell_offset(td: TableDef, sc: Scaling, table: Table, edit: CellEdit) -> int
 
     3-D tables are stored row-major with X fastest (`reader.read_table` reshapes
     `(len(y), len(x))`), so the inverse index is `row * n_x + col`. For a curve the reader puts
-    the *Y*-kind axis into `Table.x_axis` — a genuine trap — but the linear index is just `col`
+    the *Y*-kind axis into `Table.x_axis`: a genuine trap, but the linear index is just `col`
     either way, so cell addressing does not depend on resolving that.
     """
     if table.kind == "scalar":
@@ -102,7 +102,7 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
         table = tables.get(table_id)
         if rd is None or table is None:
             raise WriteVerificationError(
-                f"{table_id}: no resolved def — the write path must patch the address that WON "
+                f"{table_id}: no resolved def, the write path must patch the address that WON "
                 "reconciliation, and re-deriving it from a fixed def id risks the +0x20 drift "
                 "between A2WC410D and A2WC412D")
         mode = round_modes.get(table_id, "nearest")
@@ -122,7 +122,7 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
                 float(_apply(rd.scaling.toexpr,
                              np.frombuffer(blob, dtype=_DTYPES[rd.scaling.storagetype]))[0]))
 
-    # (d) checksum — must run before the whitelist check, since its own write is whitelisted
+    # (d) checksum, must run before the whitelist check, since its own write is whitelisted
     repaired = checksum.repair(buf)
     for r in repaired:
         allowed.append((r.offset + 8, r.offset + 12))     # the `stored` field only
@@ -157,10 +157,10 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
         if bad.size:
             raise WriteVerificationError(
                 f"{table_id}: stock curve was strictly ascending but the ENCODED curve is not "
-                f"(cells {bad[:5].tolist()}) — the storage type cannot represent the ordering "
+                f"(cells {bad[:5].tolist()}), the storage type cannot represent the ordering "
                 "the clamp promised")
 
-    # (b) READ-BACK, per-cell half — applies to EVERY table kind, not just curves.
+    # (b) READ-BACK, per-cell half, applies to EVERY table kind, not just curves.
     # The ordering check above only covers curve_1d, so before 2026-08-30 a map_2d write had
     # no value-level read-back at all: it was protected by the byte whitelist and the checksum,
     # neither of which can tell a correct cell from one written at the wrong index. Decoding
@@ -174,7 +174,7 @@ def patch(stock: bytes, result: ClampResult, tables: dict[str, Table],
         if not np.isclose(got, want, rtol=0.0, atol=1e-9):
             raise WriteVerificationError(
                 f"{table_id} cell ({row},{col}) at 0x{off:X} reads back as {got:.6g}, not the "
-                f"{want:.6g} that was written — the image does not contain what was approved")
+                f"{want:.6g} that was written; the image does not contain what was approved")
 
     # (d, cont.) checksum re-verified on the final image
     if checksum.verify(buf):

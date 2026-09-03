@@ -1,4 +1,4 @@
-"""NASIOC forum ingester — vBulletin behind Cloudflare (patchright BrowserFetcher path).
+"""NASIOC forum ingester, vBulletin behind Cloudflare (patchright BrowserFetcher path).
 
 forums.nasioc.com serves a Cloudflare challenge to plain HTTP (probed 403), so this source uses
 the same BrowserFetcher fallback as forum_legacygt. vBulletin 3.x markup: forumdisplay.php?f=N
@@ -155,14 +155,14 @@ def fetch(cfg: Config, source_cfg: SourceCfg, http: HttpClient) -> Iterator[Docu
     cookie_file = extra.get("cf_cookie_file", "data/raw/.cf-cookies/nasioc.json")
     cookies = _load_cf_cookies(cfg, cookie_file)
     if cookies is None and extra.get("require_cf_cookies", True):
-        log.warning("nasioc: no cf_clearance cookie at %s — skipping (managed challenge). "
+        log.warning("nasioc: no cf_clearance cookie at %s, skipping (managed challenge). "
                     "Export it from a browser on the T630's network + matching UA.", cookie_file)
         return
     profile = str(cfg.resolve("data/raw/.cf-nasioc-profile"))
     bf = BrowserFetcher(ua, profile_dir=profile, cookies=cookies)
     try:
         # Canary probe (2026-07-07): cf_clearance cookies for this site live only HOURS. A dead
-        # cookie previously produced silent "ok, fetched=0" nightly runs — indistinguishable
+        # cookie previously produced silent "ok, fetched=0" nightly runs, indistinguishable
         # from a genuinely quiet forum. Probe one page first and FAIL LOUDLY so the run summary
         # (and Discord ping) shows the real reason instead of a silent zero.
         canary = bf.get_html(f"{base_url}/forumdisplay.php?f=80")

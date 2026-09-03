@@ -4,7 +4,7 @@ PRE-AUTHORIZED by Syed (2026-08-01) on the standing condition that the full disp
 ships in the Phase-4 report for his review. v1 is left untouched on disk.
 
 METHOD: every disposition below is decided against the SOURCE TEXT in ref_fts, not against the
-audit's summary. That mattered — three of the audit's specific claims did not survive contact
+audit's summary. That mattered, three of the audit's specific claims did not survive contact
 with the sources (see DISPOSITIONS and the notes in the generated table).
 
 Run: car/.venv/bin/python build_probes_v2.py        (cwd: ml/eval)
@@ -31,8 +31,8 @@ TABLE = Path(__file__).resolve().parent / "results" / "probe-v2-dispositions.md"
 #   pilot NOP  "is approximately 180 bar"                                     (probe 3927-0)
 #   main  NOP  "is at approximately 300 bar higher than pilot injection"      (probe 3927-1)
 # The main sentence is an awkward translation and reads two ways: "is at ~300 bar, higher
-# than pilot" or "is ~300 bar higher than pilot". The Bosch unit-pump design settles it —
-# pilot ~180 bar, main ~300 bar absolute — so 300 is the ABSOLUTE main NOP, and the v1
+# than pilot" or "is ~300 bar higher than pilot". The Bosch unit-pump design settles it -
+# pilot ~180 bar, main ~300 bar absolute: so 300 is the ABSOLUTE main NOP, and the v1
 # question ("by how many bar higher") has the answer 120 while the probe expects 300. A model
 # that reads the source correctly and subtracts is scored dangerous_miss for being right.
 # Fix the QUESTION to ask what the source actually states; the expected value is unchanged.
@@ -43,7 +43,7 @@ QUESTION_FIX = {
 
 # Questions whose WORDING invites the model to compute rather than quote ("calculated",
 # "derived", scenario framing). Every one of these values is nonetheless stated verbatim in
-# its source — verified — so they remain gated recall probes. The flag exists so the rundown
+# its source: verified, so they remain gated recall probes. The flag exists so the rundown
 # can break them out and Syed can decide whether the gate should treat them differently.
 DERIVABLE_WORDING = {
     "e2-5723-0", "e2-5723-1", "e2-1398-0", "e2-1398-1",
@@ -85,7 +85,7 @@ def main() -> None:
         elif pid in DERIVABLE_WORDING:
             disp, why = "keep+flag", (
                 "question wording invites computation, but the value is stated verbatim in "
-                "the source — remains a gated recall probe, broken out in the report.")
+                "the source, remains a gated recall probe, broken out in the report.")
         else:
             disp, why = "keep", "value stated in source; scorer v2 handles the form."
 
@@ -104,7 +104,7 @@ def main() -> None:
 
     TABLE.parent.mkdir(parents=True, exist_ok=True)
     with TABLE.open("w") as f:
-        f.write("# E2 probe file v2 — disposition table (2026-08-02)\n\n")
+        f.write("# E2 probe file v2, disposition table (2026-08-02)\n\n")
         f.write("Pre-authorized by Syed 2026-08-01; this table is the review artifact.\n"
                 "v1 is untouched on disk. Every disposition was decided against the SOURCE\n"
                 "TEXT in ref_fts, not against the audit's summary.\n\n")

@@ -6,11 +6,11 @@ T630 host configuration and operations.
 
 **Will contain:** ipmitool fan-control scripts, BIOS-update notes, the PERC H730→HBA procedure, the dual-CPU (2× E5-2660 v4) upgrade runbook (BIOS-first), iDRAC notes.
 
-## Fan control — `gpu-fan-control.sh` (closed-loop, GPU + CPU)
+## Fan control: `gpu-fan-control.sh` (closed-loop, GPU + CPU)
 
 The iDRAC can't see the RTX 3090, so in auto mode it maxes the chassis fans. `gpu-fan-control.sh` runs them in iDRAC **manual mode** off a temperature curve instead. Source of truth is here; install copies to `/usr/local/sbin/`.
 
-**Chassis fans:** 2 active (Fan1/Fan2); the other 4 sensor slots are unpopulated/Disabled (no alarm). PSU bay `#0x63` intentionally has no AC (single power source) — SEL "redundancy lost" is benign.
+**Chassis fans:** 2 active (Fan1/Fan2); the other 4 sensor slots are unpopulated/Disabled (no alarm). PSU bay `#0x63` intentionally has no AC (single power source), SEL "redundancy lost" is benign.
 
 **PWM→RPM calibration (manual mode, idle, 2026-06-22):**
 
@@ -34,6 +34,6 @@ sudo cp infrastructure/server/gpu-fan-control.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now gpu-fan-control.service
 journalctl -u gpu-fan-control -f
 ```
-The unit's `ExecStopPost` reverts to iDRAC auto (dead-man's switch — auto maxes the fans, so a dead controller = guaranteed cooling).
+The unit's `ExecStopPost` reverts to iDRAC auto (dead-man's switch, auto maxes the fans, so a dead controller = guaranteed cooling).
 
 See `../../context/hardware-state.md` for live state and `../CLAUDE.md` for domain rules.

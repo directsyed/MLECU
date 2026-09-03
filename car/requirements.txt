@@ -1,4 +1,4 @@
-# car/ecutune — offline deterministic ECU-tuning algorithm + safety layer.
+# car/ecutune: offline deterministic ECU-tuning algorithm + safety layer.
 # Separate venv from ml/data-pipeline (which stays stdlib-lean): the car layer needs
 # numeric + property-testing deps. Conventions copied from corpus_pipeline, deps are not.
 numpy>=2.0

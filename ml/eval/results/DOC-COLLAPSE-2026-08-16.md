@@ -1,12 +1,12 @@
-# Doc-collapse re-check — did 3.6's ratified `base+RAG@3` headline retrieve real evidence?
+# Doc-collapse re-check: did 3.6's ratified `base+RAG@3` headline retrieve real evidence?
 
 **Date:** 2026-08-16 (autonomous overnight run). **Tool:** `ml/eval/doc_collapse.py` (committed;
 reproduce with the command at the bottom). **Question (checklist B2 / runbook Track B):** the 3.8
 E1 runs retrieved only 4 distinct documents across 70 cases, two on 100% of queries. Does the
-**ratified 3.6 headline** — E1v2 arm B, hybrid@3, **93.9% top-1 / 0 dangerous** (2026-07-24) — show
+**ratified 3.6 headline**: E1v2 arm B, hybrid@3, **93.9% top-1 / 0 dangerous** (2026-07-24), show
 the same collapse?
 
-## Answer: yes — worse. Three documents, each on 100% of all 147 queries.
+## Answer: yes - worse. Three documents, each on 100% of all 147 queries.
 
 | cell (file in `results/`) | n | model tag | top-1 | k | **distinct docs** | distinct id-tuples | docs @100% coverage |
 |---|---|---|---|---|---|---|---|
@@ -24,14 +24,14 @@ The three constant documents (all `kind=theory`, `tier=reference`, generic fuel/
 
 | id | what it is |
 |---|---|
-| 5714 | Greg Banish, *Engine Management: Advanced Tuning* — a page of ch. 1 |
+| 5714 | Greg Banish, *Engine Management: Advanced Tuning*, a page of ch. 1 |
 | 621 | rusEFI wiki `Fuel-Overview.md` |
-| 5502 | Jeff Hartman, *How to Tune and Modify Automotive Engine Management Systems* — a page |
+| 5502 | Jeff Hartman, *How to Tune and Modify Automotive Engine Management Systems*, a page |
 
 (E1v1's fourth doc 721 = rusEFI `MAF.md`; 5443 = another Hartman page; the k=6 set adds 5715 = the
 adjacent Banish page and 1835 = a Heywood page.)
 
-**Control — E2 does *not* collapse:** arm B@6 over 69 probes → 3.6 **325** distinct docs
+**Control, E2 does *not* collapse:** arm B@6 over 69 probes → 3.6 **325** distinct docs
 (max per-doc coverage 7.2%), 3.8 **323**, same top-5. E2 prompts are questions *about* things the
 corpus contains; E1 prompts are simulated log data that nothing in a corpus of engine prose is
 "about", so every E1 query lands on the same generic pages. Corpus/query-type mismatch, not an
@@ -45,12 +45,12 @@ index bug (index was verified healthy: no stale flag, no dense fallback, 5,638 =
 2. **The ratified "+RAG@3" was, in effect, a constant three-page preamble.** For 3.6 that preamble
    moved top-1 from **83.7% (arm A, 2026-07-15) to 93.9%** and six constant pages moved it back to
    83.7% ("distraction is dose-dependent", PROGRESS 2026-07-24). So the effect was real but it was a
-   *prompt-prefix* effect — three specific fixed pages of fuel theory nudging the diagnosis — not
+   *prompt-prefix* effect, three specific fixed pages of fuel theory nudging the diagnosis, not
    retrieval doing its job. For 3.8 the same preamble did **nothing** (95.2 both arms).
    *Confound to disclose:* the 83.7 arm-A cell predates the 07-25 harness fixes; the arm-B cells
    were re-verified after them (92.5–93.9). The direction is not in doubt; the exact delta is.
 3. **The ratification therefore measured "base model + fixed prefix", not "base + RAG".** The
-   decision to run arm B is not *wrong* — the prefix helped 3.6 and cost nothing — but the claim
+   decision to run arm B is not *wrong*, the prefix helped 3.6 and cost nothing, but the claim
    "retrieval passes the E1 bar" is not supported by these files. Nothing in this analysis changes
    E2 (where retrieval demonstrably works) or E4.
 4. **Nothing will change this without changing the corpus or the query representation.** Judging

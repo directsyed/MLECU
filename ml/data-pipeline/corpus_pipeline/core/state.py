@@ -88,7 +88,7 @@ class State:
                 ),
             )
             return cur.lastrowid, True
-        # Existing — refresh content, keep first_seen, reset miss_streak. If the content
+        # Existing, refresh content, keep first_seen, reset miss_streak. If the content
         # changed, reset judgment so the judge re-scores it.
         prev = self.conn.execute(
             "SELECT content_hash FROM document WHERE id=?", (row["id"],)
@@ -164,10 +164,10 @@ class State:
 
     def pending_for_judge(self, limit: int = 100,
                           sources: tuple[str, ...] | None = None) -> list[sqlite3.Row]:
-        """Next docs awaiting the judge, oldest first. `sources` filters in SQL — filtering
+        """Next docs awaiting the judge, oldest first. `sources` filters in SQL, filtering
         after the fetch would starve the batch when the low ids are all other sources.
 
-        NO `gone_at` filter — deliberately (fixed 2026-08-16). The gone-sweep policy ratified
+        NO `gone_at` filter, deliberately (fixed 2026-08-16). The gone-sweep policy ratified
         2026-07-22 (decisions.md, "NARROW") says gone-ness affects SCRAPING only, never judging,
         retrieval or pair-mining: archived text is first-class corpus material forever. This
         query still carried `AND gone_at IS NULL`, which hid 303 of the 314 pending community
@@ -195,7 +195,7 @@ class State:
         """Record a full judgment atomically: per-chunk verdict rows + the document rollup.
 
         `chunks`: [{chunk_index, n_chunks, score, rationale, pairs_json, grounding_json,
-                    prompt_tokens, completion_tokens}]. All-or-nothing by design — a crash
+                    prompt_tokens, completion_tokens}]. All-or-nothing by design, a crash
         mid-doc leaves judgment_status='pending' so the next run re-picks it cleanly.
         """
         now = utcnow_iso()
@@ -249,7 +249,7 @@ class State:
         ).fetchall()
 
     # --- community index (2026-08-16, Syed ruling 3: SEPARATE from ref_fts) ------------
-    # NO gone_at filter here — 624 of 641 kept community docs are gone-marked (2026-06-26
+    # NO gone_at filter here, 624 of 641 kept community docs are gone-marked (2026-06-26
     # sweep) and the ratified NARROW policy says gone-ness affects scraping only. Copying the
     # reference predicate verbatim would index 17 documents and call it done.
     def community_kept_count(self, min_score: int) -> int:

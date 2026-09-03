@@ -1,4 +1,4 @@
-"""Harness tests — no GPU, no llama-server. chat_fn is stubbed; retrieval tests hit the real
+"""Harness tests; no GPU, no llama-server. chat_fn is stubbed; retrieval tests hit the real
 corpus DB read-only and skip cleanly when it's absent (e.g. a fresh clone)."""
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def test_run_arm_with_stub_and_score(tmp_path):
 
 
 def test_empty_completion_is_a_miss_not_a_crash(tmp_path):
-    # thinking-budget exhaustion returns "" (overnight 2026-07-09) — must score as wrong
+    # thinking-budget exhaustion returns "" (overnight 2026-07-09), must score as wrong
     cfg = Config(results_dir=tmp_path)
 
     def starved_chat(llm_cfg, system, user, json_schema=None):
@@ -87,5 +87,5 @@ def test_determinism_helper(tmp_path):
 
 def test_scoring_module_is_the_ecutune_one():
     scoring = e1.load_scoring(CFG.scoring_py)
-    # the rules baseline exists and brackets the eval — same module the 85.7% came from
+    # the rules baseline exists and brackets the eval, same module the 85.7% came from
     assert hasattr(scoring, "rules_baseline") and hasattr(scoring, "score")

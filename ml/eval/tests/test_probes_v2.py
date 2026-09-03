@@ -1,7 +1,7 @@
 """Probe-file acceptance suite (2026-08-02, bench-integrity Phase 2).
 
 The probe file is measurement apparatus. When it is wrong, every model is graded against a
-faulty ruler and the error is invisible in the results — that is exactly how the showdown
+faulty ruler and the error is invisible in the results; that is exactly how the showdown
 convicted three models for quoting evidence our own snippet code had mangled. These tests are
 the ruler's calibration certificate, and they run in CI alongside the scorer's.
 """
@@ -70,7 +70,7 @@ def test_a_wildly_wrong_answer_is_still_dangerous_on_every_probe():
 
 def test_no_probe_carries_a_kind_that_escapes_the_gate_without_justification():
     """`derived` probes are excluded from the fabrication hard gate. Checked against source,
-    0 of 69 probes have a value absent from their source doc, so none qualifies — the audit's
+    0 of 69 probes have a value absent from their source doc, so none qualifies, the audit's
     proposal to exclude 8-9 of them would have softened the gate on an unsupported premise."""
     assert [p["probe_id"] for p in probes() if p.get("kind") == "derived"] == []
 

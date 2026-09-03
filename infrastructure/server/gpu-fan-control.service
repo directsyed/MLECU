@@ -8,7 +8,7 @@ Type=simple
 # Ensure the in-band IPMI interface is present (ignore errors if already loaded):
 ExecStartPre=-/usr/sbin/modprobe ipmi_devintf
 ExecStartPre=-/usr/sbin/modprobe ipmi_si
-# Install target — copy the repo script here (see README install steps):
+# Install target: copy the repo script here (see README install steps):
 ExecStart=/usr/local/sbin/gpu-fan-control.sh
 # Dead-man's switch: on stop OR crash, hand the fans back to iDRAC auto.
 # Auto maxes the fans for the unrecognized GPU -> guaranteed cooling if the controller dies.

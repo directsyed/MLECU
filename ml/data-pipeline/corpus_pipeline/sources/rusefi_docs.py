@@ -1,4 +1,4 @@
-"""rusEFI documentation ingester — open engine-management theory (general domain).
+"""rusEFI documentation ingester, open engine-management theory (general domain).
 
 Clones github.com/rusefi/rusefi_documentation (GPL) and ingests each markdown doc. A mix of
 conceptual engine-management material (AlphaN, acceleration enrichment, triggers, sensors)

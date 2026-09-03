@@ -1,11 +1,11 @@
-"""TunerStudio INI ECU-definition ingester — cross-platform table vocabulary (reference tier).
+"""TunerStudio INI ECU-definition ingester, cross-platform table vocabulary (reference tier).
 
-Clones speeduino/speeduino (GPL) and parses reference/speeduino.ini — the TunerStudio
+Clones speeduino/speeduino (GPL) and parses reference/speeduino.ini, the TunerStudio
 definition that names every tunable table/curve of a *generic* open ECU (VE table, AFR target,
 warmup enrichment, dead time, accel enrich, timing map...). One Document per [TableEditor] /
 [CurveEditor] entry. This is the CROSS-PLATFORM analogue of romraider_defs: it gives the judge
 and the future semantic table layer a universal vocabulary for "the tables every ECU has",
-independent of the Subaru names. (rusEFI's ini is skipped — rusefi_docs already covers its
+independent of the Subaru names. (rusEFI's ini is skipped, rusefi_docs already covers its
 semantics; logged in decisions.md.)
 """
 from __future__ import annotations

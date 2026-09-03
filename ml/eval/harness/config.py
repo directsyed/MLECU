@@ -1,4 +1,4 @@
-"""Harness config — plain dataclasses, defaults mirror ml/curation/config.yaml so every arm
+"""Harness config, plain dataclasses, defaults mirror ml/curation/config.yaml so every arm
 talks to the same llama-server the judge certified (same model tag recorded into results)."""
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class LlmCfg:
 
 @dataclass(frozen=True)
 class RetrievalCfg:
-    # Same knobs the judge grounds with (config.yaml D2) — arm B retrieves like the judge does.
+    # Same knobs the judge grounds with (config.yaml D2), arm B retrieves like the judge does.
     db_path: Path = MLECU / "ml/data-pipeline/data/corpus.sqlite"
     top_k: int = 3
     snippet_max_chars: int = 1200
@@ -43,13 +43,13 @@ class RetrievalCfg:
     # mode="bm25" reproduces retrieval-v1 byte-for-byte (audit/repro); "hybrid" fuses
     # BM25 with BGE-M3 cosine ranks via RRF. Falls back to bm25 if the index is absent.
     mode: str = "hybrid"
-    # v2 (2026-08-02, audit A10): v1 was built at 5,608 rows and ref_fts grew to 5,638 — 30
+    # v2 (2026-08-02, audit A10): v1 was built at 5,608 rows and ref_fts grew to 5,638, 30
     # chunks were invisible to the dense ranker for the entire showdown, undetected. v2 is a
     # full rebuild carrying an n_rows stamp that retrieval.py checks against the live DB at
     # load. v1 stays on disk (stale, do not use) so showdown cells remain reproducible.
     index_path: Path = EVAL_DIR / "data/ref_dense_v2.npz"
     # Snippet extraction (2026-08-02): unified char-window for every hit in hybrid mode.
-    # snippet_max_chars is a target — the window may overshoot by up to one token plus
+    # snippet_max_chars is a target, the window may overshoot by up to one token plus
     # NUM_RUN_MAX_EXTEND chars when the boundary would otherwise cut a number in half.
     snippet_window_lead_frac: float = 0.25   # share of the window placed BEFORE the match
     # --- community index (2026-08-16, Syed ruling 3: SEPARATE index, results tagged by tier,
@@ -57,7 +57,7 @@ class RetrievalCfg:
     # defaults retrieval is byte-identical to before (tests/test_community_index.py proves it).
     # When enabled, community hits are retrieved from their own FTS table + dense index, fused
     # the same way, and APPENDED after the reference top-k, each RefSnippet tagged
-    # tier="community" — the reference results themselves do not change.
+    # tier="community", the reference results themselves do not change.
     community_fts: str | None = None            # e.g. "community_fts" (built by judge/retrieval)
     community_index_path: Path | None = None    # e.g. EVAL_DIR/"data/community_dense_v2.npz"
     community_top_k: int = 0                    # 0 = off
@@ -75,5 +75,5 @@ class Config:
     cases_path: Path = EVAL_DIR / "data/sim_cases_v1.jsonl"
     results_dir: Path = EVAL_DIR / "results"
     # scoring must be IDENTICAL to the rules-baseline scoring or the 85.7%/100% bar is
-    # meaningless — we import the ecutune scorer by file path rather than reimplementing it.
+    # meaningless; we import the ecutune scorer by file path rather than reimplementing it.
     scoring_py: Path = MLECU / "car/ecutune/evals/scoring.py"
